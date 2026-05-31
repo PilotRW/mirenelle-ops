@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mirenelle Ops</title>
+    <link rel="icon" type="image/png" href="/ui/favicon.png" />
+    <link rel="stylesheet" href="/ui/styles.css" />
+  </head>
+  <body>
+    <div class="appShell">
+      <aside class="sidebar">
+        <div class="brandBlock">
+          <button id="sidebarToggle" class="iconButton ghost" type="button" aria-label="Menu">☰</button>
+          <div class="brandName">mirenelle<span>ops</span></div>
+        </div>
+
+        <nav class="sideNav" aria-label="Main">
+          <div class="navGroup">
+            <p data-i18n="nav.overview">Overview</p>
+            <button class="navItem active" type="button" data-section-target="dashboard">
+              <span>▦</span><span data-i18n="nav.dashboard">Dashboard</span>
+            </button>
+            <button class="navItem" type="button" data-section-target="cashflow">
+              <span>$</span><span data-i18n="section.generalCashflow">General Cashflow</span>
+            </button>
+            <button class="navItem" type="button" data-section-target="profitability">
+              <span>↗</span><span data-i18n="section.productProfitability">Product Profitability</span>
+            </button>
+          </div>
+
+          <div class="navGroup">
+            <p data-i18n="nav.imports">Imports</p>
+            <button class="navItem" type="button" data-section-target="payments">
+              <span>▤</span><span data-i18n="section.amazonPayments">Amazon Payments</span>
+            </button>
+            <button class="navItem" type="button" data-section-target="invoices">
+              <span>▣</span><span data-i18n="section.purchaseInvoices">Purchase Invoices</span>
+            </button>
+            <button class="navItem" type="button" data-section-target="costs">
+              <span>◫</span><span data-i18n="section.productCosts">Product Costs</span>
+            </button>
+          </div>
+
+          <div class="navGroup">
+            <p data-i18n="nav.operations">Operations</p>
+            <button class="navItem" type="button" data-section-target="mappings">
+              <span>⇄</span><span data-i18n="section.productMappings">Product Mappings</span>
+            </button>
+            <button class="navItem" type="button" data-section-target="settings">
+              <span>⚙</span><span data-i18n="nav.settings">Settings</span>
+            </button>
+          </div>
+        </nav>
+      </aside>
+
+      <div class="mainArea">
+        <header class="topbar">
+          <div>
+            <h1 id="pageTitle" data-i18n="nav.dashboard">Dashboard</h1>
+            <p data-i18n="app.tagline">Amazon accounting imports, product costs, and monthly cashflow.</p>
+          </div>
+          <div class="topActions">
+            <label class="searchBox" aria-label="Search">
+              <span>⌕</span>
+              <input id="globalSearch" type="search" data-i18n-placeholder="field.search" placeholder="Search" />
+            </label>
+            <select id="periodPreset" class="periodPreset" aria-label="Period">
+              <option value="all" data-i18n="period.all">All time</option>
+              <option value="thisMonth" data-i18n="period.thisMonth">This month</option>
+              <option value="lastMonth" data-i18n="period.lastMonth">Last month</option>
+              <option value="custom" data-i18n="period.custom">Custom</option>
+            </select>
+            <input id="startDateFilter" class="dateFilter" type="date" aria-label="Start date" />
+            <input id="endDateFilter" class="dateFilter" type="date" aria-label="End date" />
+            <select id="languageSelect" class="languageSelect" aria-label="Language">
+              <option value="en">EN</option>
+              <option value="de">DE</option>
+              <option value="uk">UA</option>
+            </select>
+            <button id="refreshButton" class="secondaryButton" type="button" data-i18n="action.refresh">Refresh</button>
+            <button id="mockCostsButton" type="button" data-i18n="action.mockCosts">Mock Costs</button>
+          </div>
+        </header>
+
+        <main class="workspace">
+          <section id="section-dashboard" class="pageSection active">
+            <div id="dashboardCards" class="metricGrid"></div>
+            <div class="splitPanel">
+              <section class="panel">
+                <div class="sectionHeader">
+                  <h2 data-i18n="section.productProfitability">Product Profitability</h2>
+                  <span id="profitStatus" class="status" data-status-key="status.loaded">Loaded</span>
+                </div>
+                <div id="profitTotals" class="kpis"></div>
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th data-i18n="table.product">Product</th>
+                        <th data-i18n="field.currency">Currency</th>
+                        <th data-i18n="table.units">Units</th>
+                        <th data-i18n="table.revenueEur">Revenue EUR</th>
+                        <th data-i18n="table.costEur">Cost EUR</th>
+                        <th data-i18n="table.cogsEur">COGS EUR</th>
+                        <th data-i18n="table.grossProfit">Gross Profit</th>
+                        <th data-i18n="table.roi">ROI</th>
+                        <th data-i18n="table.status">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="profitRows"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section id="section-payments" class="pageSection">
+            <section class="panel">
+              <div class="sectionHeader">
+                <h2 data-i18n="section.amazonPayments">Amazon Payments</h2>
+                <span id="paymentStatus" class="status" data-status-key="status.ready">Ready</span>
+              </div>
+              <form id="paymentForm" class="formRow paymentForm">
+                <label>
+                  <span data-i18n="field.marketplace">Marketplace</span>
+                  <select name="marketplace" required>
+                    <option value="DE">Germany - amazon.de</option>
+                    <option value="FR">France - amazon.fr</option>
+                    <option value="IT">Italy - amazon.it</option>
+                    <option value="ES">Spain - amazon.es</option>
+                    <option value="NL">Netherlands - amazon.nl</option>
+                    <option value="BE">Belgium - amazon.com.be</option>
+                    <option value="PL">Poland - amazon.pl</option>
+                    <option value="SE">Sweden - amazon.se</option>
+                    <option value="UK">United Kingdom - amazon.co.uk</option>
+                    <option value="IE">Ireland - amazon.ie</option>
+                  </select>
+                </label>
+                <label class="fileInput">
+                  <span data-i18n="field.transactionCsv">Transaction CSV</span>
+                  <input name="file" type="file" accept=".csv" required />
+                </label>
+                <button type="submit" data-i18n="action.commit">Commit</button>
+              </form>
+              <div class="tableWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="table.id">ID</th>
+                      <th data-i18n="field.marketplace">Marketplace</th>
+                      <th data-i18n="table.rows">Rows</th>
+                      <th data-i18n="table.period">Period</th>
+                      <th data-i18n="table.file">File</th>
+                    </tr>
+                  </thead>
+                  <tbody id="paymentImports"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <section id="section-invoices" class="pageSection">
+            <section class="panel">
+              <div class="sectionHeader">
+                <h2 data-i18n="section.purchaseInvoices">Purchase Invoices</h2>
+                <span id="invoiceStatus" class="status" data-status-key="status.ready">Ready</span>
+              </div>
+              <form id="invoiceForm" class="formRow invoiceForm">
+                <label>
+                  <span data-i18n="field.supplier">Supplier</span>
+                  <input name="supplier_name" />
+                </label>
+                <label>
+                  <span data-i18n="field.invoiceNumber">Invoice number</span>
+                  <input name="invoice_number" />
+                </label>
+                <label>
+                  <span data-i18n="field.invoiceDate">Invoice date</span>
+                  <input name="invoice_date" type="date" />
+                </label>
+                <label>
+                  <span data-i18n="field.currency">Currency</span>
+                  <input name="currency" maxlength="8" value="EUR" required />
+                </label>
+                <label class="fileInput">
+                  <span data-i18n="field.invoiceFile">Invoice CSV/XLSX/PDF</span>
+                  <input name="file" type="file" accept=".csv,.xlsx,.xls,.pdf" required />
+                </label>
+                <button type="submit" data-i18n="action.commit">Commit</button>
+                <button id="invoicePreviewButton" class="secondaryButton" type="button" data-i18n="action.preview">Preview</button>
+              </form>
+              <div id="invoicePreview" class="humanPreview empty" data-i18n="message.noPreview">No preview loaded.</div>
+              <div class="tableWrap twoTables">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="table.id">ID</th>
+                      <th data-i18n="field.supplier">Supplier</th>
+                      <th data-i18n="field.invoiceNumber">Invoice number</th>
+                      <th data-i18n="table.rows">Rows</th>
+                      <th data-i18n="table.total">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="invoiceImports"></tbody>
+                </table>
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="table.month">Month</th>
+                      <th data-i18n="field.supplier">Supplier</th>
+                      <th data-i18n="table.quantity">Quantity</th>
+                      <th data-i18n="table.subtotal">Subtotal</th>
+                      <th data-i18n="table.total">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="purchaseSummaryRows"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <section id="section-costs" class="pageSection">
+            <section class="panel">
+              <div class="sectionHeader">
+                <h2 data-i18n="section.productCosts">Product Costs</h2>
+                <span id="costStatus" class="status" data-status-key="status.ready">Ready</span>
+              </div>
+              <form id="costForm" class="formRow costForm">
+                <label>
+                  <span data-i18n="field.effectiveDate">Effective date</span>
+                  <input name="effective_date" type="date" required />
+                </label>
+                <label class="fileInput">
+                  <span data-i18n="field.costFile">Cost CSV/XLSX</span>
+                  <input name="file" type="file" accept=".csv,.xlsx,.xls" required />
+                </label>
+                <button type="submit" data-i18n="action.commit">Commit</button>
+              </form>
+              <div class="tableWrap twoTables">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="table.id">ID</th>
+                      <th data-i18n="table.rows">Rows</th>
+                      <th data-i18n="table.effective">Effective</th>
+                      <th data-i18n="table.file">File</th>
+                    </tr>
+                  </thead>
+                  <tbody id="costImports"></tbody>
+                </table>
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="table.sku">SKU</th>
+                      <th data-i18n="table.name">Name</th>
+                      <th data-i18n="table.cost">Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody id="latestCosts"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <section id="section-cashflow" class="pageSection">
+            <section class="panel">
+              <div class="sectionHeader">
+                <h2 data-i18n="section.generalCashflow">General Cashflow</h2>
+                <span id="cashflowStatus" class="status" data-status-key="status.loaded">Loaded</span>
+              </div>
+              <div id="currencyTotals" class="kpis"></div>
+              <div class="tableWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="table.month">Month</th>
+                      <th data-i18n="table.market">Market</th>
+                      <th data-i18n="field.currency">Currency</th>
+                      <th data-i18n="table.fxToEur">FX to EUR</th>
+                      <th data-i18n="table.type">Type</th>
+                      <th data-i18n="table.rows">Rows</th>
+                      <th data-i18n="table.product">Product</th>
+                      <th data-i18n="table.promo">Promo</th>
+                      <th data-i18n="table.fees">Fees</th>
+                      <th data-i18n="table.other">Other</th>
+                      <th data-i18n="table.total">Total</th>
+                      <th data-i18n="table.totalEur">Total EUR</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cashflowRows"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <section id="section-profitability" class="pageSection">
+            <section class="panel">
+              <div class="sectionHeader">
+                <h2 data-i18n="section.productProfitability">Product Profitability</h2>
+                <span class="status" data-status-key="status.loaded">Loaded</span>
+              </div>
+              <div class="tableWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="table.product">Product</th>
+                      <th data-i18n="field.currency">Currency</th>
+                      <th data-i18n="table.units">Units</th>
+                      <th data-i18n="table.revenueEur">Revenue EUR</th>
+                      <th data-i18n="table.costEur">Cost EUR</th>
+                      <th data-i18n="table.cogsEur">COGS EUR</th>
+                      <th data-i18n="table.grossProfit">Gross Profit</th>
+                      <th data-i18n="table.roi">ROI</th>
+                      <th data-i18n="table.status">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="profitRowsMirror"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <section id="section-mappings" class="pageSection">
+            <section class="panel">
+              <div class="sectionHeader">
+                <h2 data-i18n="section.productMappings">Product Mappings</h2>
+                <span id="mappingStatus" class="status" data-status-key="status.ready">Ready</span>
+              </div>
+              <div class="tableWrap twoTables">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="table.invoiceProduct">Invoice product</th>
+                      <th data-i18n="table.amazonProduct">Amazon product</th>
+                      <th data-i18n="table.confidence">Confidence</th>
+                      <th data-i18n="table.action">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="mappingSuggestions"></tbody>
+                </table>
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="field.supplier">Supplier</th>
+                      <th data-i18n="table.invoiceProduct">Invoice product</th>
+                      <th data-i18n="table.amazonProduct">Amazon product</th>
+                      <th data-i18n="table.status">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="productMappings"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <section id="section-settings" class="pageSection">
+            <div class="splitPanel">
+              <section class="panel">
+                <div class="sectionHeader">
+                  <h2 data-i18n="section.fxRates">FX Rates</h2>
+                  <span id="fxStatus" class="status" data-status-key="status.ready">Ready</span>
+                </div>
+                <form id="fxForm" class="formRow fxForm">
+                  <label>
+                    <span data-i18n="field.currency">Currency</span>
+                    <select name="currency" required>
+                      <option value="SEK">SEK</option>
+                      <option value="GBP">GBP</option>
+                      <option value="PLN">PLN</option>
+                      <option value="EUR">EUR</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span data-i18n="field.rateToEur">Rate to EUR</span>
+                    <input name="rate_to_eur" type="number" min="0.000001" step="0.000001" required />
+                  </label>
+                  <label>
+                    <span data-i18n="field.effectiveDate">Effective date</span>
+                    <input name="effective_date" type="date" required />
+                  </label>
+                  <button type="submit" data-i18n="action.add">Add</button>
+                </form>
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th data-i18n="field.currency">Currency</th>
+                        <th data-i18n="field.rateToEur">Rate to EUR</th>
+                        <th data-i18n="table.effective">Effective</th>
+                      </tr>
+                    </thead>
+                    <tbody id="fxRates"></tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section class="panel">
+                <div class="sectionHeader">
+                  <h2 data-i18n="section.reportPreview">Report Preview</h2>
+                  <span id="genericStatus" class="status" data-status-key="status.ready">Ready</span>
+                </div>
+                <form id="genericPreviewForm" class="formRow genericForm">
+                  <label>
+                    <span data-i18n="field.reportType">Report type</span>
+                    <select name="report_type" required>
+                      <option value="customer_returns" data-i18n="report.customerReturns">Customer Returns</option>
+                      <option value="reimbursements" data-i18n="report.reimbursements">Reimbursements</option>
+                      <option value="service_fees" data-i18n="report.serviceFees">Service Fees</option>
+                    </select>
+                  </label>
+                  <label class="fileInput">
+                    <span data-i18n="field.csvReport">CSV report</span>
+                    <input name="file" type="file" accept=".csv" required />
+                  </label>
+                  <button type="submit" data-i18n="action.preview">Preview</button>
+                  <button id="genericCommitButton" class="secondaryButton" type="button" data-i18n="action.commitRaw">Commit raw</button>
+                </form>
+                <pre id="genericPreview" class="previewBox" data-i18n="message.noPreview">No preview loaded.</pre>
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th data-i18n="table.id">ID</th>
+                        <th data-i18n="table.type">Type</th>
+                        <th data-i18n="table.rows">Rows</th>
+                        <th data-i18n="table.file">File</th>
+                      </tr>
+                    </thead>
+                    <tbody id="genericImports"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script src="/ui/app.js"></script>
+  </body>
+</html>

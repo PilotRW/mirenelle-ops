@@ -1,0 +1,462 @@
+from datetime import date
+from decimal import Decimal
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
+from sqlalchemy import Select, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.database import get_db
+from app.models.amazon_payment_transaction import AmazonPaymentTransaction
+from app.models.product_cost import ProductCost
+from app.models.product_mapping import ProductMapping
+from app.models.purchase_invoice import PurchaseInvoice
+from app.models.purchase_invoice_line import PurchaseInvoiceLine
+from app.services.fx import convert_to_eur_with_rate, get_latest_fx_rates, get_rate_for_currency
+from app.services.transaction_classifier import is_order_payment
+
+
+router = APIRouter(prefix="/reports", tags=["reports"])
+
+
+class PaymentSummaryRow(BaseModel):
+    month: str
+    marketplace: str
+    currency: str
+    fx_rate_to_eur: float
+    transaction_type: str
+    rows: int
+    product_charges: float
+    promotional_rebates: float
+    amazon_fees: float
+    other_amount: float
+    total_amount: float
+    product_charges_eur: float
+    promotional_rebates_eur: float
+    amazon_fees_eur: float
+    other_amount_eur: float
+    total_amount_eur: float
+
+
+class CurrencyTotalRow(BaseModel):
+    currency: str
+    rows: int
+    product_charges: float
+    promotional_rebates: float
+    amazon_fees: float
+    other_amount: float
+    total_amount: float
+
+
+class GeneralTotalRow(BaseModel):
+    rows: int
+    product_charges_eur: float
+    promotional_rebates_eur: float
+    amazon_fees_eur: float
+    other_amount_eur: float
+    total_amount_eur: float
+
+
+class MonthlyCashflowResponse(BaseModel):
+    start_date: str | None
+    end_date: str | None
+    rows: list[PaymentSummaryRow]
+    totals_by_currency: list[CurrencyTotalRow]
+    general_total_eur: GeneralTotalRow
+
+
+class ProductCostRow(BaseModel):
+    sku: str
+    product_name: str | None
+    purchase_cost: float
+    currency: str
+    effective_date: str
+
+
+class ProductCostLatestResponse(BaseModel):
+    rows: list[ProductCostRow]
+
+
+class ProductProfitabilityRow(BaseModel):
+    product_details: str
+    currency: str
+    transaction_rows: int
+    units_estimated: int
+    revenue_original: float
+    revenue_eur: float
+    purchase_cost_eur: float | None
+    cogs_eur: float | None
+    gross_profit_eur: float | None
+    roi_percent: float | None
+    cost_match_status: str
+
+
+class ProductProfitabilitySummary(BaseModel):
+    products: int
+    matched_products: int
+    missing_cost_products: int
+    units_estimated: int
+    revenue_eur: float
+    cogs_eur: float
+    gross_profit_eur: float
+    roi_percent: float | None
+
+
+class ProductProfitabilityResponse(BaseModel):
+    summary: ProductProfitabilitySummary
+    rows: list[ProductProfitabilityRow]
+
+
+class PurchaseSummaryRow(BaseModel):
+    month: str
+    supplier_name: str
+    currency: str
+    invoices: int
+    lines: int
+    quantity: float
+    subtotal_amount: float
+    vat_amount: float
+    total_amount: float
+
+
+class PurchaseSummaryResponse(BaseModel):
+    rows: list[PurchaseSummaryRow]
+
+
+def money(value: Decimal | int | float | None) -> float:
+    return float(value or 0)
+
+
+def eur(value: Decimal | int | float | None, rate_to_eur: Decimal) -> float:
+    return money(convert_to_eur_with_rate(value, rate_to_eur))
+
+
+def apply_date_filters(query: Select, start_date: date | None, end_date: date | None) -> Select:
+    if start_date:
+        query = query.where(AmazonPaymentTransaction.transaction_date >= start_date)
+    if end_date:
+        query = query.where(AmazonPaymentTransaction.transaction_date <= end_date)
+    return query
+
+
+def apply_invoice_date_filters(query: Select, start_date: date | None, end_date: date | None) -> Select:
+    if start_date:
+        query = query.where(PurchaseInvoice.invoice_date >= start_date)
+    if end_date:
+        query = query.where(PurchaseInvoice.invoice_date <= end_date)
+    return query
+
+
+@router.get("/monthly-cashflow", response_model=MonthlyCashflowResponse)
+async def monthly_cashflow(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    start_date: Annotated[date | None, Query()] = None,
+    end_date: Annotated[date | None, Query()] = None,
+) -> MonthlyCashflowResponse:
+    month_expr = func.date_trunc("month", AmazonPaymentTransaction.transaction_date).label("month")
+    query = select(
+        month_expr,
+        AmazonPaymentTransaction.marketplace,
+        AmazonPaymentTransaction.currency,
+        AmazonPaymentTransaction.transaction_type,
+        func.count().label("rows"),
+        func.coalesce(func.sum(AmazonPaymentTransaction.product_charges), 0).label("product_charges"),
+        func.coalesce(func.sum(AmazonPaymentTransaction.promotional_rebates), 0).label("promotional_rebates"),
+        func.coalesce(func.sum(AmazonPaymentTransaction.amazon_fees), 0).label("amazon_fees"),
+        func.coalesce(func.sum(AmazonPaymentTransaction.other_amount), 0).label("other_amount"),
+        func.coalesce(func.sum(AmazonPaymentTransaction.total_amount), 0).label("total_amount"),
+    )
+    query = apply_date_filters(query, start_date, end_date)
+    query = query.group_by(
+        month_expr,
+        AmazonPaymentTransaction.marketplace,
+        AmazonPaymentTransaction.currency,
+        AmazonPaymentTransaction.transaction_type,
+    ).order_by(month_expr, AmazonPaymentTransaction.marketplace, AmazonPaymentTransaction.transaction_type)
+
+    result = await db.execute(query)
+    rates = await get_latest_fx_rates(db)
+    rows = []
+    for row in result:
+        rate_to_eur = get_rate_for_currency(rates, row.currency)
+        rows.append(
+            PaymentSummaryRow(
+                month=row.month.date().isoformat(),
+                marketplace=row.marketplace,
+                currency=row.currency,
+                fx_rate_to_eur=money(rate_to_eur),
+                transaction_type=row.transaction_type,
+                rows=row.rows,
+                product_charges=money(row.product_charges),
+                promotional_rebates=money(row.promotional_rebates),
+                amazon_fees=money(row.amazon_fees),
+                other_amount=money(row.other_amount),
+                total_amount=money(row.total_amount),
+                product_charges_eur=eur(row.product_charges, rate_to_eur),
+                promotional_rebates_eur=eur(row.promotional_rebates, rate_to_eur),
+                amazon_fees_eur=eur(row.amazon_fees, rate_to_eur),
+                other_amount_eur=eur(row.other_amount, rate_to_eur),
+                total_amount_eur=eur(row.total_amount, rate_to_eur),
+            )
+        )
+
+    totals: dict[str, dict[str, int | float]] = {}
+    general_total = {
+        "rows": 0,
+        "product_charges_eur": 0.0,
+        "promotional_rebates_eur": 0.0,
+        "amazon_fees_eur": 0.0,
+        "other_amount_eur": 0.0,
+        "total_amount_eur": 0.0,
+    }
+    for row in rows:
+        bucket = totals.setdefault(
+            row.currency,
+            {
+                "rows": 0,
+                "product_charges": 0.0,
+                "promotional_rebates": 0.0,
+                "amazon_fees": 0.0,
+                "other_amount": 0.0,
+                "total_amount": 0.0,
+            },
+        )
+        bucket["rows"] = int(bucket["rows"]) + row.rows
+        for field in (
+            "product_charges",
+            "promotional_rebates",
+            "amazon_fees",
+            "other_amount",
+            "total_amount",
+        ):
+            bucket[field] = round(float(bucket[field]) + getattr(row, field), 2)
+        general_total["rows"] = int(general_total["rows"]) + row.rows
+        for field in (
+            "product_charges_eur",
+            "promotional_rebates_eur",
+            "amazon_fees_eur",
+            "other_amount_eur",
+            "total_amount_eur",
+        ):
+            general_total[field] = round(float(general_total[field]) + getattr(row, field), 2)
+
+    return MonthlyCashflowResponse(
+        start_date=start_date.isoformat() if start_date else None,
+        end_date=end_date.isoformat() if end_date else None,
+        rows=rows,
+        totals_by_currency=[
+            CurrencyTotalRow(currency=currency, **values)
+            for currency, values in sorted(totals.items())
+        ],
+        general_total_eur=GeneralTotalRow(**general_total),
+    )
+
+
+@router.get("/product-costs/latest", response_model=ProductCostLatestResponse)
+async def latest_product_costs(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+) -> ProductCostLatestResponse:
+    result = await db.scalars(
+        select(ProductCost).order_by(
+            ProductCost.sku,
+            ProductCost.effective_date.desc(),
+            ProductCost.id.desc(),
+        )
+    )
+    latest_by_sku: dict[str, ProductCost] = {}
+    for row in result:
+        latest_by_sku.setdefault(row.sku, row)
+
+    return ProductCostLatestResponse(
+        rows=[
+            ProductCostRow(
+                sku=row.sku,
+                product_name=row.product_name,
+                purchase_cost=money(row.purchase_cost),
+                currency=row.currency,
+                effective_date=row.effective_date.isoformat(),
+            )
+            for row in list(latest_by_sku.values())[:limit]
+        ]
+    )
+
+
+@router.get("/product-profitability", response_model=ProductProfitabilityResponse)
+async def product_profitability(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    start_date: Annotated[date | None, Query()] = None,
+    end_date: Annotated[date | None, Query()] = None,
+) -> ProductProfitabilityResponse:
+    rates = await get_latest_fx_rates(db)
+
+    transaction_query = (
+        select(
+            AmazonPaymentTransaction.product_details,
+            AmazonPaymentTransaction.currency,
+            AmazonPaymentTransaction.transaction_type,
+            func.count().label("rows"),
+            func.coalesce(func.sum(AmazonPaymentTransaction.product_charges), 0).label("revenue_original"),
+        )
+        .where(AmazonPaymentTransaction.product_details.is_not(None))
+        .where(AmazonPaymentTransaction.product_details != "")
+    )
+    transaction_query = apply_date_filters(transaction_query, start_date, end_date)
+    transaction_query = transaction_query.group_by(
+        AmazonPaymentTransaction.product_details,
+        AmazonPaymentTransaction.currency,
+        AmazonPaymentTransaction.transaction_type,
+    )
+    transaction_rows = await db.execute(transaction_query)
+
+    by_product: dict[tuple[str, str], dict[str, float | int | str]] = {}
+    for row in transaction_rows:
+        key = (row.product_details, row.currency)
+        bucket = by_product.setdefault(
+            key,
+            {
+                "product_details": row.product_details,
+                "currency": row.currency,
+                "transaction_rows": 0,
+                "units_estimated": 0,
+                "revenue_original": 0.0,
+                "revenue_eur": 0.0,
+            },
+        )
+        rate_to_eur = get_rate_for_currency(rates, row.currency)
+        bucket["transaction_rows"] = int(bucket["transaction_rows"]) + int(row.rows)
+        bucket["revenue_original"] = round(float(bucket["revenue_original"]) + money(row.revenue_original), 2)
+        bucket["revenue_eur"] = round(
+            float(bucket["revenue_eur"]) + eur(row.revenue_original, rate_to_eur),
+            2,
+        )
+        if is_order_payment(row.transaction_type):
+            bucket["units_estimated"] = int(bucket["units_estimated"]) + int(row.rows)
+
+    latest_costs = await db.scalars(
+        select(ProductCost).order_by(ProductCost.product_name, ProductCost.effective_date.desc(), ProductCost.id.desc())
+    )
+    cost_by_name: dict[str, ProductCost] = {}
+    for cost in latest_costs:
+        if cost.product_name:
+            cost_by_name.setdefault(cost.product_name, cost)
+
+    mapping_cost_rows = await db.execute(
+        select(ProductMapping, ProductCost)
+        .join(PurchaseInvoiceLine, PurchaseInvoiceLine.id == ProductMapping.invoice_line_id)
+        .join(ProductCost, ProductCost.product_name == PurchaseInvoiceLine.product_name)
+        .order_by(
+            ProductMapping.amazon_product_details,
+            ProductCost.effective_date.desc(),
+            ProductCost.id.desc(),
+        )
+    )
+    cost_by_mapping: dict[str, ProductCost] = {}
+    for mapping, cost in mapping_cost_rows:
+        cost_by_mapping.setdefault(mapping.amazon_product_details, cost)
+
+    rows: list[ProductProfitabilityRow] = []
+    for bucket in by_product.values():
+        product_details = str(bucket["product_details"])
+        cost = cost_by_name.get(product_details) or cost_by_mapping.get(product_details)
+        purchase_cost_eur = money(cost.purchase_cost) if cost else None
+        units_estimated = int(bucket["units_estimated"])
+        cogs_eur = round(units_estimated * purchase_cost_eur, 2) if purchase_cost_eur is not None else None
+        gross_profit_eur = (
+            round(float(bucket["revenue_eur"]) - cogs_eur, 2)
+            if cogs_eur is not None
+            else None
+        )
+        roi_percent = (
+            round((gross_profit_eur / cogs_eur) * 100, 2)
+            if cogs_eur and gross_profit_eur is not None
+            else None
+        )
+        rows.append(
+            ProductProfitabilityRow(
+                product_details=product_details,
+                currency=str(bucket["currency"]),
+                transaction_rows=int(bucket["transaction_rows"]),
+                units_estimated=units_estimated,
+                revenue_original=float(bucket["revenue_original"]),
+                revenue_eur=float(bucket["revenue_eur"]),
+                purchase_cost_eur=purchase_cost_eur,
+                cogs_eur=cogs_eur,
+                gross_profit_eur=gross_profit_eur,
+                roi_percent=roi_percent,
+                cost_match_status="matched" if cost else "missing_cost",
+            )
+        )
+
+    rows.sort(key=lambda item: item.gross_profit_eur if item.gross_profit_eur is not None else -999999, reverse=True)
+    matched_rows = [row for row in rows if row.cost_match_status == "matched"]
+    revenue_eur = round(sum(row.revenue_eur for row in matched_rows), 2)
+    cogs_eur = round(sum(row.cogs_eur or 0 for row in matched_rows), 2)
+    gross_profit_eur = round(sum(row.gross_profit_eur or 0 for row in matched_rows), 2)
+    roi_percent = round((gross_profit_eur / cogs_eur) * 100, 2) if cogs_eur else None
+    return ProductProfitabilityResponse(
+        summary=ProductProfitabilitySummary(
+            products=len(rows),
+            matched_products=len(matched_rows),
+            missing_cost_products=len(rows) - len(matched_rows),
+            units_estimated=sum(row.units_estimated for row in matched_rows),
+            revenue_eur=revenue_eur,
+            cogs_eur=cogs_eur,
+            gross_profit_eur=gross_profit_eur,
+            roi_percent=roi_percent,
+        ),
+        rows=rows[:limit],
+    )
+
+
+@router.get("/purchase-summary", response_model=PurchaseSummaryResponse)
+async def purchase_summary(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    start_date: Annotated[date | None, Query()] = None,
+    end_date: Annotated[date | None, Query()] = None,
+) -> PurchaseSummaryResponse:
+    month_expr = func.date_trunc("month", PurchaseInvoice.invoice_date).label("month")
+    total_expr = func.coalesce(
+        PurchaseInvoiceLine.line_gross_amount,
+        PurchaseInvoiceLine.line_net_amount + func.coalesce(PurchaseInvoiceLine.vat_amount, 0),
+        PurchaseInvoiceLine.line_net_amount,
+        0,
+    )
+    query = (
+        select(
+            month_expr,
+            PurchaseInvoice.supplier_name,
+            PurchaseInvoice.currency,
+            func.count(func.distinct(PurchaseInvoice.id)).label("invoices"),
+            func.count(PurchaseInvoiceLine.id).label("lines"),
+            func.coalesce(func.sum(PurchaseInvoiceLine.quantity), 0).label("quantity"),
+            func.coalesce(func.sum(PurchaseInvoiceLine.line_net_amount), 0).label("subtotal_amount"),
+            func.coalesce(func.sum(PurchaseInvoiceLine.vat_amount), 0).label("vat_amount"),
+            func.coalesce(func.sum(total_expr), 0).label("total_amount"),
+        )
+        .join(PurchaseInvoiceLine, PurchaseInvoiceLine.invoice_id == PurchaseInvoice.id)
+    )
+    query = apply_invoice_date_filters(query, start_date, end_date)
+    query = query.group_by(month_expr, PurchaseInvoice.supplier_name, PurchaseInvoice.currency).order_by(
+        month_expr.desc(),
+        PurchaseInvoice.supplier_name,
+    )
+    result = await db.execute(query)
+    return PurchaseSummaryResponse(
+        rows=[
+            PurchaseSummaryRow(
+                month=row.month.date().isoformat() if row.month else "-",
+                supplier_name=row.supplier_name,
+                currency=row.currency,
+                invoices=row.invoices,
+                lines=row.lines,
+                quantity=float(row.quantity or 0),
+                subtotal_amount=money(row.subtotal_amount),
+                vat_amount=money(row.vat_amount),
+                total_amount=money(row.total_amount),
+            )
+            for row in result
+        ]
+    )
