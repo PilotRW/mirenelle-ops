@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
@@ -114,8 +114,16 @@ class PurchaseSummaryRow(BaseModel):
     currency: str
     invoices: int
     lines: int
+    product_lines: int
+    expense_lines: int
     quantity: float
     subtotal_amount: float
+    product_subtotal_amount: float
+    expense_subtotal_amount: float
+    inbound_shipping_amount: float
+    fulfillment_fee_amount: float
+    marketplace_fee_amount: float
+    other_service_amount: float
     vat_amount: float
     total_amount: float
 
@@ -431,8 +439,16 @@ async def purchase_summary(
             PurchaseInvoice.currency,
             func.count(func.distinct(PurchaseInvoice.id)).label("invoices"),
             func.count(PurchaseInvoiceLine.id).label("lines"),
-            func.coalesce(func.sum(PurchaseInvoiceLine.quantity), 0).label("quantity"),
+            func.coalesce(func.sum(case((PurchaseInvoiceLine.line_type == "product", 1), else_=0)), 0).label("product_lines"),
+            func.coalesce(func.sum(case((PurchaseInvoiceLine.line_type != "product", 1), else_=0)), 0).label("expense_lines"),
+            func.coalesce(func.sum(case((PurchaseInvoiceLine.line_type == "product", PurchaseInvoiceLine.quantity), else_=0)), 0).label("quantity"),
             func.coalesce(func.sum(PurchaseInvoiceLine.line_net_amount), 0).label("subtotal_amount"),
+            func.coalesce(func.sum(case((PurchaseInvoiceLine.line_type == "product", PurchaseInvoiceLine.line_net_amount), else_=0)), 0).label("product_subtotal_amount"),
+            func.coalesce(func.sum(case((PurchaseInvoiceLine.line_type != "product", PurchaseInvoiceLine.line_net_amount), else_=0)), 0).label("expense_subtotal_amount"),
+            func.coalesce(func.sum(case((PurchaseInvoiceLine.line_type == "inbound_shipping", PurchaseInvoiceLine.line_net_amount), else_=0)), 0).label("inbound_shipping_amount"),
+            func.coalesce(func.sum(case((PurchaseInvoiceLine.line_type == "fulfillment_fee", PurchaseInvoiceLine.line_net_amount), else_=0)), 0).label("fulfillment_fee_amount"),
+            func.coalesce(func.sum(case((PurchaseInvoiceLine.line_type == "marketplace_fee", PurchaseInvoiceLine.line_net_amount), else_=0)), 0).label("marketplace_fee_amount"),
+            func.coalesce(func.sum(case((PurchaseInvoiceLine.line_type.in_(("service", "other")), PurchaseInvoiceLine.line_net_amount), else_=0)), 0).label("other_service_amount"),
             func.coalesce(func.sum(PurchaseInvoiceLine.vat_amount), 0).label("vat_amount"),
             func.coalesce(func.sum(total_expr), 0).label("total_amount"),
         )
@@ -452,8 +468,16 @@ async def purchase_summary(
                 currency=row.currency,
                 invoices=row.invoices,
                 lines=row.lines,
+                product_lines=row.product_lines,
+                expense_lines=row.expense_lines,
                 quantity=float(row.quantity or 0),
                 subtotal_amount=money(row.subtotal_amount),
+                product_subtotal_amount=money(row.product_subtotal_amount),
+                expense_subtotal_amount=money(row.expense_subtotal_amount),
+                inbound_shipping_amount=money(row.inbound_shipping_amount),
+                fulfillment_fee_amount=money(row.fulfillment_fee_amount),
+                marketplace_fee_amount=money(row.marketplace_fee_amount),
+                other_service_amount=money(row.other_service_amount),
                 vat_amount=money(row.vat_amount),
                 total_amount=money(row.total_amount),
             )

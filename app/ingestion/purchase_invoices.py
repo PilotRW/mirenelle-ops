@@ -109,6 +109,38 @@ INVOICE_HEADER_ALIASES: dict[str, set[str]] = {
 
 REQUIRED_INVOICE_FIELDS = {"product_name", "quantity", "unit_cost"}
 DATE_FORMATS = ("%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y", "%d-%m-%Y")
+PRODUCT_LINE_TYPE = "product"
+INBOUND_SHIPPING_LINE_TYPE = "inbound_shipping"
+FULFILLMENT_FEE_LINE_TYPE = "fulfillment_fee"
+MARKETPLACE_FEE_LINE_TYPE = "marketplace_fee"
+SERVICE_LINE_TYPE = "service"
+OTHER_LINE_TYPE = "other"
+LINE_TYPE_CATEGORIES = {
+    PRODUCT_LINE_TYPE: None,
+    INBOUND_SHIPPING_LINE_TYPE: "inbound_shipping",
+    FULFILLMENT_FEE_LINE_TYPE: "fulfillment",
+    MARKETPLACE_FEE_LINE_TYPE: "marketplace_fee",
+    SERVICE_LINE_TYPE: "service",
+    OTHER_LINE_TYPE: "other",
+}
+LINE_TYPE_PATTERNS: list[tuple[str, str]] = [
+    (
+        INBOUND_SHIPPING_LINE_TYPE,
+        r"(versand|versandkosten|shipping|delivery|freight|transport|transportkosten|porto|livraison|exp[eé]dition|spedizione|env[ií]o|transporte|wysy[lł]ka|dostawa|bezorg|verzend|frakt|leverans|доставка|транспорт|перевезення)",
+    ),
+    (
+        FULFILLMENT_FEE_LINE_TYPE,
+        r"(fulfillment|fulfilment|fba|prep|pick[ -]?pack|lager|warehouse|storage|handling|fulfillment[ -]?center|logistik|logistics|magazyn|magazynowanie|склад|фулфілмент)",
+    ),
+    (
+        MARKETPLACE_FEE_LINE_TYPE,
+        r"(amazon fee|marketplace fee|referral fee|commission|provision|verkaufsgeb[uü]hr|geb[uü]hr|commissione|comisi[oó]n|prowizja|комісія)",
+    ),
+    (
+        SERVICE_LINE_TYPE,
+        r"(service|dienstleistung|servicio|servizi|us[lł]uga|servicekosten|сервіс|послуга)",
+    ),
+]
 PDF_HEADERS = [
     "Supplier SKU",
     "SKU",
@@ -415,6 +447,21 @@ def serialize_row(row: dict[str, str | Decimal | None]) -> dict[str, str | float
     return serialized
 
 
+def classify_invoice_line(
+    product_name: str,
+    sku: str | None = None,
+    supplier_sku: str | None = None,
+    ean: str | None = None,
+) -> tuple[str, str | None]:
+    normalized_name = normalize_header(product_name)
+    for line_type, pattern in LINE_TYPE_PATTERNS:
+        if re.search(pattern, normalized_name, flags=re.IGNORECASE):
+            return line_type, LINE_TYPE_CATEGORIES[line_type]
+    if sku or supplier_sku or ean:
+        return PRODUCT_LINE_TYPE, None
+    return OTHER_LINE_TYPE, LINE_TYPE_CATEGORIES[OTHER_LINE_TYPE]
+
+
 def build_purchase_invoice_preview(
     filename: str,
     content: bytes,
@@ -467,12 +514,23 @@ def build_purchase_invoice_preview(
                     vat_amount = (line_net * vat_rate / Decimal("100")).quantize(Decimal("0.01"))
                 if gross is None and line_net is not None and vat_amount is not None:
                     gross = (line_net + vat_amount).quantize(Decimal("0.01"))
+                supplier_sku = str(row.get(mapping.get("supplier_sku", ""), "")).strip() or None
+                sku = str(row.get(mapping.get("sku", ""), "")).strip() or None
+                ean = str(row.get(mapping.get("ean", ""), "")).strip() or None
+                line_type, expense_category = classify_invoice_line(
+                    product_name=product_name,
+                    sku=sku,
+                    supplier_sku=supplier_sku,
+                    ean=ean,
+                )
 
                 parsed_rows.append(
                     {
-                        "supplier_sku": str(row.get(mapping.get("supplier_sku", ""), "")).strip() or None,
-                        "sku": str(row.get(mapping.get("sku", ""), "")).strip() or None,
-                        "ean": str(row.get(mapping.get("ean", ""), "")).strip() or None,
+                        "supplier_sku": supplier_sku,
+                        "sku": sku,
+                        "ean": ean,
+                        "line_type": line_type,
+                        "expense_category": expense_category,
                         "product_name": product_name,
                         "quantity": quantity,
                         "unit_cost": unit_cost,
@@ -489,6 +547,10 @@ def build_purchase_invoice_preview(
     subtotal = sum((row["line_net_amount"] for row in parsed_rows if isinstance(row["line_net_amount"], Decimal)), Decimal("0"))
     vat_total = sum((row["vat_amount"] for row in parsed_rows if isinstance(row["vat_amount"], Decimal)), Decimal("0"))
     gross_total = sum((row["line_gross_amount"] for row in parsed_rows if isinstance(row["line_gross_amount"], Decimal)), Decimal("0"))
+    product_subtotal = sum((row["line_net_amount"] for row in parsed_rows if row.get("line_type") == PRODUCT_LINE_TYPE and isinstance(row["line_net_amount"], Decimal)), Decimal("0"))
+    expense_subtotal = sum((row["line_net_amount"] for row in parsed_rows if row.get("line_type") != PRODUCT_LINE_TYPE and isinstance(row["line_net_amount"], Decimal)), Decimal("0"))
+    product_quantity = sum((row["quantity"] for row in parsed_rows if row.get("line_type") == PRODUCT_LINE_TYPE and isinstance(row["quantity"], Decimal)), Decimal("0"))
+    total_line_quantity = sum((row["quantity"] for row in parsed_rows if isinstance(row["quantity"], Decimal)), Decimal("0"))
 
     return PurchaseInvoicePreview(
         filename=filename,
@@ -511,7 +573,10 @@ def build_purchase_invoice_preview(
             "subtotal_amount": decimal_to_float(subtotal) or 0,
             "vat_amount": decimal_to_float(vat_total) or 0,
             "total_amount": decimal_to_float(gross_total if gross_total else subtotal + vat_total) or 0,
-            "quantity": float(sum((row["quantity"] for row in parsed_rows if isinstance(row["quantity"], Decimal)), Decimal("0"))),
+            "quantity": float(product_quantity),
+            "line_quantity": float(total_line_quantity),
+            "product_subtotal_amount": decimal_to_float(product_subtotal) or 0,
+            "expense_subtotal_amount": decimal_to_float(expense_subtotal) or 0,
         },
         validation_errors=validation_errors,
     )

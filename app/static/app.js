@@ -8,6 +8,7 @@ const translations = {
     "action.preview": "Preview",
     "action.refresh": "Refresh",
     "action.useMatch": "Use",
+    "action.viewLines": "Lines",
     "field.costFile": "Cost CSV/XLSX",
     "field.csvReport": "CSV report",
     "field.currency": "Currency",
@@ -25,6 +26,7 @@ const translations = {
     "message.noData": "No data",
     "message.noPreview": "No preview loaded.",
     "preview.detectedFields": "Detected fields",
+    "preview.expenses": "Expenses",
     "preview.invoice": "Invoice",
     "preview.lines": "Lines",
     "preview.noIssues": "No issues detected.",
@@ -32,6 +34,7 @@ const translations = {
     "preview.previewReady": "Preview ready",
     "preview.quantity": "Quantity",
     "preview.subtotal": "Subtotal",
+    "preview.products": "Products",
     "preview.total": "Total",
     "preview.unknownHeaders": "Unknown headers",
     "preview.validationErrors": "Validation errors",
@@ -50,6 +53,7 @@ const translations = {
     "section.amazonPayments": "Amazon Payments",
     "section.fxRates": "FX Rates",
     "section.generalCashflow": "General Cashflow",
+    "section.invoiceLines": "Invoice Lines",
     "section.productCosts": "Product Costs",
     "section.productMappings": "Product Mappings",
     "section.productProfitability": "Product Profitability",
@@ -75,6 +79,7 @@ const translations = {
     "table.costCoverage": "Cost coverage",
     "table.costEur": "Cost EUR",
     "table.effective": "Effective",
+    "table.expenseCategory": "Expense category",
     "table.fees": "Fees",
     "table.file": "File",
     "table.fxToEur": "FX to EUR",
@@ -82,6 +87,8 @@ const translations = {
     "table.grossProfit": "Gross Profit",
     "table.id": "ID",
     "table.invoiceProduct": "Invoice product",
+    "table.inboundShipping": "Inbound shipping",
+    "table.lineType": "Line type",
     "table.market": "Market",
     "table.marketplaceCurrencyTotal": "{currency} marketplace currency total",
     "table.matchedCogs": "Matched COGS",
@@ -114,6 +121,7 @@ const translations = {
     "action.preview": "Vorschau",
     "action.refresh": "Aktualisieren",
     "action.useMatch": "Nutzen",
+    "action.viewLines": "Zeilen",
     "field.costFile": "Kosten CSV/XLSX",
     "field.csvReport": "CSV-Report",
     "field.currency": "Währung",
@@ -131,6 +139,7 @@ const translations = {
     "message.noData": "Keine Daten",
     "message.noPreview": "Keine Vorschau geladen.",
     "preview.detectedFields": "Erkannte Felder",
+    "preview.expenses": "Ausgaben",
     "preview.invoice": "Rechnung",
     "preview.lines": "Zeilen",
     "preview.noIssues": "Keine Probleme erkannt.",
@@ -138,6 +147,7 @@ const translations = {
     "preview.previewReady": "Vorschau bereit",
     "preview.quantity": "Menge",
     "preview.subtotal": "Zwischensumme",
+    "preview.products": "Produkte",
     "preview.total": "Summe",
     "preview.unknownHeaders": "Unbekannte Spalten",
     "preview.validationErrors": "Validierungsfehler",
@@ -156,6 +166,7 @@ const translations = {
     "section.amazonPayments": "Amazon-Zahlungen",
     "section.fxRates": "Wechselkurse",
     "section.generalCashflow": "Gesamt-Cashflow",
+    "section.invoiceLines": "Rechnungszeilen",
     "section.productCosts": "Einkaufspreise",
     "section.productMappings": "Produktzuordnung",
     "section.productProfitability": "Produktprofitabilität",
@@ -181,6 +192,7 @@ const translations = {
     "table.costCoverage": "Kostenabdeckung",
     "table.costEur": "Kosten EUR",
     "table.effective": "Gültig",
+    "table.expenseCategory": "Ausgabenkategorie",
     "table.fees": "Gebühren",
     "table.file": "Datei",
     "table.fxToEur": "Kurs zu EUR",
@@ -188,6 +200,8 @@ const translations = {
     "table.grossProfit": "Bruttogewinn",
     "table.id": "ID",
     "table.invoiceProduct": "Rechnungsprodukt",
+    "table.inboundShipping": "Transport",
+    "table.lineType": "Zeilentyp",
     "table.market": "Markt",
     "table.marketplaceCurrencyTotal": "{currency} Summe in Marktwährung",
     "table.matchedCogs": "Zugeordneter Wareneinsatz",
@@ -220,6 +234,7 @@ const translations = {
     "action.preview": "Preview",
     "action.refresh": "Оновити",
     "action.useMatch": "Застосувати",
+    "action.viewLines": "Позиції",
     "field.costFile": "Файл цін CSV/XLSX",
     "field.csvReport": "CSV-звіт",
     "field.currency": "Валюта",
@@ -237,6 +252,7 @@ const translations = {
     "message.noData": "Немає даних",
     "message.noPreview": "Preview ще не завантажено.",
     "preview.detectedFields": "Розпізнані поля",
+    "preview.expenses": "Витрати",
     "preview.invoice": "Інвойс",
     "preview.lines": "Рядки",
     "preview.noIssues": "Проблем не знайдено.",
@@ -244,6 +260,7 @@ const translations = {
     "preview.previewReady": "Preview готовий",
     "preview.quantity": "Кількість",
     "preview.subtotal": "Сума без ПДВ",
+    "preview.products": "Товари",
     "preview.total": "Разом",
     "preview.unknownHeaders": "Невідомі колонки",
     "preview.validationErrors": "Помилки перевірки",
@@ -262,6 +279,7 @@ const translations = {
     "section.amazonPayments": "Amazon платежі",
     "section.fxRates": "Курси валют",
     "section.generalCashflow": "Загальний cashflow",
+    "section.invoiceLines": "Позиції інвойсу",
     "section.productCosts": "Закупівельні ціни",
     "section.productMappings": "Мапінг товарів",
     "section.productProfitability": "Прибутковість товарів",
@@ -287,6 +305,7 @@ const translations = {
     "table.costCoverage": "Покриття цін",
     "table.costEur": "Ціна EUR",
     "table.effective": "Діє з",
+    "table.expenseCategory": "Категорія витрат",
     "table.fees": "Комісії",
     "table.file": "Файл",
     "table.fxToEur": "Курс до EUR",
@@ -294,6 +313,8 @@ const translations = {
     "table.grossProfit": "Валовий прибуток",
     "table.id": "ID",
     "table.invoiceProduct": "Товар з інвойсу",
+    "table.inboundShipping": "Транспорт",
+    "table.lineType": "Тип рядка",
     "table.market": "Маркет",
     "table.marketplaceCurrencyTotal": "{currency} сума у валюті маркету",
     "table.matchedCogs": "COGS зіставлених",
@@ -327,6 +348,8 @@ const state = {
   endDate: localStorage.getItem("mirenelleOpsEndDate") || "",
   purchaseSummary: null,
   profitSummary: null,
+  invoiceRows: [],
+  selectedInvoiceId: null,
 };
 
 const sectionTitleKey = {
@@ -438,6 +461,42 @@ const text = (value) => {
   return String(value);
 };
 
+function lineTypeLabel(value) {
+  const labels = {
+    product: {
+      en: "Product",
+      de: "Produkt",
+      uk: "Товар",
+    },
+    inbound_shipping: {
+      en: "Inbound shipping",
+      de: "Transport",
+      uk: "Транспорт",
+    },
+    fulfillment_fee: {
+      en: "Fulfillment",
+      de: "Fulfillment",
+      uk: "Фулфілмент",
+    },
+    marketplace_fee: {
+      en: "Marketplace fee",
+      de: "Marketplace-Gebühr",
+      uk: "Маркетплейс комісія",
+    },
+    service: {
+      en: "Service",
+      de: "Dienstleistung",
+      uk: "Послуга",
+    },
+    other: {
+      en: "Other",
+      de: "Sonstiges",
+      uk: "Інше",
+    },
+  };
+  return labels[value]?.[state.language] || labels[value]?.en || text(value);
+}
+
 const escapeHtml = (value) =>
   text(value)
     .replaceAll("&", "&amp;")
@@ -544,13 +603,15 @@ async function loadCosts() {
 
 async function loadInvoices() {
   const data = await requestJson("/imports/purchase-invoices");
+  state.invoiceRows = data.rows;
   renderRows("invoiceImports", data.rows, (row) => `
-    <tr>
+    <tr data-invoice-row="${row.invoice_id}" class="${String(row.invoice_id) === String(state.selectedInvoiceId) ? "selectedRow" : ""}">
       <td>${row.invoice_id}</td>
       <td>${text(row.supplier_name)}</td>
       <td>${text(row.invoice_number)}</td>
       <td class="num">${row.row_count}</td>
       <td class="num">${row.total_amount === null ? "-" : money(row.total_amount, row.currency)}</td>
+      <td><button type="button" class="compactButton" data-invoice-lines="${row.invoice_id}">${t("action.viewLines")}</button></td>
     </tr>
   `);
 
@@ -562,10 +623,46 @@ async function loadInvoices() {
       <td>${row.month}</td>
       <td>${text(row.supplier_name)}</td>
       <td class="num">${row.quantity}</td>
-      <td class="num">${money(row.subtotal_amount, row.currency)}</td>
+      <td class="num">${money(row.product_subtotal_amount ?? row.subtotal_amount, row.currency)}</td>
+      <td class="num">${money(row.expense_subtotal_amount ?? 0, row.currency)}</td>
+      <td class="num">${money(row.inbound_shipping_amount ?? 0, row.currency)}</td>
       <td class="num">${money(row.total_amount, row.currency)}</td>
     </tr>
   `);
+}
+
+async function loadInvoiceLines(invoiceId) {
+  setStatus("invoiceLinesStatus", "status.loading", false, true);
+  state.selectedInvoiceId = String(invoiceId);
+  document.querySelectorAll("#invoiceImports tr").forEach((row) => {
+    row.classList.toggle("selectedRow", row.dataset.invoiceRow === String(invoiceId));
+  });
+  const selected = state.invoiceRows.find((row) => String(row.invoice_id) === String(invoiceId));
+  const panel = document.getElementById("invoiceLinesPanel");
+  panel.classList.remove("hidden");
+  document.getElementById("selectedInvoiceInfo").innerHTML = selected
+    ? `
+      <div><span>ID</span><strong>${selected.invoice_id}</strong></div>
+      <div><span>${t("field.supplier")}</span><strong>${escapeHtml(selected.supplier_name)}</strong></div>
+      <div><span>${t("field.invoiceNumber")}</span><strong>${escapeHtml(selected.invoice_number)}</strong></div>
+      <div><span>${t("field.invoiceDate")}</span><strong>${escapeHtml(selected.invoice_date)}</strong></div>
+      <div><span>${t("table.total")}</span><strong>${selected.total_amount === null ? "-" : money(selected.total_amount, selected.currency)}</strong></div>
+    `
+    : "";
+  const data = await requestJson(`/imports/purchase-invoices/${invoiceId}/lines`);
+  renderRows("invoiceLineRows", data.rows, (row) => `
+    <tr>
+      <td>${lineTypeLabel(row.line_type)}</td>
+      <td>${text(row.sku || row.supplier_sku)}</td>
+      <td>${text(row.ean)}</td>
+      <td>${text(row.product_name)}</td>
+      <td class="num">${row.quantity}</td>
+      <td class="num">${money(row.unit_cost, row.currency)}</td>
+      <td class="num">${row.line_net_amount === null ? "-" : money(row.line_net_amount, row.currency)}</td>
+      <td>${text(row.expense_category)}</td>
+    </tr>
+  `);
+  setStatus("invoiceLinesStatus", "status.loaded", false, true);
 }
 
 function updateDashboardPurchase() {
@@ -575,9 +672,10 @@ function updateDashboardPurchase() {
   const quantity = document.getElementById("dashboardPurchaseQty");
   const rows = document.getElementById("dashboardPurchaseRows");
   const subtotalEur = summary.rows.reduce((sum, row) => sum + (row.currency === "EUR" ? row.subtotal_amount : 0), 0);
+  const productSubtotalEur = summary.rows.reduce((sum, row) => sum + (row.currency === "EUR" ? (row.product_subtotal_amount ?? row.subtotal_amount) : 0), 0);
   const qty = summary.rows.reduce((sum, row) => sum + row.quantity, 0);
   const lineCount = summary.rows.reduce((sum, row) => sum + row.lines, 0);
-  if (subtotal) subtotal.textContent = money(subtotalEur, "EUR");
+  if (subtotal) subtotal.textContent = money(productSubtotalEur || subtotalEur, "EUR");
   if (quantity) quantity.textContent = qty;
   if (rows) rows.textContent = lineCount;
 }
@@ -669,7 +767,8 @@ function renderInvoicePreview(preview) {
       <div><span>${t("field.currency")}</span><strong>${escapeHtml(preview.currency)}</strong></div>
       <div><span>${t("preview.lines")}</span><strong>${preview.parsed_row_count}/${preview.row_count}</strong></div>
       <div><span>${t("preview.quantity")}</span><strong>${preview.totals.quantity}</strong></div>
-      <div><span>${t("preview.subtotal")}</span><strong>${money(preview.totals.subtotal_amount, preview.currency)}</strong></div>
+      <div><span>${t("preview.products")}</span><strong>${money(preview.totals.product_subtotal_amount, preview.currency)}</strong></div>
+      <div><span>${t("preview.expenses")}</span><strong>${money(preview.totals.expense_subtotal_amount, preview.currency)}</strong></div>
       <div><span>${t("preview.total")}</span><strong>${money(preview.totals.total_amount, preview.currency)}</strong></div>
     </div>
     <div class="previewTableWrap">
@@ -677,6 +776,7 @@ function renderInvoicePreview(preview) {
         <thead>
           <tr>
             <th>${t("table.sku")}</th>
+            <th>${t("table.lineType")}</th>
             <th>EAN</th>
             <th>${t("table.product")}</th>
             <th>${t("table.quantity")}</th>
@@ -690,6 +790,7 @@ function renderInvoicePreview(preview) {
           ${rows.length ? rows.map((row) => `
             <tr>
               <td>${escapeHtml(row.sku || row.supplier_sku)}</td>
+              <td>${escapeHtml(lineTypeLabel(row.line_type))}</td>
               <td>${escapeHtml(row.ean)}</td>
               <td>${escapeHtml(row.product_name)}</td>
               <td class="num">${text(row.quantity)}</td>
@@ -698,7 +799,7 @@ function renderInvoicePreview(preview) {
               <td class="num">${row.vat_amount === null || row.vat_amount === undefined ? "-" : money(row.vat_amount, preview.currency)}</td>
               <td class="num">${row.line_gross_amount === null || row.line_gross_amount === undefined ? "-" : money(row.line_gross_amount, preview.currency)}</td>
             </tr>
-          `).join("") : `<tr><td class="muted" colspan="8">${t("message.noData")}</td></tr>`}
+          `).join("") : `<tr><td class="muted" colspan="9">${t("message.noData")}</td></tr>`}
         </tbody>
       </table>
     </div>
@@ -972,6 +1073,19 @@ document.getElementById("invoiceForm").addEventListener("submit", async (event) 
     await refreshAll();
   } catch (error) {
     setStatus("invoiceStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("invoiceImports").addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-invoice-lines]");
+  if (!button) return;
+  button.disabled = true;
+  try {
+    await loadInvoiceLines(button.dataset.invoiceLines);
+  } catch (error) {
+    setStatus("invoiceLinesStatus", error.message, true);
   } finally {
     button.disabled = false;
   }

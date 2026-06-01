@@ -264,6 +264,47 @@ button:disabled {
   padding: 18px;
 }
 
+.subPanel {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.selectedInvoiceInfo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1px;
+  margin-bottom: 14px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.selectedInvoiceInfo:empty {
+  display: none;
+}
+
+.selectedInvoiceInfo div {
+  padding: 10px 12px;
+  background: #fbfcfd;
+}
+
+.selectedInvoiceInfo span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.selectedInvoiceInfo strong {
+  display: block;
+  margin-top: 3px;
+}
+
+.hidden {
+  display: none;
+}
+
 .splitPanel {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -447,6 +488,15 @@ th {
 td {
   color: #111827;
   font-size: 13px;
+}
+
+tr.selectedRow td {
+  background: #eaf1ff;
+  border-bottom-color: #c7d7ff;
+}
+
+tr.selectedRow td:first-child {
+  box-shadow: inset 4px 0 0 var(--accent);
 }
 
 td:first-child,

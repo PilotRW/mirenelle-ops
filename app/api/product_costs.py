@@ -98,7 +98,9 @@ async def list_product_cost_imports(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ProductCostImportListResponse:
     result = await db.scalars(
-        select(ProductCostImport).order_by(ProductCostImport.created_at.desc())
+        select(ProductCostImport)
+        .where(~ProductCostImport.source_filename.ilike("invoice_costs_%"))
+        .order_by(ProductCostImport.created_at.desc())
     )
     return ProductCostImportListResponse(
         rows=[

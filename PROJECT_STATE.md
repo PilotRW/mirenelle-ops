@@ -103,6 +103,9 @@ Completed:
 - Added text-based PDF invoice preview/import via `pypdf`, including
   supplier/invoice metadata and EU-style line extraction for product, EAN,
   quantity, VAT, unit cost, and totals.
+- Added invoice line classification. Product lines are separated from inbound
+  shipping, fulfillment fees, marketplace fees, and service/other expense lines.
+  Only product lines create `product_costs`.
 - Added purchase summary report.
 - Verified sample invoice import updates product profitability from invoice
   unit costs.
@@ -119,11 +122,14 @@ Completed:
 
 Next:
 
-1. Test with the remaining marketplace transaction reports.
-2. Add OCR/repair fallback for image-based or malformed PDFs.
-3. Test purchase invoice importer with more supplier invoice layouts.
-4. Add manual edit/search flow for product mappings beyond suggested matches.
-5. Add Customer Returns import after seeing the real file headers.
-6. Add Reimbursements import after seeing the real file headers.
-7. Add Service Fees import if the separate report has richer fields than
+1. Test purchase invoice importer with more real supplier invoice layouts.
+2. Return to landed-cost allocation after several real invoice imports and
+   expense taxonomy stabilization. Initial default should likely allocate
+   inbound shipping by product subtotal, with quantity/manual alternatives.
+3. Test with the remaining marketplace transaction reports.
+4. Add OCR/repair fallback for image-based or malformed PDFs.
+5. Add manual edit/search flow for product mappings beyond suggested matches.
+6. Add Customer Returns import after seeing the real file headers.
+7. Add Reimbursements import after seeing the real file headers.
+8. Add Service Fees import if the separate report has richer fields than
    Transaction View.

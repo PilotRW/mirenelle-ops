@@ -122,6 +122,10 @@ extracts supplier, invoice number, invoice date, product lines, EAN, quantity,
 VAT, unit cost, net amount, computed VAT amount, and computed gross amount when
 those fields are present in the text layer.
 
+Invoice lines are classified before commit. Product lines create product costs;
+transport, fulfillment, marketplace fees, and service rows stay as separate
+expense lines for purchase/cashflow reporting and future landed-cost allocation.
+
 Product mappings connect supplier invoice lines to Amazon transaction product
 names when the names are not identical:
 

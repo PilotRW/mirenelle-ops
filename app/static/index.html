@@ -200,6 +200,7 @@
                       <th data-i18n="field.invoiceNumber">Invoice number</th>
                       <th data-i18n="table.rows">Rows</th>
                       <th data-i18n="table.total">Total</th>
+                      <th data-i18n="table.action">Action</th>
                     </tr>
                   </thead>
                   <tbody id="invoiceImports"></tbody>
@@ -210,12 +211,38 @@
                       <th data-i18n="table.month">Month</th>
                       <th data-i18n="field.supplier">Supplier</th>
                       <th data-i18n="table.quantity">Quantity</th>
-                      <th data-i18n="table.subtotal">Subtotal</th>
+                      <th data-i18n="preview.products">Products</th>
+                      <th data-i18n="preview.expenses">Expenses</th>
+                      <th data-i18n="table.inboundShipping">Inbound shipping</th>
                       <th data-i18n="table.total">Total</th>
                     </tr>
                   </thead>
                   <tbody id="purchaseSummaryRows"></tbody>
                 </table>
+              </div>
+              <div id="invoiceLinesPanel" class="subPanel hidden">
+                <div class="sectionHeader">
+                  <h2 data-i18n="section.invoiceLines">Invoice Lines</h2>
+                  <span id="invoiceLinesStatus" class="status" data-status-key="status.ready">Ready</span>
+                </div>
+                <div id="selectedInvoiceInfo" class="selectedInvoiceInfo"></div>
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th data-i18n="table.lineType">Line type</th>
+                        <th data-i18n="table.sku">SKU</th>
+                        <th>EAN</th>
+                        <th data-i18n="table.product">Product</th>
+                        <th data-i18n="table.quantity">Quantity</th>
+                        <th data-i18n="table.cost">Cost</th>
+                        <th data-i18n="table.subtotal">Subtotal</th>
+                        <th data-i18n="table.expenseCategory">Expense category</th>
+                      </tr>
+                    </thead>
+                    <tbody id="invoiceLineRows"></tbody>
+                  </table>
+                </div>
               </div>
             </section>
           </section>

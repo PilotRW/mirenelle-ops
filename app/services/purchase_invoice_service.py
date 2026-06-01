@@ -4,7 +4,7 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ingestion.purchase_invoices import PurchaseInvoicePreview, calculate_sha256
+from app.ingestion.purchase_invoices import PRODUCT_LINE_TYPE, PurchaseInvoicePreview, calculate_sha256
 from app.models.product_cost import ProductCost
 from app.models.product_cost_import import ProductCostImport
 from app.models.purchase_invoice import PurchaseInvoice
@@ -43,6 +43,11 @@ async def commit_purchase_invoice(
     db.add(invoice)
     await db.flush()
 
+    product_rows = [
+        parsed
+        for parsed in preview.parsed_rows
+        if parsed["line_type"] == PRODUCT_LINE_TYPE and (parsed["sku"] or parsed["supplier_sku"] or parsed["ean"])
+    ]
     cost_import = ProductCostImport(
         source_filename=f"invoice_costs_{preview.filename}",
         source_sha256=source_sha256,
@@ -53,7 +58,7 @@ async def commit_purchase_invoice(
             "sku": "invoice.sku_or_supplier_sku_or_ean",
             "purchase_cost": "invoice.unit_cost",
         },
-        row_count=len(preview.parsed_rows),
+        row_count=len(product_rows),
     )
     db.add(cost_import)
     await db.flush()
@@ -67,6 +72,8 @@ async def commit_purchase_invoice(
                 supplier_sku=parsed["supplier_sku"],
                 sku=parsed["sku"],
                 ean=parsed["ean"],
+                line_type=str(parsed["line_type"]),
+                expense_category=parsed["expense_category"],
                 product_name=str(parsed["product_name"]),
                 quantity=parsed["quantity"],
                 unit_cost=parsed["unit_cost"],
@@ -78,7 +85,7 @@ async def commit_purchase_invoice(
                 raw_row=raw_row,
             )
         )
-        if sku:
+        if sku and parsed["line_type"] == PRODUCT_LINE_TYPE:
             db.add(
                 ProductCost(
                     import_id=cost_import.id,

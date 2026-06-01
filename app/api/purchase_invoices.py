@@ -68,6 +68,8 @@ class PurchaseInvoiceLineRow(BaseModel):
     sku: str | None
     supplier_sku: str | None
     ean: str | None
+    line_type: str
+    expense_category: str | None
     product_name: str
     quantity: float
     unit_cost: float
@@ -226,6 +228,8 @@ async def list_purchase_invoice_lines(
                 sku=row.sku,
                 supplier_sku=row.supplier_sku,
                 ean=row.ean,
+                line_type=row.line_type,
+                expense_category=row.expense_category,
                 product_name=row.product_name,
                 quantity=float(row.quantity),
                 unit_cost=float(row.unit_cost),
