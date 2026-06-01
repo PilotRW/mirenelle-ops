@@ -67,7 +67,9 @@ class MonthlyCashflowResponse(BaseModel):
 
 
 class ProductCostRow(BaseModel):
+    id: int
     sku: str
+    ean: str | None
     product_name: str | None
     purchase_cost: float
     currency: str
@@ -311,7 +313,9 @@ async def latest_product_costs(
     return ProductCostLatestResponse(
         rows=[
             ProductCostRow(
+                id=row.id,
                 sku=row.sku,
+                ean=raw_lookup(row.raw_row, "ean", "EAN") or raw_lookup(row.raw_row.get("raw_row"), "ean", "EAN"),
                 product_name=row.product_name,
                 purchase_cost=money(row.purchase_cost),
                 currency=row.currency,

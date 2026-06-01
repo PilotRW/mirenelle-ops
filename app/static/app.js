@@ -8,6 +8,9 @@ const translations = {
     "action.preview": "Preview",
     "action.refresh": "Refresh",
     "action.search": "Search",
+    "action.save": "Save",
+    "action.clear": "Clear",
+    "action.edit": "Edit",
     "action.delete": "Delete",
     "action.syncOaCatalog": "Sync OA catalog",
     "action.useMatch": "Use",
@@ -31,6 +34,8 @@ const translations = {
     "message.noPreview": "No preview loaded.",
     "message.confirmDeletePayment": "Delete this Amazon Payments report? This will remove its transactions from analytics.",
     "message.confirmDeleteInvoice": "Delete this purchase invoice? Its invoice lines, invoice product costs, and mappings will be removed.",
+    "message.confirmDeleteCostImport": "Delete this product cost import? Its product costs will be removed from analytics.",
+    "message.confirmDeleteGenericReport": "Delete this raw report import?",
     "metric.withEan": "With EAN",
     "preview.detectedFields": "Detected fields",
     "preview.expenses": "Expenses",
@@ -138,6 +143,9 @@ const translations = {
     "action.preview": "Vorschau",
     "action.refresh": "Aktualisieren",
     "action.search": "Suchen",
+    "action.save": "Speichern",
+    "action.clear": "Leeren",
+    "action.edit": "Bearbeiten",
     "action.delete": "Löschen",
     "action.syncOaCatalog": "OA-Katalog synchronisieren",
     "action.useMatch": "Nutzen",
@@ -161,6 +169,8 @@ const translations = {
     "message.noPreview": "Keine Vorschau geladen.",
     "message.confirmDeletePayment": "Diesen Amazon-Zahlungsreport löschen? Die Transaktionen werden aus der Analyse entfernt.",
     "message.confirmDeleteInvoice": "Diese Einkaufsrechnung löschen? Rechnungszeilen, daraus erzeugte Produktkosten und Zuordnungen werden entfernt.",
+    "message.confirmDeleteCostImport": "Diesen Produktkosten-Import löschen? Die Produktkosten werden aus der Analyse entfernt.",
+    "message.confirmDeleteGenericReport": "Diesen Rohreport-Import löschen?",
     "metric.withEan": "Mit EAN",
     "preview.detectedFields": "Erkannte Felder",
     "preview.expenses": "Ausgaben",
@@ -268,6 +278,9 @@ const translations = {
     "action.preview": "Preview",
     "action.refresh": "Оновити",
     "action.search": "Пошук",
+    "action.save": "Зберегти",
+    "action.clear": "Очистити",
+    "action.edit": "Редагувати",
     "action.delete": "Видалити",
     "action.syncOaCatalog": "Синхронізувати OA каталог",
     "action.useMatch": "Застосувати",
@@ -291,6 +304,8 @@ const translations = {
     "message.noPreview": "Preview ще не завантажено.",
     "message.confirmDeletePayment": "Видалити цей Amazon Payments репорт? Його транзакції зникнуть з аналітики.",
     "message.confirmDeleteInvoice": "Видалити цей інвойс закупівлі? Позиції, створені ціни товарів і мапінги буде видалено.",
+    "message.confirmDeleteCostImport": "Видалити цей імпорт закупівельних цін? Його ціни зникнуть з аналітики.",
+    "message.confirmDeleteGenericReport": "Видалити цей raw-імпорт звіту?",
     "metric.withEan": "З EAN",
     "preview.detectedFields": "Розпізнані поля",
     "preview.expenses": "Витрати",
@@ -402,6 +417,7 @@ const state = {
   invoiceRows: [],
   selectedInvoiceId: null,
   unmappedInvoiceLines: [],
+  productCostRows: [],
 };
 
 const sectionTitleKey = {
@@ -658,15 +674,29 @@ async function loadCosts() {
       <td class="num">${row.row_count}</td>
       <td>${row.effective_date}</td>
       <td>${row.filename}</td>
+      <td>
+        <button
+          type="button"
+          class="compactButton dangerButton"
+          data-delete-cost-import="${row.import_id}"
+          data-delete-cost-import-name="${escapeHtml(row.filename)}"
+        >${t("action.delete")}</button>
+      </td>
     </tr>
   `);
 
   const latest = await requestJson("/reports/product-costs/latest");
+  state.productCostRows = latest.rows;
   renderRows("latestCosts", latest.rows, (row) => `
     <tr>
       <td>${row.sku}</td>
+      <td>${text(row.ean)}</td>
       <td>${text(row.product_name)}</td>
       <td class="num">${money(row.purchase_cost, row.currency)}</td>
+      <td>${row.effective_date}</td>
+      <td>
+        <button type="button" class="compactButton" data-edit-cost="${row.id}">${t("action.edit")}</button>
+      </td>
     </tr>
   `);
 }
@@ -841,6 +871,14 @@ async function loadGenericImports() {
       <td>${reportTypeLabel(row.report_type)}</td>
       <td class="num">${row.row_count}</td>
       <td>${row.filename}</td>
+      <td>
+        <button
+          type="button"
+          class="compactButton dangerButton"
+          data-delete-generic-import="${row.import_id}"
+          data-delete-generic-import-name="${escapeHtml(row.filename)}"
+        >${t("action.delete")}</button>
+      </td>
     </tr>
   `);
 }
@@ -1251,6 +1289,81 @@ document.getElementById("costForm").addEventListener("submit", (event) => {
   submitForm(event.currentTarget, "/imports/product-costs/commit", "costStatus");
 });
 
+function clearManualCostForm() {
+  document.getElementById("manualCostId").value = "";
+  document.getElementById("manualCostSku").value = "";
+  document.getElementById("manualCostEan").value = "";
+  document.getElementById("manualCostName").value = "";
+  document.getElementById("manualCostValue").value = "";
+  document.getElementById("manualCostDate").value = state.startDate || isoDate(new Date());
+}
+
+document.getElementById("manualCostForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const button = event.currentTarget.querySelector("button");
+  const costId = document.getElementById("manualCostId").value;
+  const payload = {
+    sku: document.getElementById("manualCostSku").value.trim(),
+    ean: document.getElementById("manualCostEan").value.trim() || null,
+    product_name: document.getElementById("manualCostName").value.trim() || null,
+    purchase_cost: Number(document.getElementById("manualCostValue").value),
+    currency: "EUR",
+    effective_date: document.getElementById("manualCostDate").value,
+  };
+  button.disabled = true;
+  setStatus("costStatus", "status.saving", false, true);
+  try {
+    await requestJson(costId ? `/imports/product-costs/lines/${costId}` : "/imports/product-costs/manual", {
+      method: costId ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    clearManualCostForm();
+    setStatus("costStatus", "status.saved", false, true);
+    await refreshAll();
+  } catch (error) {
+    setStatus("costStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("clearManualCostButton").addEventListener("click", clearManualCostForm);
+
+document.getElementById("latestCosts").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-edit-cost]");
+  if (!button) return;
+  const row = state.productCostRows.find((item) => String(item.id) === String(button.dataset.editCost));
+  if (!row) return;
+  document.getElementById("manualCostId").value = row.id;
+  document.getElementById("manualCostSku").value = row.sku || "";
+  document.getElementById("manualCostEan").value = row.ean || "";
+  document.getElementById("manualCostName").value = row.product_name || "";
+  document.getElementById("manualCostValue").value = row.purchase_cost || "";
+  document.getElementById("manualCostDate").value = row.effective_date || isoDate(new Date());
+});
+
+document.getElementById("costImports").addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-delete-cost-import]");
+  if (!button) return;
+  const filename = button.dataset.deleteCostImportName || "";
+  const confirmed = window.confirm(`${t("message.confirmDeleteCostImport")}\n\n${filename}`);
+  if (!confirmed) return;
+  button.disabled = true;
+  setStatus("costStatus", "status.loading", false, true);
+  try {
+    await requestJson(`/imports/product-costs/${button.dataset.deleteCostImport}`, {
+      method: "DELETE",
+    });
+    await refreshAll();
+    setStatus("costStatus", "status.loaded", false, true);
+  } catch (error) {
+    setStatus("costStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
 document.getElementById("invoicePreviewButton").addEventListener("click", async () => {
   const form = document.getElementById("invoiceForm");
   const button = document.getElementById("invoicePreviewButton");
@@ -1415,6 +1528,27 @@ document.getElementById("genericCommitButton").addEventListener("click", async (
   }
 });
 
+document.getElementById("genericImports").addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-delete-generic-import]");
+  if (!button) return;
+  const filename = button.dataset.deleteGenericImportName || "";
+  const confirmed = window.confirm(`${t("message.confirmDeleteGenericReport")}\n\n${filename}`);
+  if (!confirmed) return;
+  button.disabled = true;
+  setStatus("genericStatus", "status.loading", false, true);
+  try {
+    await requestJson(`/imports/report-preview/${button.dataset.deleteGenericImport}`, {
+      method: "DELETE",
+    });
+    await refreshAll();
+    setStatus("genericStatus", "status.loaded", false, true);
+  } catch (error) {
+    setStatus("genericStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
 document.getElementById("refreshButton").addEventListener("click", refreshAll);
 
 document.querySelectorAll(".navItem").forEach((button) => {
@@ -1477,6 +1611,7 @@ document.getElementById("mockCostsButton").addEventListener("click", async () =>
 });
 
 document.querySelector('#costForm input[name="effective_date"]').valueAsDate = new Date();
+document.getElementById("manualCostDate").valueAsDate = new Date();
 document.querySelector('#fxForm input[name="effective_date"]').valueAsDate = new Date();
 document.getElementById("languageSelect").value = state.language;
 syncPeriodControls();

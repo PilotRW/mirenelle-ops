@@ -2,12 +2,13 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
 from app.ingestion.generic_reports import build_generic_report_preview
 from app.models.generic_report_import import GenericReportImport
+from app.models.generic_report_row import GenericReportRow
 from app.services.amazon_payment_import_service import DuplicateImportError
 from app.services.generic_report_import_service import commit_generic_report_import
 
@@ -46,6 +47,11 @@ class GenericReportImportRow(BaseModel):
 
 class GenericReportImportListResponse(BaseModel):
     rows: list[GenericReportImportRow]
+
+
+class DeleteGenericReportImportResponse(BaseModel):
+    import_id: int
+    deleted: bool
 
 
 @router.post("", response_model=GenericReportPreviewResponse)
@@ -94,6 +100,20 @@ async def list_generic_report_imports(
             for row in result
         ]
     )
+
+
+@router.delete("/{import_id}", response_model=DeleteGenericReportImportResponse)
+async def delete_generic_report_import(
+    import_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> DeleteGenericReportImportResponse:
+    report_import = await db.get(GenericReportImport, import_id)
+    if report_import is None:
+        raise HTTPException(status_code=404, detail="Report import not found.")
+    await db.execute(delete(GenericReportRow).where(GenericReportRow.import_id == import_id))
+    await db.delete(report_import)
+    await db.commit()
+    return DeleteGenericReportImportResponse(import_id=import_id, deleted=True)
 
 
 @router.post("/commit", response_model=GenericReportCommitResponse)
