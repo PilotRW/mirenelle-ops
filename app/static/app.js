@@ -7,6 +7,9 @@ const translations = {
     "action.mockCosts": "Mock Costs",
     "action.preview": "Preview",
     "action.refresh": "Refresh",
+    "action.search": "Search",
+    "action.delete": "Delete",
+    "action.syncOaCatalog": "Sync OA catalog",
     "action.useMatch": "Use",
     "action.viewLines": "Lines",
     "field.costFile": "Cost CSV/XLSX",
@@ -21,10 +24,14 @@ const translations = {
     "field.reportType": "Report type",
     "field.search": "Search",
     "field.supplier": "Supplier",
+    "field.amazonProductSearch": "Amazon product search",
     "field.transactionCsv": "Transaction CSV",
     "message.committedRaw": "Committed raw report.",
     "message.noData": "No data",
     "message.noPreview": "No preview loaded.",
+    "message.confirmDeletePayment": "Delete this Amazon Payments report? This will remove its transactions from analytics.",
+    "message.confirmDeleteInvoice": "Delete this purchase invoice? Its invoice lines, invoice product costs, and mappings will be removed.",
+    "metric.withEan": "With EAN",
     "preview.detectedFields": "Detected fields",
     "preview.expenses": "Expenses",
     "preview.invoice": "Invoice",
@@ -56,6 +63,7 @@ const translations = {
     "section.invoiceLines": "Invoice Lines",
     "section.productCosts": "Product Costs",
     "section.productMappings": "Product Mappings",
+    "section.oaCatalog": "OA Catalog",
     "section.productProfitability": "Product Profitability",
     "section.purchaseInvoices": "Purchase Invoices",
     "section.reportPreview": "Report Preview",
@@ -67,12 +75,17 @@ const translations = {
     "status.mockingCosts": "Mocking costs",
     "status.matched": "matched",
     "status.missingCost": "missing cost",
+    "status.profitable": "profitable",
+    "status.loss": "loss",
+    "status.breakeven": "breakeven",
+    "status.unknown": "unknown",
     "status.ready": "Ready",
     "status.saved": "Saved",
     "status.saving": "Saving",
     "status.uploading": "Uploading",
     "table.action": "Action",
     "table.amazonProduct": "Amazon product",
+    "table.avgSellingPrice": "Avg selling price",
     "table.cogsEur": "COGS EUR",
     "table.confidence": "Confidence",
     "table.cost": "Cost",
@@ -86,10 +99,13 @@ const translations = {
     "table.generalTotalEur": "General total in EUR",
     "table.grossProfit": "Gross Profit",
     "table.id": "ID",
+    "table.identifiers": "ASIN / SKU / EAN",
     "table.invoiceProduct": "Invoice product",
     "table.inboundShipping": "Inbound shipping",
     "table.lineType": "Line type",
+    "table.lastSync": "Last sync",
     "table.market": "Market",
+    "table.margin": "Margin",
     "table.marketplaceCurrencyTotal": "{currency} marketplace currency total",
     "table.matchedCogs": "Matched COGS",
     "table.matchedGrossProfit": "Matched gross profit",
@@ -102,6 +118,7 @@ const translations = {
     "table.promo": "Promo",
     "table.quantity": "Quantity",
     "table.revenueEur": "Revenue EUR",
+    "table.revenue": "Revenue",
     "table.roi": "ROI",
     "table.rows": "Rows",
     "table.sku": "SKU",
@@ -120,6 +137,9 @@ const translations = {
     "action.mockCosts": "Preise mocken",
     "action.preview": "Vorschau",
     "action.refresh": "Aktualisieren",
+    "action.search": "Suchen",
+    "action.delete": "Löschen",
+    "action.syncOaCatalog": "OA-Katalog synchronisieren",
     "action.useMatch": "Nutzen",
     "action.viewLines": "Zeilen",
     "field.costFile": "Kosten CSV/XLSX",
@@ -134,10 +154,14 @@ const translations = {
     "field.reportType": "Reporttyp",
     "field.search": "Suchen",
     "field.supplier": "Lieferant",
+    "field.amazonProductSearch": "Amazon-Produkt suchen",
     "field.transactionCsv": "Transaktions-CSV",
     "message.committedRaw": "Rohdaten gespeichert.",
     "message.noData": "Keine Daten",
     "message.noPreview": "Keine Vorschau geladen.",
+    "message.confirmDeletePayment": "Diesen Amazon-Zahlungsreport löschen? Die Transaktionen werden aus der Analyse entfernt.",
+    "message.confirmDeleteInvoice": "Diese Einkaufsrechnung löschen? Rechnungszeilen, daraus erzeugte Produktkosten und Zuordnungen werden entfernt.",
+    "metric.withEan": "Mit EAN",
     "preview.detectedFields": "Erkannte Felder",
     "preview.expenses": "Ausgaben",
     "preview.invoice": "Rechnung",
@@ -169,6 +193,7 @@ const translations = {
     "section.invoiceLines": "Rechnungszeilen",
     "section.productCosts": "Einkaufspreise",
     "section.productMappings": "Produktzuordnung",
+    "section.oaCatalog": "OA-Katalog",
     "section.productProfitability": "Produktprofitabilität",
     "section.purchaseInvoices": "Einkaufsrechnungen",
     "section.reportPreview": "Report-Vorschau",
@@ -180,12 +205,17 @@ const translations = {
     "status.mockingCosts": "Mock-Preise werden erstellt",
     "status.matched": "zugeordnet",
     "status.missingCost": "Kosten fehlen",
+    "status.profitable": "profitabel",
+    "status.loss": "Verlust",
+    "status.breakeven": "Null",
+    "status.unknown": "unbekannt",
     "status.ready": "Bereit",
     "status.saved": "Gespeichert",
     "status.saving": "Speichert",
     "status.uploading": "Lädt hoch",
     "table.action": "Aktion",
     "table.amazonProduct": "Amazon-Produkt",
+    "table.avgSellingPrice": "Ø Verkaufspreis",
     "table.cogsEur": "Wareneinsatz EUR",
     "table.confidence": "Konfidenz",
     "table.cost": "Kosten",
@@ -199,10 +229,13 @@ const translations = {
     "table.generalTotalEur": "Gesamtsumme in EUR",
     "table.grossProfit": "Bruttogewinn",
     "table.id": "ID",
+    "table.identifiers": "ASIN / SKU / EAN",
     "table.invoiceProduct": "Rechnungsprodukt",
     "table.inboundShipping": "Transport",
     "table.lineType": "Zeilentyp",
+    "table.lastSync": "Letzte Synchronisierung",
     "table.market": "Markt",
+    "table.margin": "Marge",
     "table.marketplaceCurrencyTotal": "{currency} Summe in Marktwährung",
     "table.matchedCogs": "Zugeordneter Wareneinsatz",
     "table.matchedGrossProfit": "Zugeordneter Bruttogewinn",
@@ -215,6 +248,7 @@ const translations = {
     "table.promo": "Promo",
     "table.quantity": "Menge",
     "table.revenueEur": "Umsatz EUR",
+    "table.revenue": "Umsatz",
     "table.roi": "ROI",
     "table.rows": "Zeilen",
     "table.sku": "SKU",
@@ -233,6 +267,9 @@ const translations = {
     "action.mockCosts": "Mock цін",
     "action.preview": "Preview",
     "action.refresh": "Оновити",
+    "action.search": "Пошук",
+    "action.delete": "Видалити",
+    "action.syncOaCatalog": "Синхронізувати OA каталог",
     "action.useMatch": "Застосувати",
     "action.viewLines": "Позиції",
     "field.costFile": "Файл цін CSV/XLSX",
@@ -247,10 +284,14 @@ const translations = {
     "field.reportType": "Тип звіту",
     "field.search": "Пошук",
     "field.supplier": "Постачальник",
+    "field.amazonProductSearch": "Пошук Amazon товару",
     "field.transactionCsv": "CSV транзакцій",
     "message.committedRaw": "Raw-звіт збережено.",
     "message.noData": "Немає даних",
     "message.noPreview": "Preview ще не завантажено.",
+    "message.confirmDeletePayment": "Видалити цей Amazon Payments репорт? Його транзакції зникнуть з аналітики.",
+    "message.confirmDeleteInvoice": "Видалити цей інвойс закупівлі? Позиції, створені ціни товарів і мапінги буде видалено.",
+    "metric.withEan": "З EAN",
     "preview.detectedFields": "Розпізнані поля",
     "preview.expenses": "Витрати",
     "preview.invoice": "Інвойс",
@@ -282,6 +323,7 @@ const translations = {
     "section.invoiceLines": "Позиції інвойсу",
     "section.productCosts": "Закупівельні ціни",
     "section.productMappings": "Мапінг товарів",
+    "section.oaCatalog": "OA каталог",
     "section.productProfitability": "Прибутковість товарів",
     "section.purchaseInvoices": "Інвойси закупівель",
     "section.reportPreview": "Preview звіту",
@@ -293,12 +335,17 @@ const translations = {
     "status.mockingCosts": "Створюю mock ціни",
     "status.matched": "зіставлено",
     "status.missingCost": "немає ціни",
+    "status.profitable": "прибутковий",
+    "status.loss": "збитковий",
+    "status.breakeven": "в нуль",
+    "status.unknown": "невідомо",
     "status.ready": "Готово",
     "status.saved": "Збережено",
     "status.saving": "Збереження",
     "status.uploading": "Завантаження",
     "table.action": "Дія",
     "table.amazonProduct": "Amazon товар",
+    "table.avgSellingPrice": "Сер. ціна продажу",
     "table.cogsEur": "COGS EUR",
     "table.confidence": "Впевненість",
     "table.cost": "Ціна",
@@ -312,10 +359,13 @@ const translations = {
     "table.generalTotalEur": "Загальна сума в EUR",
     "table.grossProfit": "Валовий прибуток",
     "table.id": "ID",
+    "table.identifiers": "ASIN / SKU / EAN",
     "table.invoiceProduct": "Товар з інвойсу",
     "table.inboundShipping": "Транспорт",
     "table.lineType": "Тип рядка",
+    "table.lastSync": "Остання синхронізація",
     "table.market": "Маркет",
+    "table.margin": "Маржа",
     "table.marketplaceCurrencyTotal": "{currency} сума у валюті маркету",
     "table.matchedCogs": "COGS зіставлених",
     "table.matchedGrossProfit": "Прибуток зіставлених",
@@ -328,6 +378,7 @@ const translations = {
     "table.promo": "Промо",
     "table.quantity": "Кількість",
     "table.revenueEur": "Дохід EUR",
+    "table.revenue": "Дохід",
     "table.roi": "ROI",
     "table.rows": "Рядки",
     "table.sku": "SKU",
@@ -350,6 +401,7 @@ const state = {
   profitSummary: null,
   invoiceRows: [],
   selectedInvoiceId: null,
+  unmappedInvoiceLines: [],
 };
 
 const sectionTitleKey = {
@@ -505,6 +557,16 @@ const escapeHtml = (value) =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 
+function renderIdentifiers(row) {
+  return `
+    <div class="identifierStack">
+      <span><b>ASIN</b>${escapeHtml(row.asin)}</span>
+      <span><b>SKU</b>${escapeHtml(row.sku)}</span>
+      <span><b>EAN</b>${escapeHtml(row.ean)}</span>
+    </div>
+  `;
+}
+
 const setStatus = (id, message, isError = false, isKey = false) => {
   const element = document.getElementById(id);
   element.textContent = isKey ? t(message) : message;
@@ -576,6 +638,14 @@ async function loadPayments() {
       <td class="num">${row.row_count}</td>
       <td>${text(row.report_period_start)} - ${text(row.report_period_end)}</td>
       <td>${row.filename}</td>
+      <td>
+        <button
+          type="button"
+          class="compactButton dangerButton"
+          data-delete-payment="${row.import_id}"
+          data-delete-payment-name="${escapeHtml(row.filename)}"
+        >${t("action.delete")}</button>
+      </td>
     </tr>
   `);
 }
@@ -611,7 +681,15 @@ async function loadInvoices() {
       <td>${text(row.invoice_number)}</td>
       <td class="num">${row.row_count}</td>
       <td class="num">${row.total_amount === null ? "-" : money(row.total_amount, row.currency)}</td>
-      <td><button type="button" class="compactButton" data-invoice-lines="${row.invoice_id}">${t("action.viewLines")}</button></td>
+      <td class="actionsCell">
+        <button type="button" class="compactButton" data-invoice-lines="${row.invoice_id}">${t("action.viewLines")}</button>
+        <button
+          type="button"
+          class="compactButton dangerButton"
+          data-delete-invoice="${row.invoice_id}"
+          data-delete-invoice-name="${escapeHtml(row.invoice_number || row.filename)}"
+        >${t("action.delete")}</button>
+      </td>
     </tr>
   `);
 
@@ -681,10 +759,23 @@ function updateDashboardPurchase() {
 }
 
 async function loadProductMappings() {
-  const [suggestions, mappings] = await Promise.all([
+  const [suggestions, mappings, unmapped, amazonProducts] = await Promise.all([
     requestJson("/product-mappings/suggestions"),
     requestJson("/product-mappings"),
+    requestJson("/product-mappings/unmapped-invoice-lines"),
+    requestJson("/product-mappings/amazon-products"),
   ]);
+  state.unmappedInvoiceLines = unmapped.rows;
+  const lineSelect = document.getElementById("manualInvoiceLineSelect");
+  lineSelect.innerHTML = unmapped.rows.length
+    ? unmapped.rows.map((row) => `
+      <option value="${row.invoice_line_id}">
+        ${escapeHtml([row.supplier_sku || row.sku || row.ean, row.invoice_product_name].filter(Boolean).join(" · "))}
+      </option>
+    `).join("")
+    : `<option value="">${t("message.noData")}</option>`;
+  lineSelect.disabled = !unmapped.rows.length;
+  renderManualAmazonProducts(amazonProducts.rows);
   renderRows("mappingSuggestions", suggestions.rows, (row) => `
     <tr>
       <td>${text(row.invoice_product_name)}</td>
@@ -707,6 +798,21 @@ async function loadProductMappings() {
   `);
 }
 
+function renderManualAmazonProducts(rows) {
+  renderRows("manualAmazonProducts", rows, (row) => `
+    <tr>
+      <td>${text(row.amazon_product_details)}</td>
+      <td class="num">${row.transaction_rows}</td>
+      <td class="num">${money(row.revenue_eur_hint, "EUR")}</td>
+      <td>
+        <button type="button" class="compactButton" data-manual-map-product="${encodeURIComponent(row.amazon_product_details)}">
+          ${t("action.useMatch")}
+        </button>
+      </td>
+    </tr>
+  `);
+}
+
 async function loadFxRates() {
   const data = await requestJson("/settings/fx-rates");
   renderRows("fxRates", data.rows, (row) => `
@@ -716,6 +822,15 @@ async function loadFxRates() {
       <td>${row.effective_date}</td>
     </tr>
   `);
+}
+
+async function loadSupplierCatalogStats() {
+  const data = await requestJson("/integrations/oa-pipeline/catalog");
+  document.getElementById("catalogItems").textContent = data.items;
+  document.getElementById("catalogWithEan").textContent = data.with_ean;
+  document.getElementById("catalogLastSync").textContent = data.last_synced_at
+    ? new Date(data.last_synced_at).toLocaleString(localeByLanguage[state.language] || "en-US")
+    : "-";
 }
 
 async function loadGenericImports() {
@@ -743,6 +858,14 @@ function costMatchStatusLabel(status) {
   if (status === "matched") return t("status.matched");
   if (status === "missing_cost") return t("status.missingCost");
   return status;
+}
+
+function profitabilityStatusLabel(status) {
+  if (status === "profitable") return t("status.profitable");
+  if (status === "loss") return t("status.loss");
+  if (status === "breakeven") return t("status.breakeven");
+  if (status === "unknown") return t("status.unknown");
+  return text(status);
 }
 
 function renderInvoicePreview(preview) {
@@ -913,6 +1036,7 @@ function renderDashboardCards(data) {
       </div>
       <div class="metricBody">
         <div class="wideMetric"><span>${t("table.grossProfit")}</span><strong id="dashboardGrossProfit">-</strong></div>
+        <div><span>${t("table.margin")}</span><strong id="dashboardMargin">-</strong></div>
         <div><span>${t("table.roi")}</span><strong id="dashboardRoi">-</strong></div>
         <div><span>${t("table.costCoverage")}</span><strong id="dashboardCoverage">-</strong></div>
       </div>
@@ -926,9 +1050,11 @@ function updateDashboardProfit() {
   const summary = state.profitSummary;
   if (!summary) return;
   const grossProfit = document.getElementById("dashboardGrossProfit");
+  const margin = document.getElementById("dashboardMargin");
   const roi = document.getElementById("dashboardRoi");
   const coverage = document.getElementById("dashboardCoverage");
   if (grossProfit) grossProfit.textContent = money(summary.gross_profit_eur, "EUR");
+  if (margin) margin.textContent = summary.margin_percent === null ? "-" : `${summary.margin_percent}%`;
   if (roi) roi.textContent = summary.roi_percent === null ? "-" : `${summary.roi_percent}%`;
   if (coverage) coverage.textContent = `${summary.matched_products}/${summary.products}`;
 }
@@ -948,6 +1074,10 @@ async function loadProfitability() {
       <strong>${money(summary.cogs_eur, "EUR")}</strong>
     </div>
     <div class="kpi">
+      <span>${t("table.margin")}</span>
+      <strong>${summary.margin_percent === null ? "-" : `${summary.margin_percent}%`}</strong>
+    </div>
+    <div class="kpi">
       <span>${t("table.matchedRoi")}</span>
       <strong>${summary.roi_percent === null ? "-" : `${summary.roi_percent}%`}</strong>
     </div>
@@ -955,18 +1085,33 @@ async function loadProfitability() {
       <span>${t("table.costCoverage")}</span>
       <strong>${summary.matched_products}/${summary.products}</strong>
     </div>
+    <div class="kpi">
+      <span>${t("status.profitable")}</span>
+      <strong>${summary.profitable_products}</strong>
+    </div>
+    <div class="kpi">
+      <span>${t("status.loss")}</span>
+      <strong>${summary.loss_products}</strong>
+    </div>
+    <div class="kpi">
+      <span>${t("status.breakeven")}</span>
+      <strong>${summary.breakeven_products}</strong>
+    </div>
   `;
   const renderProfitRow = (row) => `
     <tr>
       <td>${text(row.product_details)}</td>
+      <td>${renderIdentifiers(row)}</td>
       <td>${row.currency}</td>
       <td class="num">${row.units_estimated}</td>
       <td class="num">${money(row.revenue_eur, "EUR")}</td>
+      <td class="num">${row.average_selling_price_eur === null ? "-" : money(row.average_selling_price_eur, "EUR")}</td>
       <td class="num">${row.purchase_cost_eur === null ? "-" : money(row.purchase_cost_eur, "EUR")}</td>
       <td class="num">${row.cogs_eur === null ? "-" : money(row.cogs_eur, "EUR")}</td>
       <td class="num">${row.gross_profit_eur === null ? "-" : money(row.gross_profit_eur, "EUR")}</td>
+      <td class="num">${row.margin_percent === null ? "-" : `${row.margin_percent}%`}</td>
       <td class="num">${row.roi_percent === null ? "-" : `${row.roi_percent}%`}</td>
-      <td>${costMatchStatusLabel(row.cost_match_status)}</td>
+      <td>${row.cost_match_status === "matched" ? profitabilityStatusLabel(row.profitability_status) : costMatchStatusLabel(row.cost_match_status)}</td>
     </tr>
   `;
   renderRows("profitRows", data.rows, renderProfitRow);
@@ -975,12 +1120,13 @@ async function loadProfitability() {
 
 async function refreshAll() {
   setStatus("cashflowStatus", "status.loading", false, true);
-  await Promise.all([loadPayments(), loadCosts(), loadInvoices(), loadProductMappings(), loadFxRates(), loadGenericImports(), loadCashflow(), loadProfitability()]);
+  await Promise.all([loadPayments(), loadCosts(), loadInvoices(), loadProductMappings(), loadFxRates(), loadSupplierCatalogStats(), loadGenericImports(), loadCashflow(), loadProfitability()]);
   setStatus("paymentStatus", "status.ready", false, true);
   setStatus("costStatus", "status.ready", false, true);
   setStatus("invoiceStatus", "status.ready", false, true);
   setStatus("mappingStatus", "status.ready", false, true);
   setStatus("fxStatus", "status.ready", false, true);
+  setStatus("catalogStatus", "status.ready", false, true);
   setStatus("cashflowStatus", "status.loaded", false, true);
   setStatus("profitStatus", "status.loaded", false, true);
   applySearchFilter();
@@ -1000,6 +1146,49 @@ document.getElementById("mappingSuggestions").addEventListener("click", async (e
         amazon_product_details: decodeURIComponent(button.dataset.amazonProduct),
         confidence: Number(button.dataset.confidence),
         match_method: "operator_confirmed",
+      }),
+    });
+    setStatus("mappingStatus", "status.saved", false, true);
+    await refreshAll();
+  } catch (error) {
+    setStatus("mappingStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("manualMappingForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const query = document.getElementById("amazonProductSearch").value.trim();
+  const button = event.currentTarget.querySelector("button");
+  button.disabled = true;
+  setStatus("mappingStatus", "status.loading", false, true);
+  try {
+    const data = await requestJson(`/product-mappings/amazon-products${query ? `?query=${encodeURIComponent(query)}` : ""}`);
+    renderManualAmazonProducts(data.rows);
+    setStatus("mappingStatus", "status.loaded", false, true);
+  } catch (error) {
+    setStatus("mappingStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("manualAmazonProducts").addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-manual-map-product]");
+  if (!button) return;
+  const lineSelect = document.getElementById("manualInvoiceLineSelect");
+  if (!lineSelect.value) return;
+  button.disabled = true;
+  setStatus("mappingStatus", "status.saving", false, true);
+  try {
+    await requestJson("/product-mappings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        invoice_line_id: Number(lineSelect.value),
+        amazon_product_details: decodeURIComponent(button.dataset.manualMapProduct),
+        match_method: "operator_manual_search",
       }),
     });
     setStatus("mappingStatus", "status.saved", false, true);
@@ -1032,6 +1221,29 @@ async function submitForm(form, endpoint, statusId, extra = () => {}) {
 document.getElementById("paymentForm").addEventListener("submit", (event) => {
   event.preventDefault();
   submitForm(event.currentTarget, "/imports/amazon-payments/commit", "paymentStatus");
+});
+
+document.getElementById("paymentImports").addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-delete-payment]");
+  if (!button) return;
+
+  const filename = button.dataset.deletePaymentName || "";
+  const confirmed = window.confirm(`${t("message.confirmDeletePayment")}\n\n${filename}`);
+  if (!confirmed) return;
+
+  button.disabled = true;
+  setStatus("paymentStatus", "status.loading", false, true);
+  try {
+    await requestJson(`/imports/amazon-payments/${button.dataset.deletePayment}`, {
+      method: "DELETE",
+    });
+    await refreshAll();
+    setStatus("paymentStatus", "status.loaded", false, true);
+  } catch (error) {
+    setStatus("paymentStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
 });
 
 document.getElementById("costForm").addEventListener("submit", (event) => {
@@ -1079,6 +1291,34 @@ document.getElementById("invoiceForm").addEventListener("submit", async (event) 
 });
 
 document.getElementById("invoiceImports").addEventListener("click", async (event) => {
+  const deleteButton = event.target.closest("button[data-delete-invoice]");
+  if (deleteButton) {
+    const label = deleteButton.dataset.deleteInvoiceName || "";
+    const confirmed = window.confirm(`${t("message.confirmDeleteInvoice")}\n\n${label}`);
+    if (!confirmed) return;
+
+    deleteButton.disabled = true;
+    setStatus("invoiceStatus", "status.loading", false, true);
+    try {
+      await requestJson(`/imports/purchase-invoices/${deleteButton.dataset.deleteInvoice}`, {
+        method: "DELETE",
+      });
+      if (String(state.selectedInvoiceId) === String(deleteButton.dataset.deleteInvoice)) {
+        state.selectedInvoiceId = null;
+        document.getElementById("invoiceLinesPanel").classList.add("hidden");
+        document.getElementById("selectedInvoiceInfo").innerHTML = "";
+        renderRows("invoiceLineRows", [], () => "");
+      }
+      await refreshAll();
+      setStatus("invoiceStatus", "status.loaded", false, true);
+    } catch (error) {
+      setStatus("invoiceStatus", error.message, true);
+    } finally {
+      deleteButton.disabled = false;
+    }
+    return;
+  }
+
   const button = event.target.closest("button[data-invoice-lines]");
   if (!button) return;
   button.disabled = true;
@@ -1114,6 +1354,21 @@ document.getElementById("fxForm").addEventListener("submit", async (event) => {
     await refreshAll();
   } catch (error) {
     setStatus("fxStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("syncCatalogButton").addEventListener("click", async () => {
+  const button = document.getElementById("syncCatalogButton");
+  button.disabled = true;
+  setStatus("catalogStatus", "status.loading", false, true);
+  try {
+    await requestJson("/integrations/oa-pipeline/catalog/sync", { method: "POST" });
+    await loadSupplierCatalogStats();
+    setStatus("catalogStatus", "status.loaded", false, true);
+  } catch (error) {
+    setStatus("catalogStatus", error.message, true);
   } finally {
     button.disabled = false;
   }

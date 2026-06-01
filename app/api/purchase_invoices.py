@@ -3,15 +3,19 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
-from app.ingestion.purchase_invoices import build_purchase_invoice_preview
+from app.ingestion.purchase_invoices import build_purchase_invoice_preview, serialize_row
 from app.models.purchase_invoice import PurchaseInvoice
 from app.models.purchase_invoice_line import PurchaseInvoiceLine
+from app.models.product_cost import ProductCost
+from app.models.product_cost_import import ProductCostImport
+from app.models.product_mapping import ProductMapping
 from app.services.amazon_payment_import_service import DuplicateImportError
 from app.services.purchase_invoice_service import commit_purchase_invoice
+from app.services.supplier_catalog_service import enrich_invoice_rows_from_catalog
 
 
 router = APIRouter(prefix="/imports/purchase-invoices", tags=["purchase-invoices"])
@@ -85,6 +89,11 @@ class PurchaseInvoiceLinesResponse(BaseModel):
     rows: list[PurchaseInvoiceLineRow]
 
 
+class DeleteInvoiceResponse(BaseModel):
+    invoice_id: int
+    deleted: bool
+
+
 def preview_response(preview) -> PurchaseInvoicePreviewResponse:
     return PurchaseInvoicePreviewResponse(
         filename=preview.filename,
@@ -108,9 +117,23 @@ def preview_response(preview) -> PurchaseInvoicePreviewResponse:
     )
 
 
+async def enrich_preview_from_catalog(db: AsyncSession, preview) -> None:
+    enriched_count = await enrich_invoice_rows_from_catalog(
+        db=db,
+        supplier_name=preview.supplier_name,
+        parsed_rows=preview.parsed_rows,
+    )
+    if enriched_count:
+        sample_size = len(preview.normalized_sample_rows) or 10
+        preview.normalized_sample_rows[:] = [
+            serialize_row(row) for row in preview.parsed_rows[:sample_size]
+        ]
+
+
 @router.post("/preview", response_model=PurchaseInvoicePreviewResponse)
 async def preview_purchase_invoice(
     file: Annotated[UploadFile, File()],
+    db: Annotated[AsyncSession, Depends(get_db)],
     supplier_name: Annotated[str, Form()] = "",
     invoice_number: Annotated[str | None, Form()] = None,
     invoice_date: Annotated[date | None, Form()] = None,
@@ -134,6 +157,7 @@ async def preview_purchase_invoice(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await enrich_preview_from_catalog(db, preview)
     return preview_response(preview)
 
 
@@ -163,6 +187,7 @@ async def commit_purchase_invoice_endpoint(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    await enrich_preview_from_catalog(db, preview)
     if not preview.can_commit:
         raise HTTPException(status_code=400, detail=preview_response(preview).model_dump())
     try:
@@ -220,6 +245,42 @@ async def list_purchase_invoice_lines(
         .where(PurchaseInvoiceLine.invoice_id == invoice_id)
         .order_by(PurchaseInvoiceLine.row_number)
     )
+
+
+@router.delete("/{invoice_id}", response_model=DeleteInvoiceResponse)
+async def delete_purchase_invoice(
+    invoice_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> DeleteInvoiceResponse:
+    invoice = await db.get(PurchaseInvoice, invoice_id)
+    if invoice is None:
+        raise HTTPException(status_code=404, detail="Purchase invoice not found.")
+
+    line_ids = await db.scalars(
+        select(PurchaseInvoiceLine.id).where(PurchaseInvoiceLine.invoice_id == invoice_id)
+    )
+    invoice_line_ids = list(line_ids)
+    if invoice_line_ids:
+        await db.execute(
+            delete(ProductMapping).where(ProductMapping.invoice_line_id.in_(invoice_line_ids))
+        )
+
+    cost_import = await db.scalar(
+        select(ProductCostImport)
+        .where(ProductCostImport.source_sha256 == invoice.source_sha256)
+        .where(ProductCostImport.source_filename.ilike("invoice_costs_%"))
+    )
+    if cost_import:
+        await db.execute(delete(ProductCost).where(ProductCost.import_id == cost_import.id))
+        await db.delete(cost_import)
+
+    await db.execute(
+        delete(PurchaseInvoiceLine).where(PurchaseInvoiceLine.invoice_id == invoice_id)
+    )
+    await db.delete(invoice)
+    await db.commit()
+
+    return DeleteInvoiceResponse(invoice_id=invoice_id, deleted=True)
     return PurchaseInvoiceLinesResponse(
         rows=[
             PurchaseInvoiceLineRow(

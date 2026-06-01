@@ -11,3 +11,4 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://oa:oa@host.docker.internal:5432/mirenelle_ops
       ALEMBIC_DATABASE_URL: postgresql+psycopg2://oa:oa@host.docker.internal:5432/mirenelle_ops
+      OA_DATABASE_URL: postgresql+asyncpg://oa:oa@host.docker.internal:5432/oa

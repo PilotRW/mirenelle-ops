@@ -99,6 +99,7 @@ async def commit_purchase_invoice(
                         "invoice_id": invoice.id,
                         "invoice_number": preview.invoice_number,
                         "supplier_name": preview.supplier_name,
+                        "ean": parsed["ean"],
                         "raw_row": raw_row,
                     },
                 )

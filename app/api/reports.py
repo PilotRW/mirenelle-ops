@@ -80,16 +80,33 @@ class ProductCostLatestResponse(BaseModel):
 
 class ProductProfitabilityRow(BaseModel):
     product_details: str
+    asin: str | None
+    sku: str | None
+    ean: str | None
     currency: str
     transaction_rows: int
     units_estimated: int
     revenue_original: float
     revenue_eur: float
+    average_selling_price_eur: float | None
     purchase_cost_eur: float | None
     cogs_eur: float | None
     gross_profit_eur: float | None
+    margin_percent: float | None
     roi_percent: float | None
+    profitability_status: str
     cost_match_status: str
+
+
+def raw_lookup(raw_row: dict | None, *keys: str) -> str | None:
+    if not raw_row:
+        return None
+    normalized = {str(key).lower(): value for key, value in raw_row.items()}
+    for key in keys:
+        value = raw_row.get(key) or normalized.get(key.lower())
+        if value:
+            return str(value)
+    return None
 
 
 class ProductProfitabilitySummary(BaseModel):
@@ -100,7 +117,21 @@ class ProductProfitabilitySummary(BaseModel):
     revenue_eur: float
     cogs_eur: float
     gross_profit_eur: float
+    margin_percent: float | None
     roi_percent: float | None
+    profitable_products: int
+    loss_products: int
+    breakeven_products: int
+
+
+def profitability_status(gross_profit_eur: float | None) -> str:
+    if gross_profit_eur is None:
+        return "unknown"
+    if gross_profit_eur > 0:
+        return "profitable"
+    if gross_profit_eur < 0:
+        return "loss"
+    return "breakeven"
 
 
 class ProductProfitabilityResponse(BaseModel):
@@ -321,6 +352,8 @@ async def product_profitability(
 
     by_product: dict[tuple[str, str], dict[str, float | int | str]] = {}
     for row in transaction_rows:
+        if not is_order_payment(row.transaction_type):
+            continue
         key = (row.product_details, row.currency)
         bucket = by_product.setdefault(
             key,
@@ -340,8 +373,7 @@ async def product_profitability(
             float(bucket["revenue_eur"]) + eur(row.revenue_original, rate_to_eur),
             2,
         )
-        if is_order_payment(row.transaction_type):
-            bucket["units_estimated"] = int(bucket["units_estimated"]) + int(row.rows)
+        bucket["units_estimated"] = int(bucket["units_estimated"]) + int(row.rows)
 
     latest_costs = await db.scalars(
         select(ProductCost).order_by(ProductCost.product_name, ProductCost.effective_date.desc(), ProductCost.id.desc())
@@ -352,7 +384,7 @@ async def product_profitability(
             cost_by_name.setdefault(cost.product_name, cost)
 
     mapping_cost_rows = await db.execute(
-        select(ProductMapping, ProductCost)
+        select(ProductMapping, ProductCost, PurchaseInvoiceLine)
         .join(PurchaseInvoiceLine, PurchaseInvoiceLine.id == ProductMapping.invoice_line_id)
         .join(ProductCost, ProductCost.product_name == PurchaseInvoiceLine.product_name)
         .order_by(
@@ -362,19 +394,42 @@ async def product_profitability(
         )
     )
     cost_by_mapping: dict[str, ProductCost] = {}
-    for mapping, cost in mapping_cost_rows:
+    sku_by_mapping: dict[str, str | None] = {}
+    ean_by_mapping: dict[str, str | None] = {}
+    for mapping, cost, invoice_line in mapping_cost_rows:
         cost_by_mapping.setdefault(mapping.amazon_product_details, cost)
+        sku_by_mapping.setdefault(mapping.amazon_product_details, invoice_line.sku or invoice_line.supplier_sku)
+        ean_by_mapping.setdefault(mapping.amazon_product_details, invoice_line.ean)
 
     rows: list[ProductProfitabilityRow] = []
     for bucket in by_product.values():
         product_details = str(bucket["product_details"])
         cost = cost_by_name.get(product_details) or cost_by_mapping.get(product_details)
+        sku = sku_by_mapping.get(product_details) or (cost.sku if cost else None)
+        asin = None
+        ean = ean_by_mapping.get(product_details)
+        if ean is None and cost:
+            asin = raw_lookup(cost.raw_row, "asin", "ASIN")
+            ean = raw_lookup(cost.raw_row, "ean", "EAN") or raw_lookup(cost.raw_row.get("raw_row"), "ean", "EAN")
+        elif cost:
+            asin = raw_lookup(cost.raw_row, "asin", "ASIN")
         purchase_cost_eur = money(cost.purchase_cost) if cost else None
         units_estimated = int(bucket["units_estimated"])
+        revenue_eur = float(bucket["revenue_eur"])
+        average_selling_price_eur = (
+            round(revenue_eur / units_estimated, 2)
+            if units_estimated
+            else None
+        )
         cogs_eur = round(units_estimated * purchase_cost_eur, 2) if purchase_cost_eur is not None else None
         gross_profit_eur = (
-            round(float(bucket["revenue_eur"]) - cogs_eur, 2)
+            round(revenue_eur - cogs_eur, 2)
             if cogs_eur is not None
+            else None
+        )
+        margin_percent = (
+            round((gross_profit_eur / revenue_eur) * 100, 2)
+            if revenue_eur and gross_profit_eur is not None
             else None
         )
         roi_percent = (
@@ -382,18 +437,25 @@ async def product_profitability(
             if cogs_eur and gross_profit_eur is not None
             else None
         )
+        status = profitability_status(gross_profit_eur)
         rows.append(
             ProductProfitabilityRow(
                 product_details=product_details,
+                asin=asin,
+                sku=sku,
+                ean=ean,
                 currency=str(bucket["currency"]),
                 transaction_rows=int(bucket["transaction_rows"]),
                 units_estimated=units_estimated,
                 revenue_original=float(bucket["revenue_original"]),
-                revenue_eur=float(bucket["revenue_eur"]),
+                revenue_eur=revenue_eur,
+                average_selling_price_eur=average_selling_price_eur,
                 purchase_cost_eur=purchase_cost_eur,
                 cogs_eur=cogs_eur,
                 gross_profit_eur=gross_profit_eur,
+                margin_percent=margin_percent,
                 roi_percent=roi_percent,
+                profitability_status=status,
                 cost_match_status="matched" if cost else "missing_cost",
             )
         )
@@ -403,6 +465,7 @@ async def product_profitability(
     revenue_eur = round(sum(row.revenue_eur for row in matched_rows), 2)
     cogs_eur = round(sum(row.cogs_eur or 0 for row in matched_rows), 2)
     gross_profit_eur = round(sum(row.gross_profit_eur or 0 for row in matched_rows), 2)
+    margin_percent = round((gross_profit_eur / revenue_eur) * 100, 2) if revenue_eur else None
     roi_percent = round((gross_profit_eur / cogs_eur) * 100, 2) if cogs_eur else None
     return ProductProfitabilityResponse(
         summary=ProductProfitabilitySummary(
@@ -413,7 +476,11 @@ async def product_profitability(
             revenue_eur=revenue_eur,
             cogs_eur=cogs_eur,
             gross_profit_eur=gross_profit_eur,
+            margin_percent=margin_percent,
             roi_percent=roi_percent,
+            profitable_products=sum(1 for row in matched_rows if row.profitability_status == "profitable"),
+            loss_products=sum(1 for row in matched_rows if row.profitability_status == "loss"),
+            breakeven_products=sum(1 for row in matched_rows if row.profitability_status == "breakeven"),
         ),
         rows=rows[:limit],
     )

@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
@@ -14,6 +14,8 @@ from app.services.amazon_payment_import_service import (
     commit_payment_transaction_import,
 )
 from app.models.amazon_payment_import import AmazonPaymentImport
+from app.models.amazon_payment_transaction import AmazonPaymentTransaction
+from app.models.amazon_payment_transaction_raw import AmazonPaymentTransactionRaw
 
 
 router = APIRouter(prefix="/imports/amazon-payments", tags=["amazon-payments"])
@@ -62,6 +64,11 @@ class AmazonPaymentImportRow(BaseModel):
 
 class AmazonPaymentImportListResponse(BaseModel):
     rows: list[AmazonPaymentImportRow]
+
+
+class DeleteImportResponse(BaseModel):
+    import_id: int
+    deleted: bool
 
 
 def build_preview_response(
@@ -133,6 +140,31 @@ async def list_amazon_payment_imports(
             for row in result
         ]
     )
+
+
+@router.delete("/{import_id}", response_model=DeleteImportResponse)
+async def delete_amazon_payment_import(
+    import_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> DeleteImportResponse:
+    payment_import = await db.get(AmazonPaymentImport, import_id)
+    if payment_import is None:
+        raise HTTPException(status_code=404, detail="Amazon payment import not found.")
+
+    await db.execute(
+        delete(AmazonPaymentTransaction).where(
+            AmazonPaymentTransaction.import_id == import_id
+        )
+    )
+    await db.execute(
+        delete(AmazonPaymentTransactionRaw).where(
+            AmazonPaymentTransactionRaw.import_id == import_id
+        )
+    )
+    await db.delete(payment_import)
+    await db.commit()
+
+    return DeleteImportResponse(import_id=import_id, deleted=True)
 
 
 @router.post("/commit", response_model=AmazonPaymentCommitResponse)

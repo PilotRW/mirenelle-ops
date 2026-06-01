@@ -188,6 +188,9 @@ def is_pdf(filename: str, content: bytes) -> bool:
 
 
 def extract_pdf_text(content: bytes) -> str:
+    page_texts: list[str] = []
+    page_errors: list[str] = []
+
     try:
         from pypdf import PdfReader
     except ImportError as exc:
@@ -197,19 +200,32 @@ def extract_pdf_text(content: bytes) -> str:
 
     try:
         reader = PdfReader(BytesIO(content), strict=False)
+        for index, page in enumerate(reader.pages, start=1):
+            try:
+                text = page.extract_text() or ""
+            except Exception as exc:
+                page_errors.append(f"page {index}: {exc}")
+                continue
+            if text.strip():
+                page_texts.append(text)
     except Exception as exc:
-        raise ValueError(f"Could not read PDF: {exc}") from exc
+        page_errors.append(f"pypdf: {exc}")
 
-    page_texts: list[str] = []
-    page_errors: list[str] = []
-    for index, page in enumerate(reader.pages, start=1):
+    if not page_texts:
         try:
-            text = page.extract_text() or ""
-        except Exception as exc:
-            page_errors.append(f"page {index}: {exc}")
-            continue
-        if text.strip():
-            page_texts.append(text)
+            import fitz
+        except ImportError:
+            fitz = None
+
+        if fitz is not None:
+            try:
+                with fitz.open(stream=content, filetype="pdf") as document:
+                    for index, page in enumerate(document, start=1):
+                        text = page.get_text("text") or ""
+                        if text.strip():
+                            page_texts.append(text)
+            except Exception as exc:
+                page_errors.append(f"pymupdf: {exc}")
 
     if not page_texts:
         details = f" ({'; '.join(page_errors)})" if page_errors else ""
@@ -226,16 +242,38 @@ def first_regex(text: str, patterns: list[str]) -> str | None:
     return None
 
 
-def extract_pdf_metadata(text: str) -> dict[str, str | date | None]:
+def parse_pdf_amount(value: str | None) -> Decimal | None:
+    if not value:
+        return None
+    normalized = value.strip().replace("\u00a0", "").replace(" ", "")
+    normalized = re.sub(r"[^0-9,.\-]", "", normalized)
+    if "," in normalized and "." in normalized:
+        normalized = normalized.replace(".", "").replace(",", ".")
+    elif "," in normalized:
+        normalized = normalized.replace(",", ".")
+    try:
+        return Decimal(normalized)
+    except InvalidOperation:
+        return None
+
+
+def last_amount_in_line(line: str) -> Decimal | None:
+    matches = re.findall(r"[-]?\d{1,3}(?:[.\s]\d{3})*(?:[,.]\d{2})|[-]?\d+[,.]\d{2}", line)
+    return parse_pdf_amount(matches[-1]) if matches else None
+
+
+def extract_pdf_metadata(text: str) -> dict[str, str | date | Decimal | None]:
     invoice_number = first_regex(
         text,
         [
+            r"(?:Rechnungsnr\./-datum)\s*[:#]?\s*([A-Z0-9][A-Z0-9\-/]+)\s*/\s*\d{1,2}[./-]\d{1,2}[./-]\d{2,4}",
             r"(?:Rechnungs-Nr\.?|Rechnungsnummer|Invoice\s*(?:No\.?|Number)|Facture\s*(?:N[°o]\.?|numéro)|Fattura\s*(?:n\.?|numero)|Factura\s*(?:n[ºo]\.?|número)|Faktura\s*(?:nr|numer)|Factuurnummer|Fakturanummer)\s*[:#]?\s*([A-Z0-9][A-Z0-9\-/]+)",
         ],
     )
     invoice_date_value = first_regex(
         text,
         [
+            r"(?:Rechnungsnr\./-datum)\s*[:#]?\s*[A-Z0-9][A-Z0-9\-/]+\s*/\s*(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})",
             r"^\s*(?:Datum|Rechnungsdatum|Invoice\s*date|Date\s*de\s*facture|Data\s*fattura|Fecha\s*factura|Data\s*wystawienia|Factuurdatum|Fakturadatum)\s*[:#]?\s*(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\s*$",
         ],
     )
@@ -249,15 +287,33 @@ def extract_pdf_metadata(text: str) -> dict[str, str | date | None]:
     supplier_name = None
     for line in text.splitlines():
         clean = line.strip()
+        if clean.lower().startswith("computeruniverse"):
+            supplier_name = clean.split("|")[0].strip()
+            break
         if re.search(r"\b(GmbH|AG|S\.?A\.?|S\.?L\.?|S\.?r\.?l\.?|Sp\.?\s*z\.?\s*o\.?\s*o\.?|B\.?V\.?|AB|SARL|SAS|Ltd\.?|Limited)\b", clean):
             supplier_name = clean.split("|")[0].strip()
             break
+
+    subtotal_amount = None
+    vat_amount = None
+    total_amount = None
+    for line in text.splitlines():
+        clean = line.strip()
+        if re.match(r"^(Summe\s+Netto|Nettobetrag|Subtotal|Total\s+net)\b", clean, flags=re.IGNORECASE):
+            subtotal_amount = last_amount_in_line(clean) or subtotal_amount
+        elif re.match(r"^(Umsatzsteuer|MwSt|VAT|Tax)\b", clean, flags=re.IGNORECASE):
+            vat_amount = last_amount_in_line(clean) or vat_amount
+        elif re.match(r"^(Gesamtbetrag|Grand\s+total|Total\s+gross|Total)\b", clean, flags=re.IGNORECASE):
+            total_amount = last_amount_in_line(clean) or total_amount
 
     return {
         "supplier_name": supplier_name,
         "invoice_number": invoice_number,
         "invoice_date": parse_date(invoice_date_value) if invoice_date_value else None,
         "due_date": parse_date(due_date_value) if due_date_value else None,
+        "subtotal_amount": subtotal_amount,
+        "vat_amount": vat_amount,
+        "total_amount": total_amount,
     }
 
 
@@ -265,7 +321,137 @@ def looks_like_supplier_sku(value: str) -> bool:
     return bool(re.match(r"^[A-Z]{0,4}\d[A-Z0-9\-_./]*$", value, flags=re.IGNORECASE))
 
 
+def looks_like_stacked_item_code(value: str) -> bool:
+    return looks_like_supplier_sku(value) or bool(
+        re.match(r"^[A-ZÄÖÜ][A-ZÄÖÜ0-9\-_./]{2,}$", value.strip())
+    )
+
+
+def looks_like_position(value: str) -> bool:
+    return bool(re.match(r"^\d{1,4}$", value.strip()))
+
+
+def parse_stacked_pdf_invoice_rows(text: str) -> list[dict[str, str]]:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    rows: list[dict[str, str]] = []
+    stop_pattern = re.compile(r"^(summe|nettobetrag|umsatzsteuer|gesamtbetrag|subtotal|total)\b", flags=re.IGNORECASE)
+    vat_unit_pattern = re.compile(
+        r"^(?P<vat>\d+(?:[.,]\d+)?)\s*%\s+(?P<unit>[-0-9.,\s]+)$",
+        flags=re.IGNORECASE,
+    )
+    net_pattern = re.compile(
+        r"^(?P<net>[-0-9.,\s]+)\s*(?:€|EUR|zł|PLN|kr|SEK|£|GBP)?$",
+        flags=re.IGNORECASE,
+    )
+
+    index = 0
+    while index < len(lines):
+        if not looks_like_position(lines[index]):
+            index += 1
+            continue
+
+        if index + 4 >= len(lines):
+            index += 1
+            continue
+
+        supplier_sku = lines[index + 1]
+        quantity = lines[index + 2]
+        vat_unit_match = vat_unit_pattern.match(lines[index + 3])
+        net_match = net_pattern.match(lines[index + 4])
+        if (
+            not looks_like_stacked_item_code(supplier_sku)
+            or not re.match(r"^\d+(?:[.,]\d+)?$", quantity)
+            or vat_unit_match is None
+            or net_match is None
+        ):
+            index += 1
+            continue
+
+        description_parts: list[str] = []
+        cursor = index + 5
+        while cursor < len(lines):
+            if stop_pattern.match(lines[cursor]):
+                break
+            if looks_like_position(lines[cursor]):
+                break
+            description_parts.append(lines[cursor])
+            cursor += 1
+
+        product_name = " ".join([supplier_sku, *description_parts]).strip()
+        rows.append(
+            {
+                "Supplier SKU": supplier_sku,
+                "SKU": supplier_sku,
+                "EAN": "",
+                "Product name": product_name,
+                "Quantity": quantity,
+                "VAT %": vat_unit_match.group("vat"),
+                "Unit cost": vat_unit_match.group("unit"),
+                "Line net": net_match.group("net"),
+            }
+        )
+        index = cursor
+
+    return rows
+
+
+def parse_compact_pdf_invoice_rows(text: str) -> list[dict[str, str]]:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    rows: list[dict[str, str]] = []
+    stop_pattern = re.compile(r"^(summe|nettobetrag|umsatzsteuer|gesamtbetrag|subtotal|total)\b", flags=re.IGNORECASE)
+    compact_pattern = re.compile(
+        r"^\s*(?P<position>\d{1,4})\s+"
+        r"(?P<product>.+?)\s+"
+        r"(?P<quantity>\d+(?:[.,]\d+)?)\s+"
+        r"(?P<vat>\d+(?:[.,]\d+)?)\s*%\s+"
+        r"(?P<unit>[-0-9.,\s]+?)(?:€|EUR|zł|PLN|kr|SEK|£|GBP)?\s+"
+        r"(?P<net>[-0-9.,\s]+)(?:€|EUR|zł|PLN|kr|SEK|£|GBP)?\s*$",
+        flags=re.IGNORECASE,
+    )
+
+    index = 0
+    while index < len(lines):
+        match = compact_pattern.match(lines[index])
+        if not match or int(match.group("position")) > 999:
+            index += 1
+            continue
+
+        product_value = match.group("product").strip()
+        token, _, product_name = product_value.partition(" ")
+        supplier_sku = token if looks_like_stacked_item_code(token) else ""
+        description_parts = [product_name.strip()] if supplier_sku and product_name.strip() else []
+        if not supplier_sku:
+            description_parts = [product_value]
+
+        cursor = index + 1
+        while cursor < len(lines):
+            if stop_pattern.match(lines[cursor]) or compact_pattern.match(lines[cursor]):
+                break
+            description_parts.append(lines[cursor])
+            cursor += 1
+
+        rows.append(
+            {
+                "Supplier SKU": supplier_sku,
+                "SKU": supplier_sku,
+                "EAN": "",
+                "Product name": " ".join([supplier_sku, *description_parts]).strip() if supplier_sku else " ".join(description_parts).strip(),
+                "Quantity": match.group("quantity"),
+                "VAT %": match.group("vat"),
+                "Unit cost": match.group("unit"),
+                "Line net": match.group("net"),
+            }
+        )
+        index = cursor
+
+    return rows
+
+
 def parse_pdf_invoice_rows(text: str) -> list[dict[str, str]]:
+    compact_rows = parse_compact_pdf_invoice_rows(text)
+    if compact_rows:
+        return compact_rows
+
     rows: list[dict[str, str]] = []
     active: dict[str, str] | None = None
     product_parts: list[str] = []
@@ -273,7 +459,7 @@ def parse_pdf_invoice_rows(text: str) -> list[dict[str, str]]:
     amount_pattern = re.compile(
         r"^\s*(?P<quantity>\d+(?:[.,]\d+)?)\s+"
         r"(?P<vat>\d+(?:[.,]\d+)?)\s*%\s+"
-        r"(?P<unit>[-0-9.,\s]+)(?:€|EUR|zł|PLN|kr|SEK|£|GBP)?\s+"
+        r"(?P<unit>[-0-9.,\s]+?)(?:€|EUR|zł|PLN|kr|SEK|£|GBP)?\s+"
         r"(?P<net>[-0-9.,\s]+)(?:€|EUR|zł|PLN|kr|SEK|£|GBP)?\s*$",
         flags=re.IGNORECASE,
     )
@@ -282,7 +468,7 @@ def parse_pdf_invoice_rows(text: str) -> list[dict[str, str]]:
         r"(?P<product>.+?)\s+"
         r"(?P<quantity>\d+(?:[.,]\d+)?)\s+"
         r"(?P<vat>\d+(?:[.,]\d+)?)\s*%\s+"
-        r"(?P<unit>[-0-9.,\s]+)(?:€|EUR|zł|PLN|kr|SEK|£|GBP)?\s+"
+        r"(?P<unit>[-0-9.,\s]+?)(?:€|EUR|zł|PLN|kr|SEK|£|GBP)?\s+"
         r"(?P<net>[-0-9.,\s]+)(?:€|EUR|zł|PLN|kr|SEK|£|GBP)?\s*$",
         flags=re.IGNORECASE,
     )
@@ -339,9 +525,13 @@ def parse_pdf_invoice_rows(text: str) -> list[dict[str, str]]:
         start_match = start_pattern.match(line)
         if not start_match:
             continue
+        if int(start_match.group("position")) > 999:
+            continue
 
         rest = start_match.group("rest").strip()
         if rest.lower().startswith(("pos.", "prod.", "produkt", "product", "gesamt", "anzahl")):
+            continue
+        if re.match(r"^[\d\s/.-]+$", rest):
             continue
 
         token, _, product_name = rest.partition(" ")
@@ -360,10 +550,10 @@ def parse_pdf_invoice_rows(text: str) -> list[dict[str, str]]:
         }
         product_parts = [product_name.strip()]
 
-    return rows
+    return rows or parse_stacked_pdf_invoice_rows(text)
 
 
-def load_invoice_rows(filename: str, content: bytes) -> tuple[list[str], list[dict[str, str]], dict[str, str | date | None]]:
+def load_invoice_rows(filename: str, content: bytes) -> tuple[list[str], list[dict[str, str]], dict[str, str | date | Decimal | None]]:
     if not is_pdf(filename, content):
         headers, rows = load_rows(filename, content)
         return headers, rows, {}
@@ -547,6 +737,15 @@ def build_purchase_invoice_preview(
     subtotal = sum((row["line_net_amount"] for row in parsed_rows if isinstance(row["line_net_amount"], Decimal)), Decimal("0"))
     vat_total = sum((row["vat_amount"] for row in parsed_rows if isinstance(row["vat_amount"], Decimal)), Decimal("0"))
     gross_total = sum((row["line_gross_amount"] for row in parsed_rows if isinstance(row["line_gross_amount"], Decimal)), Decimal("0"))
+    document_subtotal = metadata.get("subtotal_amount")
+    document_vat_total = metadata.get("vat_amount")
+    document_total = metadata.get("total_amount")
+    if isinstance(document_subtotal, Decimal):
+        subtotal = document_subtotal
+    if isinstance(document_vat_total, Decimal):
+        vat_total = document_vat_total
+    if isinstance(document_total, Decimal):
+        gross_total = document_total
     product_subtotal = sum((row["line_net_amount"] for row in parsed_rows if row.get("line_type") == PRODUCT_LINE_TYPE and isinstance(row["line_net_amount"], Decimal)), Decimal("0"))
     expense_subtotal = sum((row["line_net_amount"] for row in parsed_rows if row.get("line_type") != PRODUCT_LINE_TYPE and isinstance(row["line_net_amount"], Decimal)), Decimal("0"))
     product_quantity = sum((row["quantity"] for row in parsed_rows if row.get("line_type") == PRODUCT_LINE_TYPE and isinstance(row["quantity"], Decimal)), Decimal("0"))

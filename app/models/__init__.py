@@ -9,6 +9,7 @@ from app.models.product_cost_import import ProductCostImport
 from app.models.product_mapping import ProductMapping
 from app.models.purchase_invoice import PurchaseInvoice
 from app.models.purchase_invoice_line import PurchaseInvoiceLine
+from app.models.supplier_catalog_item import SupplierCatalogItem
 
 __all__ = [
     "AmazonPaymentImport",
@@ -22,4 +23,5 @@ __all__ = [
     "ProductMapping",
     "PurchaseInvoice",
     "PurchaseInvoiceLine",
+    "SupplierCatalogItem",
 ]

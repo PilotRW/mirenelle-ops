@@ -244,6 +244,24 @@ button:disabled {
   font-size: 12px;
 }
 
+.dangerButton {
+  color: #b42318;
+  background: #fff1f0;
+  border: 1px solid #ffd2cc;
+}
+
+.dangerButton:hover {
+  color: #ffffff;
+  background: #d92d20;
+}
+
+.actionsCell {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+}
+
 .workspace {
   padding: 20px 24px 28px;
 }
@@ -497,6 +515,27 @@ tr.selectedRow td {
 
 tr.selectedRow td:first-child {
   box-shadow: inset 4px 0 0 var(--accent);
+}
+
+.identifierStack {
+  display: grid;
+  gap: 3px;
+  min-width: 150px;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.identifierStack span {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  color: var(--muted);
+}
+
+.identifierStack b {
+  width: 30px;
+  color: var(--ink);
+  font-size: 11px;
 }
 
 td:first-child,

@@ -16,3 +16,4 @@ pandas
 polars
 openpyxl
 pypdf
+PyMuPDF

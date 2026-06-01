@@ -98,12 +98,15 @@
                     <thead>
                       <tr>
                         <th data-i18n="table.product">Product</th>
+                        <th data-i18n="table.identifiers">ASIN / SKU / EAN</th>
                         <th data-i18n="field.currency">Currency</th>
                         <th data-i18n="table.units">Units</th>
                         <th data-i18n="table.revenueEur">Revenue EUR</th>
+                        <th data-i18n="table.avgSellingPrice">Avg selling price</th>
                         <th data-i18n="table.costEur">Cost EUR</th>
                         <th data-i18n="table.cogsEur">COGS EUR</th>
                         <th data-i18n="table.grossProfit">Gross Profit</th>
+                        <th data-i18n="table.margin">Margin</th>
                         <th data-i18n="table.roi">ROI</th>
                         <th data-i18n="table.status">Status</th>
                       </tr>
@@ -152,6 +155,7 @@
                       <th data-i18n="table.rows">Rows</th>
                       <th data-i18n="table.period">Period</th>
                       <th data-i18n="table.file">File</th>
+                      <th data-i18n="table.action">Action</th>
                     </tr>
                   </thead>
                   <tbody id="paymentImports"></tbody>
@@ -332,12 +336,15 @@
                   <thead>
                     <tr>
                       <th data-i18n="table.product">Product</th>
+                      <th data-i18n="table.identifiers">ASIN / SKU / EAN</th>
                       <th data-i18n="field.currency">Currency</th>
                       <th data-i18n="table.units">Units</th>
                       <th data-i18n="table.revenueEur">Revenue EUR</th>
+                      <th data-i18n="table.avgSellingPrice">Avg selling price</th>
                       <th data-i18n="table.costEur">Cost EUR</th>
                       <th data-i18n="table.cogsEur">COGS EUR</th>
                       <th data-i18n="table.grossProfit">Gross Profit</th>
+                      <th data-i18n="table.margin">Margin</th>
                       <th data-i18n="table.roi">ROI</th>
                       <th data-i18n="table.status">Status</th>
                     </tr>
@@ -353,6 +360,30 @@
               <div class="sectionHeader">
                 <h2 data-i18n="section.productMappings">Product Mappings</h2>
                 <span id="mappingStatus" class="status" data-status-key="status.ready">Ready</span>
+              </div>
+              <form id="manualMappingForm" class="formRow mappingForm">
+                <label>
+                  <span data-i18n="table.invoiceProduct">Invoice product</span>
+                  <select id="manualInvoiceLineSelect" required></select>
+                </label>
+                <label>
+                  <span data-i18n="field.amazonProductSearch">Amazon product search</span>
+                  <input id="amazonProductSearch" type="search" />
+                </label>
+                <button type="submit" class="secondaryButton" data-i18n="action.search">Search</button>
+              </form>
+              <div class="tableWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="table.amazonProduct">Amazon product</th>
+                      <th data-i18n="table.rows">Rows</th>
+                      <th data-i18n="table.revenue">Revenue</th>
+                      <th data-i18n="table.action">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="manualAmazonProducts"></tbody>
+                </table>
               </div>
               <div class="tableWrap twoTables">
                 <table>
@@ -383,6 +414,28 @@
 
           <section id="section-settings" class="pageSection">
             <div class="splitPanel">
+            <section class="panel">
+                <div class="sectionHeader">
+                  <h2 data-i18n="section.oaCatalog">OA Catalog</h2>
+                  <span id="catalogStatus" class="status" data-status-key="status.ready">Ready</span>
+                </div>
+                <div class="kpis">
+                  <div class="kpi">
+                    <span data-i18n="table.rows">Rows</span>
+                    <strong id="catalogItems">-</strong>
+                  </div>
+                  <div class="kpi">
+                    <span data-i18n="metric.withEan">With EAN</span>
+                    <strong id="catalogWithEan">-</strong>
+                  </div>
+                  <div class="kpi">
+                    <span data-i18n="table.lastSync">Last sync</span>
+                    <strong id="catalogLastSync">-</strong>
+                  </div>
+                </div>
+                <button id="syncCatalogButton" type="button" data-i18n="action.syncOaCatalog">Sync OA catalog</button>
+              </section>
+
               <section class="panel">
                 <div class="sectionHeader">
                   <h2 data-i18n="section.fxRates">FX Rates</h2>
