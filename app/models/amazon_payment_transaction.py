@@ -30,6 +30,8 @@ class AmazonPaymentTransaction(Base):
     transaction_status: Mapped[str] = mapped_column(String(120), nullable=False)
     transaction_type: Mapped[str] = mapped_column(String(160), nullable=False, index=True)
     external_transaction_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    sku: Mapped[str | None] = mapped_column(String(160), nullable=True, index=True)
+    quantity: Mapped[Decimal | None] = mapped_column(Numeric(12, 3), nullable=True)
     product_details: Mapped[str | None] = mapped_column(Text, nullable=True)
     product_charges: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     promotional_rebates: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
@@ -42,4 +44,3 @@ class AmazonPaymentTransaction(Base):
         server_default=func.now(),
         nullable=False,
     )
-

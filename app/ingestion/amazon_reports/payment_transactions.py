@@ -16,6 +16,9 @@ DATE_FORMATS = (
     "%d/%m/%Y",
     "%d.%m.%Y",
     "%Y-%m-%d",
+    "%d.%m.%Y %H:%M:%S UTC",
+    "%d/%m/%Y %H:%M:%S UTC",
+    "%Y-%m-%d %H:%M:%S UTC",
 )
 
 
@@ -62,6 +65,25 @@ def detect_delimiter(text: str) -> str:
         return ","
 
 
+def find_header_start(text: str, delimiter: str) -> str:
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        try:
+            cells = next(csv.reader([line], delimiter=delimiter))
+        except csv.Error:
+            continue
+        normalized = {cell.strip().casefold() for cell in cells}
+        if (
+            ("sku" in normalized or "seller sku" in normalized)
+            and ("bestellnummer" in normalized or "order id" in normalized)
+            and ("typ" in normalized or "transaction type" in normalized)
+        ):
+            return "\n".join(lines[index:])
+        if "date" in normalized and "transaction type" in normalized and "product details" in normalized:
+            return "\n".join(lines[index:])
+    return text
+
+
 def extract_currency(headers: list[str], total_header: str | None) -> str | None:
     candidates = [total_header] if total_header else []
     candidates.extend(headers)
@@ -71,6 +93,8 @@ def extract_currency(headers: list[str], total_header: str | None) -> str | None
         match = re.search(r"\(([A-Z]{3})\)", header)
         if match:
             return match.group(1)
+    if any(header in {"Umsätze", "Umsatze", "Gesamt"} for header in headers):
+        return "EUR"
     return None
 
 
@@ -113,15 +137,22 @@ def parse_payment_transaction_row(
     mapping: dict[str, str],
     currency: str | None,
 ) -> dict[str, str | date | Decimal | None]:
+    amazon_fees = parse_decimal(row.get(mapping["amazon_fees"]))
+    if "fba_fees" in mapping:
+        amazon_fees += parse_decimal(row.get(mapping["fba_fees"]))
+    if "other_transaction_fees" in mapping:
+        amazon_fees += parse_decimal(row.get(mapping["other_transaction_fees"]))
     return {
         "transaction_date": parse_date(row.get(mapping["transaction_date"])),
         "transaction_status": row.get(mapping["transaction_status"]),
         "transaction_type": row.get(mapping["transaction_type"]),
         "external_transaction_id": row.get(mapping["external_transaction_id"]),
+        "sku": row.get(mapping["sku"]) if "sku" in mapping else None,
+        "quantity": parse_decimal(row.get(mapping["quantity"])) if "quantity" in mapping else None,
         "product_details": row.get(mapping["product_details"]),
         "product_charges": parse_decimal(row.get(mapping["product_charges"])),
         "promotional_rebates": parse_decimal(row.get(mapping["promotional_rebates"])),
-        "amazon_fees": parse_decimal(row.get(mapping["amazon_fees"])),
+        "amazon_fees": amazon_fees,
         "other_amount": parse_decimal(row.get(mapping["other_amount"])),
         "total_amount": parse_decimal(row.get(mapping["total_amount"])),
         "currency": currency,
@@ -153,10 +184,14 @@ def build_payment_transaction_preview(
 ) -> PaymentTransactionPreview:
     text, encoding = decode_csv(content)
     delimiter = detect_delimiter(text)
+    csv_text = find_header_start(text, delimiter)
 
-    reader = csv.DictReader(StringIO(text), delimiter=delimiter)
+    reader = csv.DictReader(StringIO(csv_text), delimiter=delimiter)
     headers = list(reader.fieldnames or [])
-    rows = list(reader)
+    rows = [
+        {str(key): str(value or "") for key, value in row.items() if key is not None}
+        for row in reader
+    ]
 
     mapping_result = detect_payment_transaction_mapping(headers)
     total_header = mapping_result.mapping.get("total_amount")

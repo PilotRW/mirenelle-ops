@@ -76,6 +76,8 @@ async def commit_payment_transaction_import(
             transaction_status=str(parsed["transaction_status"] or ""),
             transaction_type=str(parsed["transaction_type"] or ""),
             external_transaction_id=str(parsed["external_transaction_id"] or "") or None,
+            sku=str(parsed["sku"] or "") or None,
+            quantity=parsed["quantity"] if isinstance(parsed["quantity"], Decimal) else None,
             product_details=str(parsed["product_details"] or "") or None,
             product_charges=parsed["product_charges"] if isinstance(parsed["product_charges"], Decimal) else Decimal("0"),
             promotional_rebates=parsed["promotional_rebates"] if isinstance(parsed["promotional_rebates"], Decimal) else Decimal("0"),

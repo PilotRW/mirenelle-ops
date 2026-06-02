@@ -19,6 +19,7 @@ PAYMENT_TRANSACTION_HEADER_ALIASES: dict[str, set[str]] = {
     "transaction_date": {
         "Date",
         "Datum",
+        "Datum/Uhrzeit",
         "Data",
         "Fecha",
     },
@@ -34,6 +35,7 @@ PAYMENT_TRANSACTION_HEADER_ALIASES: dict[str, set[str]] = {
     },
     "transaction_type": {
         "Transaction type",
+        "Typ",
         "Transaktionstyp",
         "Type de transaction",
         "Tipo di transazione",
@@ -44,6 +46,7 @@ PAYMENT_TRANSACTION_HEADER_ALIASES: dict[str, set[str]] = {
     },
     "external_transaction_id": {
         "Order ID",
+        "Bestellnummer",
         "Transaktionsnummer",
         "Numéro de commande",
         "Numero de commande",
@@ -57,6 +60,7 @@ PAYMENT_TRANSACTION_HEADER_ALIASES: dict[str, set[str]] = {
     },
     "product_details": {
         "Product Details",
+        "Beschreibung",
         "Produktdetails",
         "Détails du produit",
         "Details du produit",
@@ -69,6 +73,8 @@ PAYMENT_TRANSACTION_HEADER_ALIASES: dict[str, set[str]] = {
     },
     "product_charges": {
         "Total product charges",
+        "Umsätze",
+        "Umsatze",
         "Artikelpreise gesamt",
         "Total des frais produit",
         "Totale addebiti prodotto",
@@ -80,6 +86,7 @@ PAYMENT_TRANSACTION_HEADER_ALIASES: dict[str, set[str]] = {
     },
     "promotional_rebates": {
         "Total promotional rebates",
+        "Rabatte aus Werbeaktionen",
         "Gesamtsumme der Aktionsrabatte",
         "Total des remises promotionnelles",
         "Totale sconti promozionali",
@@ -91,6 +98,8 @@ PAYMENT_TRANSACTION_HEADER_ALIASES: dict[str, set[str]] = {
     },
     "amazon_fees": {
         "Amazon fees",
+        "Verkaufsgebühren",
+        "Verkaufsgebuhren",
         "Amazon-Gebühren",
         "Amazon-Gebuhren",
         "Frais Amazon",
@@ -114,6 +123,7 @@ PAYMENT_TRANSACTION_HEADER_ALIASES: dict[str, set[str]] = {
     },
     "total_amount": {
         "Total",
+        "Gesamt",
         "Summe",
         "Somme",
         "Totale",
@@ -121,6 +131,28 @@ PAYMENT_TRANSACTION_HEADER_ALIASES: dict[str, set[str]] = {
         "Total (SEK)",
         "Summe (EUR)",
         "Summe (SEK)",
+    },
+    "sku": {
+        "SKU",
+        "Seller SKU",
+        "MSKU",
+    },
+    "quantity": {
+        "Quantity",
+        "Qty",
+        "Menge",
+        "Anzahl",
+    },
+    "fba_fees": {
+        "Gebühren zu Versand durch Amazon",
+        "Gebuhren zu Versand durch Amazon",
+        "FBA fees",
+        "Fulfillment by Amazon fees",
+    },
+    "other_transaction_fees": {
+        "Andere Transaktionsgebühren",
+        "Andere Transaktionsgebuhren",
+        "Other transaction fees",
     },
 }
 
@@ -182,4 +214,3 @@ def detect_payment_transaction_mapping(headers: list[str]) -> HeaderMappingResul
         ambiguous_headers=ambiguous_headers,
         unknown_headers=unknown_headers,
     )
-

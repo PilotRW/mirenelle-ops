@@ -338,9 +338,11 @@ async def product_profitability(
     transaction_query = (
         select(
             AmazonPaymentTransaction.product_details,
+            AmazonPaymentTransaction.sku,
             AmazonPaymentTransaction.currency,
             AmazonPaymentTransaction.transaction_type,
             func.count().label("rows"),
+            func.coalesce(func.sum(AmazonPaymentTransaction.quantity), 0).label("quantity"),
             func.coalesce(func.sum(AmazonPaymentTransaction.product_charges), 0).label("revenue_original"),
         )
         .where(AmazonPaymentTransaction.product_details.is_not(None))
@@ -349,6 +351,7 @@ async def product_profitability(
     transaction_query = apply_date_filters(transaction_query, start_date, end_date)
     transaction_query = transaction_query.group_by(
         AmazonPaymentTransaction.product_details,
+        AmazonPaymentTransaction.sku,
         AmazonPaymentTransaction.currency,
         AmazonPaymentTransaction.transaction_type,
     )
@@ -358,11 +361,12 @@ async def product_profitability(
     for row in transaction_rows:
         if not is_order_payment(row.transaction_type):
             continue
-        key = (row.product_details, row.currency)
+        key = (row.sku or row.product_details, row.currency)
         bucket = by_product.setdefault(
             key,
             {
                 "product_details": row.product_details,
+                "sku": row.sku,
                 "currency": row.currency,
                 "transaction_rows": 0,
                 "units_estimated": 0,
@@ -370,6 +374,11 @@ async def product_profitability(
                 "revenue_eur": 0.0,
             },
         )
+        if row.product_details and (
+            not bucket.get("product_details")
+            or len(str(row.product_details)) > len(str(bucket.get("product_details") or ""))
+        ):
+            bucket["product_details"] = row.product_details
         rate_to_eur = get_rate_for_currency(rates, row.currency)
         bucket["transaction_rows"] = int(bucket["transaction_rows"]) + int(row.rows)
         bucket["revenue_original"] = round(float(bucket["revenue_original"]) + money(row.revenue_original), 2)
@@ -377,13 +386,16 @@ async def product_profitability(
             float(bucket["revenue_eur"]) + eur(row.revenue_original, rate_to_eur),
             2,
         )
-        bucket["units_estimated"] = int(bucket["units_estimated"]) + int(row.rows)
+        quantity = money(row.quantity)
+        bucket["units_estimated"] = int(bucket["units_estimated"]) + int(quantity if quantity else row.rows)
 
     latest_costs = await db.scalars(
         select(ProductCost).order_by(ProductCost.product_name, ProductCost.effective_date.desc(), ProductCost.id.desc())
     )
     cost_by_name: dict[str, ProductCost] = {}
+    cost_by_sku: dict[str, ProductCost] = {}
     for cost in latest_costs:
+        cost_by_sku.setdefault(cost.sku, cost)
         if cost.product_name:
             cost_by_name.setdefault(cost.product_name, cost)
 
@@ -408,8 +420,9 @@ async def product_profitability(
     rows: list[ProductProfitabilityRow] = []
     for bucket in by_product.values():
         product_details = str(bucket["product_details"])
-        cost = cost_by_name.get(product_details) or cost_by_mapping.get(product_details)
-        sku = sku_by_mapping.get(product_details) or (cost.sku if cost else None)
+        tx_sku = str(bucket.get("sku") or "") or None
+        cost = (cost_by_sku.get(tx_sku) if tx_sku else None) or cost_by_name.get(product_details) or cost_by_mapping.get(product_details)
+        sku = tx_sku or sku_by_mapping.get(product_details) or (cost.sku if cost else None)
         asin = None
         ean = ean_by_mapping.get(product_details)
         if ean is None and cost:
