@@ -59,6 +59,14 @@ const translations = {
     "period.custom": "Custom",
     "period.lastMonth": "Last month",
     "period.thisMonth": "This month",
+    "paymentCategory.fbaFee": "FBA fee",
+    "paymentCategory.order": "Order",
+    "paymentCategory.other": "Other",
+    "paymentCategory.refund": "Refund",
+    "paymentCategory.returnFee": "Return fee",
+    "paymentCategory.serviceFee": "Service fee",
+    "paymentCategory.transfer": "Transfer",
+    "paymentCategory.unknown": "Unknown",
     "report.customerReturns": "Customer Returns",
     "report.reimbursements": "Reimbursements",
     "report.serviceFees": "Service Fees",
@@ -69,6 +77,8 @@ const translations = {
     "section.productCosts": "Product Costs",
     "section.productMappings": "Product Mappings",
     "section.oaCatalog": "OA Catalog",
+    "section.amazonPnl": "Amazon P&L",
+    "section.dataQuality": "Data Quality",
     "section.productProfitability": "Product Profitability",
     "section.purchaseInvoices": "Purchase Invoices",
     "section.reportPreview": "Report Preview",
@@ -91,6 +101,7 @@ const translations = {
     "table.action": "Action",
     "table.amazonProduct": "Amazon product",
     "table.avgSellingPrice": "Avg selling price",
+    "table.amazonOperatingResult": "Amazon operating result",
     "table.cogsEur": "COGS EUR",
     "table.confidence": "Confidence",
     "table.cost": "Cost",
@@ -102,6 +113,7 @@ const translations = {
     "table.file": "File",
     "table.fxToEur": "FX to EUR",
     "table.generalTotalEur": "General total in EUR",
+    "table.grossSales": "Gross sales",
     "table.grossProfit": "Gross Profit",
     "table.id": "ID",
     "table.identifiers": "ASIN / SKU / EAN",
@@ -118,9 +130,11 @@ const translations = {
     "table.month": "Month",
     "table.name": "Name",
     "table.other": "Other",
+    "table.paymentRows": "Payment rows",
     "table.period": "Period",
     "table.product": "Product",
     "table.promo": "Promo",
+    "table.refunds": "Refunds",
     "table.quantity": "Quantity",
     "table.revenueEur": "Revenue EUR",
     "table.revenue": "Revenue",
@@ -131,8 +145,12 @@ const translations = {
     "table.subtotal": "Subtotal",
     "table.total": "Total",
     "table.totalEur": "Total EUR",
+    "table.transfers": "Transfers",
     "table.type": "Type",
     "table.units": "Units",
+    "table.unitsRefunded": "Units refunded",
+    "table.unitsSold": "Units sold",
+    "table.unknownTypes": "Unknown types",
   },
   de: {
     "app.tagline": "Amazon-Buchhaltungsimporte, Einkaufspreise und monatlicher Cashflow.",
@@ -194,6 +212,14 @@ const translations = {
     "period.custom": "Benutzerdefiniert",
     "period.lastMonth": "Letzter Monat",
     "period.thisMonth": "Dieser Monat",
+    "paymentCategory.fbaFee": "FBA-Gebühr",
+    "paymentCategory.order": "Bestellung",
+    "paymentCategory.other": "Sonstiges",
+    "paymentCategory.refund": "Erstattung",
+    "paymentCategory.returnFee": "Rücksendegebühr",
+    "paymentCategory.serviceFee": "Servicegebühr",
+    "paymentCategory.transfer": "Übertrag",
+    "paymentCategory.unknown": "Unbekannt",
     "report.customerReturns": "Kundenrücksendungen",
     "report.reimbursements": "Erstattungen",
     "report.serviceFees": "Servicegebühren",
@@ -204,6 +230,8 @@ const translations = {
     "section.productCosts": "Einkaufspreise",
     "section.productMappings": "Produktzuordnung",
     "section.oaCatalog": "OA-Katalog",
+    "section.amazonPnl": "Amazon P&L",
+    "section.dataQuality": "Datenqualität",
     "section.productProfitability": "Produktprofitabilität",
     "section.purchaseInvoices": "Einkaufsrechnungen",
     "section.reportPreview": "Report-Vorschau",
@@ -226,6 +254,7 @@ const translations = {
     "table.action": "Aktion",
     "table.amazonProduct": "Amazon-Produkt",
     "table.avgSellingPrice": "Ø Verkaufspreis",
+    "table.amazonOperatingResult": "Amazon-Betriebsergebnis",
     "table.cogsEur": "Wareneinsatz EUR",
     "table.confidence": "Konfidenz",
     "table.cost": "Kosten",
@@ -237,6 +266,7 @@ const translations = {
     "table.file": "Datei",
     "table.fxToEur": "Kurs zu EUR",
     "table.generalTotalEur": "Gesamtsumme in EUR",
+    "table.grossSales": "Bruttoumsatz",
     "table.grossProfit": "Bruttogewinn",
     "table.id": "ID",
     "table.identifiers": "ASIN / SKU / EAN",
@@ -253,9 +283,11 @@ const translations = {
     "table.month": "Monat",
     "table.name": "Name",
     "table.other": "Sonstiges",
+    "table.paymentRows": "Zahlungszeilen",
     "table.period": "Zeitraum",
     "table.product": "Produkt",
     "table.promo": "Promo",
+    "table.refunds": "Erstattungen",
     "table.quantity": "Menge",
     "table.revenueEur": "Umsatz EUR",
     "table.revenue": "Umsatz",
@@ -266,8 +298,12 @@ const translations = {
     "table.subtotal": "Zwischensumme",
     "table.total": "Summe",
     "table.totalEur": "Summe EUR",
+    "table.transfers": "Überträge",
     "table.type": "Typ",
     "table.units": "Einheiten",
+    "table.unitsRefunded": "Erstattete Einheiten",
+    "table.unitsSold": "Verkaufte Einheiten",
+    "table.unknownTypes": "Unbekannte Typen",
   },
   uk: {
     "app.tagline": "Імпорт Amazon-обліку, закупівельні ціни та місячний cashflow.",
@@ -329,6 +365,14 @@ const translations = {
     "period.custom": "Свій період",
     "period.lastMonth": "Минулий місяць",
     "period.thisMonth": "Цей місяць",
+    "paymentCategory.fbaFee": "FBA комісія",
+    "paymentCategory.order": "Замовлення",
+    "paymentCategory.other": "Інше",
+    "paymentCategory.refund": "Повернення",
+    "paymentCategory.returnFee": "Комісія повернення",
+    "paymentCategory.serviceFee": "Сервісна комісія",
+    "paymentCategory.transfer": "Переказ",
+    "paymentCategory.unknown": "Невідомо",
     "report.customerReturns": "Повернення клієнтів",
     "report.reimbursements": "Компенсації",
     "report.serviceFees": "Сервісні збори",
@@ -339,6 +383,8 @@ const translations = {
     "section.productCosts": "Закупівельні ціни",
     "section.productMappings": "Мапінг товарів",
     "section.oaCatalog": "OA каталог",
+    "section.amazonPnl": "Amazon P&L",
+    "section.dataQuality": "Якість даних",
     "section.productProfitability": "Прибутковість товарів",
     "section.purchaseInvoices": "Інвойси закупівель",
     "section.reportPreview": "Preview звіту",
@@ -361,6 +407,7 @@ const translations = {
     "table.action": "Дія",
     "table.amazonProduct": "Amazon товар",
     "table.avgSellingPrice": "Сер. ціна продажу",
+    "table.amazonOperatingResult": "Операційний результат Amazon",
     "table.cogsEur": "COGS EUR",
     "table.confidence": "Впевненість",
     "table.cost": "Ціна",
@@ -372,6 +419,7 @@ const translations = {
     "table.file": "Файл",
     "table.fxToEur": "Курс до EUR",
     "table.generalTotalEur": "Загальна сума в EUR",
+    "table.grossSales": "Валові продажі",
     "table.grossProfit": "Валовий прибуток",
     "table.id": "ID",
     "table.identifiers": "ASIN / SKU / EAN",
@@ -388,9 +436,11 @@ const translations = {
     "table.month": "Місяць",
     "table.name": "Назва",
     "table.other": "Інше",
+    "table.paymentRows": "Рядки платежів",
     "table.period": "Період",
     "table.product": "Товар",
     "table.promo": "Промо",
+    "table.refunds": "Повернення",
     "table.quantity": "Кількість",
     "table.revenueEur": "Дохід EUR",
     "table.revenue": "Дохід",
@@ -401,8 +451,12 @@ const translations = {
     "table.subtotal": "Сума без ПДВ",
     "table.total": "Разом",
     "table.totalEur": "Разом EUR",
+    "table.transfers": "Перекази",
     "table.type": "Тип",
     "table.units": "Одиниці",
+    "table.unitsRefunded": "Повернені одиниці",
+    "table.unitsSold": "Продані одиниці",
+    "table.unknownTypes": "Невідомі типи",
   },
 };
 
@@ -413,6 +467,8 @@ const state = {
   startDate: localStorage.getItem("mirenelleOpsStartDate") || "",
   endDate: localStorage.getItem("mirenelleOpsEndDate") || "",
   purchaseSummary: null,
+  amazonPnlSummary: null,
+  dataQualitySummary: null,
   profitSummary: null,
   invoiceRows: [],
   selectedInvoiceId: null,
@@ -906,6 +962,20 @@ function profitabilityStatusLabel(status) {
   return text(status);
 }
 
+function paymentCategoryLabel(category) {
+  const keys = {
+    order: "paymentCategory.order",
+    refund: "paymentCategory.refund",
+    fba_fee: "paymentCategory.fbaFee",
+    return_fee: "paymentCategory.returnFee",
+    service_fee: "paymentCategory.serviceFee",
+    transfer: "paymentCategory.transfer",
+    other: "paymentCategory.other",
+    unknown: "paymentCategory.unknown",
+  };
+  return keys[category] ? t(keys[category]) : category;
+}
+
 function renderInvoicePreview(preview) {
   const target = document.getElementById("invoicePreview");
   const errors = preview.validation_errors || [];
@@ -1008,6 +1078,89 @@ async function loadCashflow() {
       <td class="num">${money(row.other_amount, row.currency)}</td>
       <td class="num">${money(row.total_amount, row.currency)}</td>
       <td class="num">${money(row.total_amount_eur, "EUR")}</td>
+    </tr>
+  `);
+}
+
+async function loadAmazonPnl() {
+  const data = await requestJson(`/reports/amazon-pnl${reportQueryParams()}`);
+  const summary = data.summary;
+  state.amazonPnlSummary = summary;
+  const target = document.getElementById("amazonPnlTotals");
+  if (target) {
+    target.innerHTML = `
+      <div class="kpi">
+        <span>${t("table.grossSales")}</span>
+        <strong>${money(summary.gross_sales_eur, "EUR")}</strong>
+      </div>
+      <div class="kpi">
+        <span>${t("table.refunds")}</span>
+        <strong>${money(summary.refunds_eur, "EUR")}</strong>
+      </div>
+      <div class="kpi">
+        <span>${t("table.fees")}</span>
+        <strong>${money(summary.amazon_fees_eur + summary.service_other_fees_eur, "EUR")}</strong>
+      </div>
+      <div class="kpi">
+        <span>${t("table.amazonOperatingResult")}</span>
+        <strong>${money(summary.amazon_operating_result_eur, "EUR")}</strong>
+      </div>
+      <div class="kpi">
+        <span>${t("table.unitsSold")}</span>
+        <strong>${summary.units_sold}</strong>
+      </div>
+      <div class="kpi">
+        <span>${t("table.transfers")}</span>
+        <strong>${money(summary.transfers_eur, "EUR")}</strong>
+      </div>
+    `;
+  }
+  renderRows("pnlRows", data.rows, (row) => `
+    <tr>
+      <td>${text(row.transaction_type)}</td>
+      <td>${paymentCategoryLabel(row.category)}</td>
+      <td class="num">${row.rows}</td>
+      <td class="num">${row.units}</td>
+      <td class="num">${money(row.product_charges_eur, "EUR")}</td>
+      <td class="num">${money(row.amazon_fees_eur, "EUR")}</td>
+      <td class="num">${money(row.other_amount_eur, "EUR")}</td>
+      <td class="num">${money(row.total_amount_eur, "EUR")}</td>
+    </tr>
+  `);
+}
+
+async function loadDataQuality() {
+  const data = await requestJson(`/reports/data-quality${reportQueryParams()}`);
+  const summary = data.summary;
+  state.dataQualitySummary = summary;
+  const target = document.getElementById("dataQualityTotals");
+  if (target) {
+    target.innerHTML = `
+      <div class="kpi">
+        <span>${t("table.paymentRows")}</span>
+        <strong>${summary.payment_rows}</strong>
+      </div>
+      <div class="kpi">
+        <span>${t("table.sku")}</span>
+        <strong>${summary.rows_with_sku}/${summary.payment_rows}</strong>
+      </div>
+      <div class="kpi">
+        <span>${t("table.costCoverage")}</span>
+        <strong>${summary.sold_skus - summary.missing_cost_skus}/${summary.sold_skus}</strong>
+      </div>
+      <div class="kpi">
+        <span>${t("table.unknownTypes")}</span>
+        <strong>${summary.unknown_transaction_types}</strong>
+      </div>
+    `;
+  }
+  renderRows("missingCostRows", data.missing_costs, (row) => `
+    <tr>
+      <td>${text(row.sku)}</td>
+      <td>${text(row.product_details)}</td>
+      <td class="num">${row.units_estimated}</td>
+      <td class="num">${money(row.revenue_eur, "EUR")}</td>
+      <td class="num">${row.average_selling_price_eur === null ? "-" : money(row.average_selling_price_eur, "EUR")}</td>
     </tr>
   `);
 }
@@ -1158,7 +1311,7 @@ async function loadProfitability() {
 
 async function refreshAll() {
   setStatus("cashflowStatus", "status.loading", false, true);
-  await Promise.all([loadPayments(), loadCosts(), loadInvoices(), loadProductMappings(), loadFxRates(), loadSupplierCatalogStats(), loadGenericImports(), loadCashflow(), loadProfitability()]);
+  await Promise.all([loadPayments(), loadCosts(), loadInvoices(), loadProductMappings(), loadFxRates(), loadSupplierCatalogStats(), loadGenericImports(), loadCashflow(), loadAmazonPnl(), loadDataQuality(), loadProfitability()]);
   setStatus("paymentStatus", "status.ready", false, true);
   setStatus("costStatus", "status.ready", false, true);
   setStatus("invoiceStatus", "status.ready", false, true);

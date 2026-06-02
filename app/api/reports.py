@@ -14,7 +14,7 @@ from app.models.product_mapping import ProductMapping
 from app.models.purchase_invoice import PurchaseInvoice
 from app.models.purchase_invoice_line import PurchaseInvoiceLine
 from app.services.fx import convert_to_eur_with_rate, get_latest_fx_rates, get_rate_for_currency
-from app.services.transaction_classifier import is_order_payment
+from app.services.transaction_classifier import classify_payment_type, is_order_payment
 
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -78,6 +78,72 @@ class ProductCostRow(BaseModel):
 
 class ProductCostLatestResponse(BaseModel):
     rows: list[ProductCostRow]
+
+
+class AmazonPnlCategoryRow(BaseModel):
+    category: str
+    transaction_type: str
+    rows: int
+    units: float
+    product_charges_eur: float
+    promotional_rebates_eur: float
+    amazon_fees_eur: float
+    other_amount_eur: float
+    total_amount_eur: float
+
+
+class AmazonPnlSummary(BaseModel):
+    rows: int
+    order_rows: int
+    refund_rows: int
+    units_sold: float
+    units_refunded: float
+    gross_sales_eur: float
+    promotional_rebates_eur: float
+    refunds_eur: float
+    amazon_fees_eur: float
+    service_other_fees_eur: float
+    transfers_eur: float
+    amazon_operating_result_eur: float
+    ledger_total_eur: float
+
+
+class AmazonPnlResponse(BaseModel):
+    start_date: str | None
+    end_date: str | None
+    summary: AmazonPnlSummary
+    rows: list[AmazonPnlCategoryRow]
+
+
+class MissingCostRow(BaseModel):
+    sku: str | None
+    product_details: str
+    units_estimated: int
+    revenue_eur: float
+    average_selling_price_eur: float | None
+
+
+class UnknownTransactionTypeRow(BaseModel):
+    transaction_type: str
+    rows: int
+    total_amount_eur: float
+
+
+class DataQualitySummary(BaseModel):
+    payment_rows: int
+    rows_with_sku: int
+    rows_without_sku: int
+    sold_skus: int
+    missing_cost_skus: int
+    unknown_transaction_types: int
+
+
+class DataQualityResponse(BaseModel):
+    start_date: str | None
+    end_date: str | None
+    summary: DataQualitySummary
+    missing_costs: list[MissingCostRow]
+    unknown_transaction_types: list[UnknownTransactionTypeRow]
 
 
 class ProductProfitabilityRow(BaseModel):
@@ -323,6 +389,227 @@ async def latest_product_costs(
             )
             for row in list(latest_by_sku.values())[:limit]
         ]
+    )
+
+
+@router.get("/amazon-pnl", response_model=AmazonPnlResponse)
+async def amazon_pnl(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    start_date: Annotated[date | None, Query()] = None,
+    end_date: Annotated[date | None, Query()] = None,
+) -> AmazonPnlResponse:
+    query = select(
+        AmazonPaymentTransaction.transaction_type,
+        AmazonPaymentTransaction.currency,
+        func.count().label("rows"),
+        func.coalesce(func.sum(AmazonPaymentTransaction.quantity), 0).label("quantity"),
+        func.coalesce(func.sum(AmazonPaymentTransaction.product_charges), 0).label("product_charges"),
+        func.coalesce(func.sum(AmazonPaymentTransaction.promotional_rebates), 0).label("promotional_rebates"),
+        func.coalesce(func.sum(AmazonPaymentTransaction.amazon_fees), 0).label("amazon_fees"),
+        func.coalesce(func.sum(AmazonPaymentTransaction.other_amount), 0).label("other_amount"),
+        func.coalesce(func.sum(AmazonPaymentTransaction.total_amount), 0).label("total_amount"),
+    )
+    query = apply_date_filters(query, start_date, end_date)
+    query = query.group_by(AmazonPaymentTransaction.transaction_type, AmazonPaymentTransaction.currency).order_by(
+        AmazonPaymentTransaction.transaction_type,
+        AmazonPaymentTransaction.currency,
+    )
+    result = await db.execute(query)
+    rates = await get_latest_fx_rates(db)
+
+    rows: list[AmazonPnlCategoryRow] = []
+    summary = {
+        "rows": 0,
+        "order_rows": 0,
+        "refund_rows": 0,
+        "units_sold": 0.0,
+        "units_refunded": 0.0,
+        "gross_sales_eur": 0.0,
+        "promotional_rebates_eur": 0.0,
+        "refunds_eur": 0.0,
+        "amazon_fees_eur": 0.0,
+        "service_other_fees_eur": 0.0,
+        "transfers_eur": 0.0,
+        "ledger_total_eur": 0.0,
+    }
+    for row in result:
+        category = classify_payment_type(row.transaction_type)
+        rate_to_eur = get_rate_for_currency(rates, row.currency)
+        product_charges_eur = eur(row.product_charges, rate_to_eur)
+        promotional_rebates_eur = eur(row.promotional_rebates, rate_to_eur)
+        amazon_fees_eur = eur(row.amazon_fees, rate_to_eur)
+        other_amount_eur = eur(row.other_amount, rate_to_eur)
+        total_amount_eur = eur(row.total_amount, rate_to_eur)
+        quantity = money(row.quantity)
+        rows.append(
+            AmazonPnlCategoryRow(
+                category=category,
+                transaction_type=row.transaction_type,
+                rows=int(row.rows),
+                units=quantity,
+                product_charges_eur=product_charges_eur,
+                promotional_rebates_eur=promotional_rebates_eur,
+                amazon_fees_eur=amazon_fees_eur,
+                other_amount_eur=other_amount_eur,
+                total_amount_eur=total_amount_eur,
+            )
+        )
+        summary["rows"] += int(row.rows)
+        summary["amazon_fees_eur"] = round(summary["amazon_fees_eur"] + amazon_fees_eur, 2)
+        summary["ledger_total_eur"] = round(summary["ledger_total_eur"] + total_amount_eur, 2)
+        if category == "order":
+            summary["order_rows"] += int(row.rows)
+            summary["units_sold"] = round(summary["units_sold"] + quantity, 3)
+            summary["gross_sales_eur"] = round(summary["gross_sales_eur"] + product_charges_eur, 2)
+            summary["promotional_rebates_eur"] = round(summary["promotional_rebates_eur"] + promotional_rebates_eur, 2)
+        elif category == "refund":
+            summary["refund_rows"] += int(row.rows)
+            summary["units_refunded"] = round(summary["units_refunded"] + quantity, 3)
+            summary["refunds_eur"] = round(summary["refunds_eur"] + product_charges_eur + promotional_rebates_eur, 2)
+        elif category == "transfer":
+            summary["transfers_eur"] = round(summary["transfers_eur"] + total_amount_eur, 2)
+        elif category in {"service_fee", "fba_fee", "return_fee", "other"}:
+            summary["service_other_fees_eur"] = round(
+                summary["service_other_fees_eur"] + other_amount_eur,
+                2,
+            )
+
+    amazon_operating_result_eur = round(
+        summary["gross_sales_eur"]
+        + summary["promotional_rebates_eur"]
+        + summary["refunds_eur"]
+        + summary["amazon_fees_eur"]
+        + summary["service_other_fees_eur"],
+        2,
+    )
+    return AmazonPnlResponse(
+        start_date=start_date.isoformat() if start_date else None,
+        end_date=end_date.isoformat() if end_date else None,
+        summary=AmazonPnlSummary(
+            **summary,
+            amazon_operating_result_eur=amazon_operating_result_eur,
+        ),
+        rows=rows,
+    )
+
+
+@router.get("/data-quality", response_model=DataQualityResponse)
+async def data_quality(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    start_date: Annotated[date | None, Query()] = None,
+    end_date: Annotated[date | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+) -> DataQualityResponse:
+    rates = await get_latest_fx_rates(db)
+
+    row_query = select(
+        func.count().label("payment_rows"),
+        func.coalesce(
+            func.sum(case(((AmazonPaymentTransaction.sku.is_not(None)) & (AmazonPaymentTransaction.sku != ""), 1), else_=0)),
+            0,
+        ).label("rows_with_sku"),
+    )
+    row_query = apply_date_filters(row_query, start_date, end_date)
+    row_counts = (await db.execute(row_query)).one()
+
+    cost_skus = {
+        sku
+        for sku in await db.scalars(select(ProductCost.sku).where(ProductCost.sku.is_not(None)).where(ProductCost.sku != ""))
+    }
+
+    sold_query = select(
+        AmazonPaymentTransaction.sku,
+        AmazonPaymentTransaction.product_details,
+        AmazonPaymentTransaction.currency,
+        AmazonPaymentTransaction.transaction_type,
+        func.count().label("rows"),
+        func.coalesce(func.sum(AmazonPaymentTransaction.quantity), 0).label("quantity"),
+        func.coalesce(func.sum(AmazonPaymentTransaction.product_charges), 0).label("revenue_original"),
+    )
+    sold_query = apply_date_filters(sold_query, start_date, end_date)
+    sold_query = (
+        sold_query.where(AmazonPaymentTransaction.product_details.is_not(None))
+        .where(AmazonPaymentTransaction.product_details != "")
+        .group_by(
+            AmazonPaymentTransaction.sku,
+            AmazonPaymentTransaction.product_details,
+            AmazonPaymentTransaction.currency,
+            AmazonPaymentTransaction.transaction_type,
+        )
+    )
+    sold_rows = await db.execute(sold_query)
+    sold_products: dict[tuple[str, str], dict[str, str | int | float | None]] = {}
+    for row in sold_rows:
+        if not is_order_payment(row.transaction_type):
+            continue
+        key = (row.sku or row.product_details or "", row.currency)
+        bucket = sold_products.setdefault(
+            key,
+            {
+                "sku": row.sku,
+                "product_details": row.product_details,
+                "units_estimated": 0,
+                "revenue_eur": 0.0,
+            },
+        )
+        quantity = money(row.quantity)
+        bucket["units_estimated"] = int(bucket["units_estimated"] or 0) + int(quantity if quantity else row.rows)
+        rate_to_eur = get_rate_for_currency(rates, row.currency)
+        bucket["revenue_eur"] = round(float(bucket["revenue_eur"] or 0) + eur(row.revenue_original, rate_to_eur), 2)
+
+    missing_costs = [
+        MissingCostRow(
+            sku=str(bucket["sku"]) if bucket["sku"] else None,
+            product_details=str(bucket["product_details"] or ""),
+            units_estimated=int(bucket["units_estimated"] or 0),
+            revenue_eur=float(bucket["revenue_eur"] or 0),
+            average_selling_price_eur=(
+                round(float(bucket["revenue_eur"] or 0) / int(bucket["units_estimated"] or 0), 2)
+                if int(bucket["units_estimated"] or 0)
+                else None
+            ),
+        )
+        for bucket in sold_products.values()
+        if not bucket["sku"] or str(bucket["sku"]) not in cost_skus
+    ]
+    missing_costs.sort(key=lambda row: row.revenue_eur, reverse=True)
+
+    type_query = select(
+        AmazonPaymentTransaction.transaction_type,
+        AmazonPaymentTransaction.currency,
+        func.count().label("rows"),
+        func.coalesce(func.sum(AmazonPaymentTransaction.total_amount), 0).label("total_amount"),
+    )
+    type_query = apply_date_filters(type_query, start_date, end_date)
+    type_query = type_query.group_by(AmazonPaymentTransaction.transaction_type, AmazonPaymentTransaction.currency)
+    type_rows = await db.execute(type_query)
+    unknown_types: list[UnknownTransactionTypeRow] = []
+    for row in type_rows:
+        if classify_payment_type(row.transaction_type) not in {"unknown", "other"}:
+            continue
+        rate_to_eur = get_rate_for_currency(rates, row.currency)
+        unknown_types.append(
+            UnknownTransactionTypeRow(
+                transaction_type=row.transaction_type,
+                rows=int(row.rows),
+                total_amount_eur=eur(row.total_amount, rate_to_eur),
+            )
+        )
+    unknown_types.sort(key=lambda row: abs(row.total_amount_eur), reverse=True)
+
+    return DataQualityResponse(
+        start_date=start_date.isoformat() if start_date else None,
+        end_date=end_date.isoformat() if end_date else None,
+        summary=DataQualitySummary(
+            payment_rows=int(row_counts.payment_rows or 0),
+            rows_with_sku=int(row_counts.rows_with_sku or 0),
+            rows_without_sku=int(row_counts.payment_rows or 0) - int(row_counts.rows_with_sku or 0),
+            sold_skus=len(sold_products),
+            missing_cost_skus=len(missing_costs),
+            unknown_transaction_types=len(unknown_types),
+        ),
+        missing_costs=missing_costs[:limit],
+        unknown_transaction_types=unknown_types[:limit],
     )
 
 

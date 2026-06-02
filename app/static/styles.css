@@ -329,6 +329,11 @@ button:disabled {
   gap: 18px;
 }
 
+.dashboardOps {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  margin-bottom: 18px;
+}
+
 .sectionHeader {
   display: flex;
   justify-content: space-between;
@@ -755,6 +760,10 @@ th.num {
 @media (max-width: 1200px) {
   .metricGrid {
     grid-template-columns: repeat(2, minmax(220px, 1fr));
+  }
+
+  .dashboardOps {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .topbar {

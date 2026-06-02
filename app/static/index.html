@@ -86,6 +86,53 @@
         <main class="workspace">
           <section id="section-dashboard" class="pageSection active">
             <div id="dashboardCards" class="metricGrid"></div>
+            <div class="splitPanel dashboardOps">
+              <section class="panel">
+                <div class="sectionHeader">
+                  <h2 data-i18n="section.amazonPnl">Amazon P&L</h2>
+                  <span class="status" data-status-key="status.loaded">Loaded</span>
+                </div>
+                <div id="amazonPnlTotals" class="kpis"></div>
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th data-i18n="table.type">Type</th>
+                        <th data-i18n="table.status">Status</th>
+                        <th data-i18n="table.rows">Rows</th>
+                        <th data-i18n="table.units">Units</th>
+                        <th data-i18n="table.product">Product</th>
+                        <th data-i18n="table.fees">Fees</th>
+                        <th data-i18n="table.other">Other</th>
+                        <th data-i18n="table.totalEur">Total EUR</th>
+                      </tr>
+                    </thead>
+                    <tbody id="pnlRows"></tbody>
+                  </table>
+                </div>
+              </section>
+              <section class="panel">
+                <div class="sectionHeader">
+                  <h2 data-i18n="section.dataQuality">Data Quality</h2>
+                  <span class="status" data-status-key="status.loaded">Loaded</span>
+                </div>
+                <div id="dataQualityTotals" class="kpis"></div>
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th data-i18n="table.sku">SKU</th>
+                        <th data-i18n="table.product">Product</th>
+                        <th data-i18n="table.units">Units</th>
+                        <th data-i18n="table.revenueEur">Revenue EUR</th>
+                        <th data-i18n="table.avgSellingPrice">Avg selling price</th>
+                      </tr>
+                    </thead>
+                    <tbody id="missingCostRows"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
             <div class="splitPanel">
               <section class="panel">
                 <div class="sectionHeader">
