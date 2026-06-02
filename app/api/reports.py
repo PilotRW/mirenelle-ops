@@ -479,17 +479,18 @@ async def product_profitability(
 
     rows.sort(key=lambda item: item.gross_profit_eur if item.gross_profit_eur is not None else -999999, reverse=True)
     matched_rows = [row for row in rows if row.cost_match_status == "matched"]
-    revenue_eur = round(sum(row.revenue_eur for row in matched_rows), 2)
+    revenue_eur = round(sum(row.revenue_eur for row in rows), 2)
     cogs_eur = round(sum(row.cogs_eur or 0 for row in matched_rows), 2)
     gross_profit_eur = round(sum(row.gross_profit_eur or 0 for row in matched_rows), 2)
-    margin_percent = round((gross_profit_eur / revenue_eur) * 100, 2) if revenue_eur else None
+    matched_revenue_eur = round(sum(row.revenue_eur for row in matched_rows), 2)
+    margin_percent = round((gross_profit_eur / matched_revenue_eur) * 100, 2) if matched_revenue_eur else None
     roi_percent = round((gross_profit_eur / cogs_eur) * 100, 2) if cogs_eur else None
     return ProductProfitabilityResponse(
         summary=ProductProfitabilitySummary(
             products=len(rows),
             matched_products=len(matched_rows),
             missing_cost_products=len(rows) - len(matched_rows),
-            units_estimated=sum(row.units_estimated for row in matched_rows),
+            units_estimated=sum(row.units_estimated for row in rows),
             revenue_eur=revenue_eur,
             cogs_eur=cogs_eur,
             gross_profit_eur=gross_profit_eur,
