@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260604-6" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260604-7" />
   </head>
   <body>
     <div class="appShell">
@@ -245,7 +245,7 @@
                 <button id="invoicePreviewButton" class="secondaryButton" type="button" data-i18n="action.preview">Preview</button>
               </form>
               <div id="invoicePreview" class="humanPreview empty" data-i18n="message.noPreview">No preview loaded.</div>
-              <div class="tableWrap twoTables">
+              <div class="tableWrap">
                 <table>
                   <thead>
                     <tr>
@@ -259,20 +259,28 @@
                   </thead>
                   <tbody id="invoiceImports"></tbody>
                 </table>
-                <table>
-                  <thead>
-                    <tr>
-                      <th data-i18n="table.month">Month</th>
-                      <th data-i18n="field.supplier">Supplier</th>
-                      <th data-i18n="table.quantity">Quantity</th>
-                      <th data-i18n="preview.products">Products</th>
-                      <th data-i18n="preview.expenses">Expenses</th>
-                      <th data-i18n="table.inboundShipping">Inbound shipping</th>
-                      <th data-i18n="table.total">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody id="purchaseSummaryRows"></tbody>
-                </table>
+              </div>
+              <div class="subPanel">
+                <div class="sectionHeader">
+                  <h2 data-i18n="section.purchaseSummary">Purchase Summary</h2>
+                  <span class="status" data-status-key="status.loaded">Loaded</span>
+                </div>
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th data-i18n="table.month">Month</th>
+                        <th data-i18n="field.supplier">Supplier</th>
+                        <th data-i18n="table.quantity">Quantity</th>
+                        <th data-i18n="preview.products">Products</th>
+                        <th data-i18n="preview.expenses">Expenses</th>
+                        <th data-i18n="table.inboundShipping">Inbound shipping</th>
+                        <th data-i18n="table.total">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody id="purchaseSummaryRows"></tbody>
+                  </table>
+                </div>
               </div>
               <div id="invoiceLinesPanel" class="subPanel hidden">
                 <div class="sectionHeader">
@@ -736,6 +744,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260604-6"></script>
+    <script src="/ui/app.js?v=20260604-7"></script>
   </body>
 </html>
