@@ -173,7 +173,7 @@ async def product_mapping_suggestions(
 async def invoice_products(
     db: Annotated[AsyncSession, Depends(get_db)],
     query: Annotated[str | None, Query()] = None,
-    limit: Annotated[int, Query(ge=1, le=1000)] = 200,
+    limit: Annotated[int | None, Query(ge=1, le=5000)] = None,
 ) -> InvoiceProductResponse:
     statement = (
         select(PurchaseInvoiceLine, PurchaseInvoice, ProductMapping)
@@ -181,8 +181,9 @@ async def invoice_products(
         .outerjoin(ProductMapping, ProductMapping.invoice_line_id == PurchaseInvoiceLine.id)
         .where(PurchaseInvoiceLine.line_type == "product")
         .order_by(PurchaseInvoice.invoice_date.desc().nullslast(), PurchaseInvoiceLine.id.desc())
-        .limit(limit)
     )
+    if limit:
+        statement = statement.limit(limit)
     if query:
         pattern = f"%{query}%"
         statement = statement.where(

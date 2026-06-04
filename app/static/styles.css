@@ -497,6 +497,17 @@ select {
   margin-top: 16px;
 }
 
+.mappingProductsTable {
+  max-height: min(620px, calc(100vh - 360px));
+  overflow: auto;
+}
+
+.mappingProductsTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
 #manualInvoiceLines tr {
   cursor: pointer;
 }
