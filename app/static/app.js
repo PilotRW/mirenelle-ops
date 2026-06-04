@@ -895,6 +895,17 @@ async function loadInvoiceLines(invoiceId) {
   panel.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
+function hideInvoiceLines() {
+  state.selectedInvoiceId = null;
+  document.querySelectorAll("#invoiceImports tr").forEach((row) => {
+    row.classList.remove("selectedRow");
+  });
+  document.getElementById("invoiceLinesPanel").classList.add("hidden");
+  document.getElementById("selectedInvoiceInfo").innerHTML = "";
+  renderRows("invoiceLineRows", [], () => "");
+  setStatus("invoiceLinesStatus", "status.ready", false, true);
+}
+
 function updateDashboardPurchase() {
   const summary = state.purchaseSummary;
   if (!summary) return;
@@ -1925,6 +1936,10 @@ document.getElementById("invoiceImports").addEventListener("click", async (event
 
   const button = event.target.closest("button[data-invoice-lines]");
   if (!button) return;
+  if (String(state.selectedInvoiceId) === String(button.dataset.invoiceLines)) {
+    hideInvoiceLines();
+    return;
+  }
   button.disabled = true;
   try {
     await loadInvoiceLines(button.dataset.invoiceLines);
