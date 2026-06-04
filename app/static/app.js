@@ -892,6 +892,7 @@ async function loadInvoiceLines(invoiceId) {
     </tr>
   `);
   setStatus("invoiceLinesStatus", "status.loaded", false, true);
+  panel.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
 function updateDashboardPurchase() {
