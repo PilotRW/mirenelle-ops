@@ -96,6 +96,7 @@ const translations = {
     "status.loss": "loss",
     "status.breakeven": "breakeven",
     "status.unknown": "unknown",
+    "status.unmapped": "unmapped",
     "status.ready": "Ready",
     "status.saved": "Saved",
     "status.saving": "Saving",
@@ -251,6 +252,7 @@ const translations = {
     "status.loss": "Verlust",
     "status.breakeven": "Null",
     "status.unknown": "unbekannt",
+    "status.unmapped": "nicht zugeordnet",
     "status.ready": "Bereit",
     "status.saved": "Gespeichert",
     "status.saving": "Speichert",
@@ -406,6 +408,7 @@ const translations = {
     "status.loss": "збитковий",
     "status.breakeven": "в нуль",
     "status.unknown": "невідомо",
+    "status.unmapped": "не зіставлено",
     "status.ready": "Готово",
     "status.saved": "Збережено",
     "status.saving": "Збереження",
@@ -854,17 +857,17 @@ function updateDashboardPurchase() {
 async function loadProductMappings() {
   const invoiceQuery = document.getElementById("invoiceLineSearch")?.value.trim() || "";
   const amazonQuery = document.getElementById("amazonProductSearch")?.value.trim() || "";
-  const [suggestions, mappings, unmapped, amazonProducts] = await Promise.all([
+  const [suggestions, mappings, invoiceProducts, amazonProducts] = await Promise.all([
     requestJson("/product-mappings/suggestions"),
     requestJson("/product-mappings"),
-    requestJson(`/product-mappings/unmapped-invoice-lines${invoiceQuery ? `?query=${encodeURIComponent(invoiceQuery)}` : ""}`),
+    requestJson(`/product-mappings/invoice-products${invoiceQuery ? `?query=${encodeURIComponent(invoiceQuery)}` : ""}`),
     requestJson(`/product-mappings/amazon-products${amazonQuery ? `?query=${encodeURIComponent(amazonQuery)}` : ""}`),
   ]);
-  state.unmappedInvoiceLines = unmapped.rows;
-  if (!unmapped.rows.some((row) => String(row.invoice_line_id) === String(state.selectedMappingInvoiceLineId))) {
-    state.selectedMappingInvoiceLineId = unmapped.rows[0]?.invoice_line_id || null;
+  state.unmappedInvoiceLines = invoiceProducts.rows;
+  if (!invoiceProducts.rows.some((row) => String(row.invoice_line_id) === String(state.selectedMappingInvoiceLineId))) {
+    state.selectedMappingInvoiceLineId = invoiceProducts.rows[0]?.invoice_line_id || null;
   }
-  renderManualInvoiceLines(unmapped.rows);
+  renderManualInvoiceLines(invoiceProducts.rows);
   renderManualAmazonProducts(amazonProducts.rows);
   renderRows("mappingSuggestions", suggestions.rows, (row) => `
     <tr>
@@ -892,9 +895,13 @@ function renderManualInvoiceLines(rows) {
   renderRows("manualInvoiceLines", rows, (row) => `
     <tr data-manual-invoice-line="${row.invoice_line_id}" class="${String(row.invoice_line_id) === String(state.selectedMappingInvoiceLineId) ? "selectedRow" : ""}">
       <td>${text(row.supplier_name)}</td>
+      <td>${text(row.invoice_number)}</td>
       <td>${text(row.supplier_sku || row.sku)}</td>
       <td>${text(row.ean)}</td>
       <td>${text(row.invoice_product_name)}</td>
+      <td class="num">${row.quantity}</td>
+      <td class="num">${money(row.unit_cost, row.currency)}</td>
+      <td>${row.is_mapped ? t("status.matched") : t("status.unmapped")}${row.amazon_product_details ? `<br><span class="muted">${escapeHtml(row.amazon_product_details)}</span>` : ""}</td>
     </tr>
   `);
 }

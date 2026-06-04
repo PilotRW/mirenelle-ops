@@ -79,6 +79,28 @@ class UnmappedInvoiceLineResponse(BaseModel):
     rows: list[UnmappedInvoiceLineRow]
 
 
+class InvoiceProductRow(BaseModel):
+    invoice_line_id: int
+    invoice_id: int
+    supplier_name: str
+    invoice_number: str | None
+    invoice_date: str | None
+    supplier_sku: str | None
+    sku: str | None
+    ean: str | None
+    invoice_product_name: str
+    quantity: float
+    unit_cost: float
+    line_net_amount: float | None
+    currency: str
+    is_mapped: bool
+    amazon_product_details: str | None
+
+
+class InvoiceProductResponse(BaseModel):
+    rows: list[InvoiceProductRow]
+
+
 class AmazonProductSearchRow(BaseModel):
     amazon_product_details: str
     transaction_rows: int
@@ -143,6 +165,55 @@ async def product_mapping_suggestions(
                 confidence=float(row.confidence),
             )
             for row in suggestions
+        ]
+    )
+
+
+@router.get("/invoice-products", response_model=InvoiceProductResponse)
+async def invoice_products(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    query: Annotated[str | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=1000)] = 200,
+) -> InvoiceProductResponse:
+    statement = (
+        select(PurchaseInvoiceLine, PurchaseInvoice, ProductMapping)
+        .join(PurchaseInvoice, PurchaseInvoice.id == PurchaseInvoiceLine.invoice_id)
+        .outerjoin(ProductMapping, ProductMapping.invoice_line_id == PurchaseInvoiceLine.id)
+        .where(PurchaseInvoiceLine.line_type == "product")
+        .order_by(PurchaseInvoice.invoice_date.desc().nullslast(), PurchaseInvoiceLine.id.desc())
+        .limit(limit)
+    )
+    if query:
+        pattern = f"%{query}%"
+        statement = statement.where(
+            PurchaseInvoiceLine.product_name.ilike(pattern)
+            | PurchaseInvoiceLine.sku.ilike(pattern)
+            | PurchaseInvoiceLine.supplier_sku.ilike(pattern)
+            | PurchaseInvoiceLine.ean.ilike(pattern)
+            | PurchaseInvoice.supplier_name.ilike(pattern)
+            | PurchaseInvoice.invoice_number.ilike(pattern)
+        )
+    result = await db.execute(statement)
+    return InvoiceProductResponse(
+        rows=[
+            InvoiceProductRow(
+                invoice_line_id=line.id,
+                invoice_id=invoice.id,
+                supplier_name=invoice.supplier_name,
+                invoice_number=invoice.invoice_number,
+                invoice_date=invoice.invoice_date.isoformat() if invoice.invoice_date else None,
+                supplier_sku=line.supplier_sku,
+                sku=line.sku,
+                ean=line.ean,
+                invoice_product_name=line.product_name,
+                quantity=float(line.quantity or 0),
+                unit_cost=float(line.unit_cost or 0),
+                line_net_amount=float(line.line_net_amount) if line.line_net_amount is not None else None,
+                currency=line.currency,
+                is_mapped=mapping is not None,
+                amazon_product_details=mapping.amazon_product_details if mapping else None,
+            )
+            for line, invoice, mapping in result
         ]
     )
 
