@@ -2,7 +2,7 @@ from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -87,6 +87,13 @@ class PurchaseInvoiceListResponse(BaseModel):
 
 class PurchaseInvoiceLinesResponse(BaseModel):
     rows: list[PurchaseInvoiceLineRow]
+
+
+class PurchaseInvoiceLineUpdateRequest(BaseModel):
+    supplier_sku: str | None = Field(default=None, max_length=120)
+    sku: str | None = Field(default=None, max_length=120)
+    ean: str | None = Field(default=None, max_length=64)
+    product_name: str = Field(min_length=1)
 
 
 class DeleteInvoiceResponse(BaseModel):
@@ -245,6 +252,107 @@ async def list_purchase_invoice_lines(
         .where(PurchaseInvoiceLine.invoice_id == invoice_id)
         .order_by(PurchaseInvoiceLine.row_number)
     )
+    return PurchaseInvoiceLinesResponse(
+        rows=[
+            PurchaseInvoiceLineRow(
+                id=row.id,
+                invoice_id=row.invoice_id,
+                sku=row.sku,
+                supplier_sku=row.supplier_sku,
+                ean=row.ean,
+                line_type=row.line_type,
+                expense_category=row.expense_category,
+                product_name=row.product_name,
+                quantity=float(row.quantity),
+                unit_cost=float(row.unit_cost),
+                line_net_amount=float(row.line_net_amount) if row.line_net_amount is not None else None,
+                currency=row.currency,
+            )
+            for row in result
+        ]
+    )
+
+
+@router.put("/lines/{line_id}", response_model=PurchaseInvoiceLineRow)
+async def update_purchase_invoice_line(
+    line_id: int,
+    payload: PurchaseInvoiceLineUpdateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> PurchaseInvoiceLineRow:
+    line = await db.get(PurchaseInvoiceLine, line_id)
+    if line is None:
+        raise HTTPException(status_code=404, detail="Purchase invoice line was not found.")
+
+    product_name = payload.product_name.strip()
+    if not product_name:
+        raise HTTPException(status_code=400, detail="Product name is required.")
+
+    old_sku = line.sku or line.supplier_sku or line.ean
+    line.supplier_sku = (payload.supplier_sku or "").strip() or None
+    line.sku = (payload.sku or "").strip() or None
+    line.ean = (payload.ean or "").strip() or None
+    line.product_name = product_name
+    new_sku = line.sku or line.supplier_sku or line.ean
+
+    raw_row = dict(line.raw_row or {})
+    raw_row["operator_corrected"] = True
+    raw_row["operator_product_name"] = product_name
+    raw_row["operator_sku"] = line.sku
+    raw_row["operator_supplier_sku"] = line.supplier_sku
+    raw_row["operator_ean"] = line.ean
+    line.raw_row = raw_row
+
+    mappings = await db.scalars(
+        select(ProductMapping).where(ProductMapping.invoice_line_id == line.id)
+    )
+    for mapping in mappings:
+        mapping.supplier_sku = line.supplier_sku
+        mapping.sku = line.sku
+        mapping.ean = line.ean
+        mapping.invoice_product_name = line.product_name
+
+    invoice = await db.get(PurchaseInvoice, line.invoice_id)
+    if invoice and invoice.source_sha256:
+        cost_import = await db.scalar(
+            select(ProductCostImport)
+            .where(ProductCostImport.source_sha256 == invoice.source_sha256)
+            .where(ProductCostImport.source_filename.ilike("invoice_costs_%"))
+        )
+        if cost_import:
+            costs = await db.scalars(
+                select(ProductCost)
+                .where(ProductCost.import_id == cost_import.id)
+                .where(ProductCost.raw_row["invoice_id"].as_integer() == line.invoice_id)
+                .where(ProductCost.sku == old_sku)
+            )
+            for cost in costs:
+                cost.sku = new_sku or cost.sku
+                cost.product_name = line.product_name
+                cost.raw_row = {
+                    **(cost.raw_row or {}),
+                    "ean": line.ean,
+                    "operator_corrected": True,
+                    "operator_product_name": line.product_name,
+                    "operator_sku": line.sku,
+                    "operator_supplier_sku": line.supplier_sku,
+                }
+
+    await db.commit()
+    await db.refresh(line)
+    return PurchaseInvoiceLineRow(
+        id=line.id,
+        invoice_id=line.invoice_id,
+        sku=line.sku,
+        supplier_sku=line.supplier_sku,
+        ean=line.ean,
+        line_type=line.line_type,
+        expense_category=line.expense_category,
+        product_name=line.product_name,
+        quantity=float(line.quantity),
+        unit_cost=float(line.unit_cost),
+        line_net_amount=float(line.line_net_amount) if line.line_net_amount is not None else None,
+        currency=line.currency,
+    )
 
 
 @router.delete("/{invoice_id}", response_model=DeleteInvoiceResponse)
@@ -281,22 +389,3 @@ async def delete_purchase_invoice(
     await db.commit()
 
     return DeleteInvoiceResponse(invoice_id=invoice_id, deleted=True)
-    return PurchaseInvoiceLinesResponse(
-        rows=[
-            PurchaseInvoiceLineRow(
-                id=row.id,
-                invoice_id=row.invoice_id,
-                sku=row.sku,
-                supplier_sku=row.supplier_sku,
-                ean=row.ean,
-                line_type=row.line_type,
-                expense_category=row.expense_category,
-                product_name=row.product_name,
-                quantity=float(row.quantity),
-                unit_cost=float(row.unit_cost),
-                line_net_amount=float(row.line_net_amount) if row.line_net_amount is not None else None,
-                currency=row.currency,
-            )
-            for row in result
-        ]
-    )

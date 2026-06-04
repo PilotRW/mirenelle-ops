@@ -454,6 +454,13 @@ button:disabled {
   grid-template-columns: minmax(180px, 220px) minmax(220px, 1fr) auto auto;
 }
 
+.mappingEditForm {
+  grid-template-columns: minmax(140px, 180px) minmax(140px, 180px) minmax(140px, 180px) minmax(260px, 1fr) auto auto;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: #f8fafc;
+}
+
 label {
   display: grid;
   gap: 6px;

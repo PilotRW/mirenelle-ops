@@ -27,6 +27,8 @@ const translations = {
     "field.reportType": "Report type",
     "field.search": "Search",
     "field.supplier": "Supplier",
+    "field.supplierSku": "Supplier SKU",
+    "field.productName": "Product name",
     "field.amazonProductSearch": "Amazon product search",
     "field.invoiceProductSearch": "Invoice product search",
     "field.invoiceProductsSearch": "Invoice product search",
@@ -184,6 +186,8 @@ const translations = {
     "field.reportType": "Reporttyp",
     "field.search": "Suchen",
     "field.supplier": "Lieferant",
+    "field.supplierSku": "Lieferanten-SKU",
+    "field.productName": "Produktname",
     "field.amazonProductSearch": "Amazon-Produkt suchen",
     "field.invoiceProductSearch": "Rechnungsprodukt suchen",
     "field.invoiceProductsSearch": "Rechnungsprodukt suchen",
@@ -341,6 +345,8 @@ const translations = {
     "field.reportType": "Тип звіту",
     "field.search": "Пошук",
     "field.supplier": "Постачальник",
+    "field.supplierSku": "SKU постачальника",
+    "field.productName": "Назва товару",
     "field.amazonProductSearch": "Пошук Amazon товару",
     "field.invoiceProductSearch": "Пошук товару з інвойсу",
     "field.invoiceProductsSearch": "Пошук товару з інвойсу",
@@ -485,6 +491,7 @@ const state = {
   invoiceRows: [],
   selectedInvoiceId: null,
   selectedMappingInvoiceLineId: null,
+  editingInvoiceProductLineId: null,
   unmappedInvoiceLines: [],
   productCostRows: [],
 };
@@ -913,8 +920,32 @@ function renderManualInvoiceLines(rows) {
       <td class="num">${row.quantity}</td>
       <td class="num">${money(row.unit_cost, row.currency)}</td>
       <td>${row.is_mapped ? t("status.matched") : t("status.unmapped")}${row.amazon_product_details ? `<br><span class="muted">${escapeHtml(row.amazon_product_details)}</span>` : ""}</td>
+      <td>
+        <button type="button" class="compactButton" data-edit-invoice-product="${row.invoice_line_id}">${t("action.edit")}</button>
+      </td>
     </tr>
   `);
+}
+
+function clearInvoiceProductEditForm() {
+  state.editingInvoiceProductLineId = null;
+  document.getElementById("invoiceProductEditId").value = "";
+  document.getElementById("invoiceProductEditSupplierSku").value = "";
+  document.getElementById("invoiceProductEditSku").value = "";
+  document.getElementById("invoiceProductEditEan").value = "";
+  document.getElementById("invoiceProductEditName").value = "";
+  document.getElementById("invoiceProductEditForm").classList.add("hidden");
+}
+
+function openInvoiceProductEditForm(row) {
+  state.editingInvoiceProductLineId = row.invoice_line_id;
+  document.getElementById("invoiceProductEditId").value = row.invoice_line_id;
+  document.getElementById("invoiceProductEditSupplierSku").value = row.supplier_sku || "";
+  document.getElementById("invoiceProductEditSku").value = row.sku || "";
+  document.getElementById("invoiceProductEditEan").value = row.ean || "";
+  document.getElementById("invoiceProductEditName").value = row.invoice_product_name || "";
+  document.getElementById("invoiceProductEditForm").classList.remove("hidden");
+  document.getElementById("invoiceProductEditName").focus();
 }
 
 function renderManualAmazonProducts(rows) {
@@ -1397,6 +1428,19 @@ document.getElementById("manualMappingForm").addEventListener("submit", async (e
 });
 
 document.getElementById("manualInvoiceLines").addEventListener("click", (event) => {
+  const editButton = event.target.closest("button[data-edit-invoice-product]");
+  if (editButton) {
+    const rowData = state.unmappedInvoiceLines.find((item) => String(item.invoice_line_id) === String(editButton.dataset.editInvoiceProduct));
+    if (rowData) {
+      state.selectedMappingInvoiceLineId = rowData.invoice_line_id;
+      document.querySelectorAll("#manualInvoiceLines tr").forEach((item) => {
+        item.classList.toggle("selectedRow", item.dataset.manualInvoiceLine === String(state.selectedMappingInvoiceLineId));
+      });
+      openInvoiceProductEditForm(rowData);
+    }
+    return;
+  }
+
   const row = event.target.closest("tr[data-manual-invoice-line]");
   if (!row) return;
   state.selectedMappingInvoiceLineId = Number(row.dataset.manualInvoiceLine);
@@ -1404,6 +1448,41 @@ document.getElementById("manualInvoiceLines").addEventListener("click", (event) 
     item.classList.toggle("selectedRow", item.dataset.manualInvoiceLine === String(state.selectedMappingInvoiceLineId));
   });
 });
+
+document.getElementById("invoiceProductEditForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const lineId = document.getElementById("invoiceProductEditId").value;
+  if (!lineId) return;
+
+  button.disabled = true;
+  setStatus("mappingStatus", "status.saving", false, true);
+  try {
+    await requestJson(`/imports/purchase-invoices/lines/${lineId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        supplier_sku: document.getElementById("invoiceProductEditSupplierSku").value.trim() || null,
+        sku: document.getElementById("invoiceProductEditSku").value.trim() || null,
+        ean: document.getElementById("invoiceProductEditEan").value.trim() || null,
+        product_name: document.getElementById("invoiceProductEditName").value.trim(),
+      }),
+    });
+    clearInvoiceProductEditForm();
+    setStatus("mappingStatus", "status.saved", false, true);
+    await refreshAll();
+    if (state.selectedInvoiceId) {
+      await loadInvoiceLines(state.selectedInvoiceId);
+    }
+  } catch (error) {
+    setStatus("mappingStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("clearInvoiceProductEditButton").addEventListener("click", clearInvoiceProductEditForm);
 
 document.getElementById("manualAmazonProducts").addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-manual-map-product]");
