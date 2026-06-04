@@ -462,6 +462,14 @@ button:disabled {
   margin-bottom: 16px;
 }
 
+.toolbarRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 16px;
+}
+
 .paymentForm,
 .costForm {
   grid-template-columns: minmax(180px, 260px) minmax(260px, 1fr) auto;

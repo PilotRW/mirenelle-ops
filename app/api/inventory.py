@@ -1,3 +1,4 @@
+from collections import defaultdict
 from decimal import Decimal
 from typing import Annotated
 
@@ -7,7 +8,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
+from app.models.amazon_payment_transaction import AmazonPaymentTransaction
 from app.models.inventory_item import InventoryItem
+from app.models.purchase_invoice_line import PurchaseInvoiceLine
+from app.services.transaction_classifier import is_order_payment
 
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
@@ -61,6 +65,12 @@ class InventorySummaryResponse(BaseModel):
 class DeleteInventoryItemResponse(BaseModel):
     item_id: int
     deleted: bool
+
+
+class SyncInventoryResponse(BaseModel):
+    products: int
+    created: int
+    updated: int
 
 
 def clean_text(value: str | None) -> str | None:
@@ -181,6 +191,77 @@ async def upsert_inventory_item(
     await db.commit()
     await db.refresh(item)
     return inventory_row(item)
+
+
+@router.post("/sync-from-invoices", response_model=SyncInventoryResponse)
+async def sync_inventory_from_invoices(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> SyncInventoryResponse:
+    purchased: dict[str, dict] = {}
+    invoice_lines = await db.scalars(
+        select(PurchaseInvoiceLine)
+        .where(PurchaseInvoiceLine.line_type == "product")
+        .where(
+            PurchaseInvoiceLine.sku.is_not(None)
+            | PurchaseInvoiceLine.supplier_sku.is_not(None)
+            | PurchaseInvoiceLine.ean.is_not(None)
+        )
+    )
+    for line in invoice_lines:
+        sku = (line.sku or line.supplier_sku or line.ean or "").strip()
+        if not sku:
+            continue
+        if sku not in purchased:
+            purchased[sku] = {
+                "sku": sku,
+                "ean": line.ean,
+                "product_name": line.product_name,
+                "quantity": Decimal("0"),
+            }
+        purchased[sku]["quantity"] += line.quantity or Decimal("0")
+        if line.ean:
+            purchased[sku]["ean"] = line.ean
+        if line.product_name:
+            purchased[sku]["product_name"] = line.product_name
+
+    sold_by_sku: defaultdict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    payment_rows = await db.scalars(
+        select(AmazonPaymentTransaction)
+        .where(AmazonPaymentTransaction.sku.is_not(None))
+        .where(AmazonPaymentTransaction.quantity.is_not(None))
+    )
+    for payment in payment_rows:
+        if not is_order_payment(payment.transaction_type):
+            continue
+        sku = (payment.sku or "").strip()
+        if not sku:
+            continue
+        sold_by_sku[sku] += abs(payment.quantity or Decimal("0"))
+
+    created = 0
+    updated = 0
+    for sku, values in purchased.items():
+        item = await db.scalar(
+            select(InventoryItem)
+            .where(InventoryItem.sku == sku)
+            .where(InventoryItem.marketplace == "EU")
+            .where(InventoryItem.fulfillment_channel == "FBA")
+        )
+        if item is None:
+            item = InventoryItem(sku=sku, marketplace="EU", fulfillment_channel="FBA")
+            db.add(item)
+            created += 1
+        else:
+            updated += 1
+        item.ean = values["ean"]
+        item.product_name = values["product_name"]
+        item.quantity_on_hand = max(Decimal("0"), values["quantity"] - sold_by_sku[sku])
+        item.quantity_reserved = Decimal("0")
+        item.quantity_inbound = Decimal("0")
+        item.notes = "Estimated from purchase invoices minus Amazon order quantities."
+
+    await db.commit()
+    return SyncInventoryResponse(products=len(purchased), created=created, updated=updated)
 
 
 @router.put("/items/{item_id}", response_model=InventoryItemRow)

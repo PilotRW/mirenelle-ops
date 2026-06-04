@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260604-5" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260604-6" />
   </head>
   <body>
     <div class="appShell">
@@ -537,6 +537,9 @@
                 <span id="inventoryStatus" class="status" data-status-key="status.ready">Ready</span>
               </div>
               <div id="inventoryTotals" class="kpis"></div>
+              <div class="toolbarRow">
+                <button id="syncInventoryButton" type="button" data-i18n="action.syncInventory">Sync stock</button>
+              </div>
               <form id="inventoryForm" class="formRow inventoryForm">
                 <input id="inventoryItemId" type="hidden" />
                 <label>
@@ -733,6 +736,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260604-5"></script>
+    <script src="/ui/app.js?v=20260604-6"></script>
   </body>
 </html>

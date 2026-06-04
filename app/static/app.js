@@ -13,6 +13,7 @@ const translations = {
     "action.edit": "Edit",
     "action.delete": "Delete",
     "action.syncOaCatalog": "Sync OA catalog",
+    "action.syncInventory": "Sync stock",
     "action.useMatch": "Use",
     "action.viewLines": "Lines",
     "field.costFile": "Cost CSV/XLSX",
@@ -184,6 +185,7 @@ const translations = {
     "action.edit": "Bearbeiten",
     "action.delete": "Löschen",
     "action.syncOaCatalog": "OA-Katalog synchronisieren",
+    "action.syncInventory": "Bestand synchronisieren",
     "action.useMatch": "Nutzen",
     "action.viewLines": "Zeilen",
     "field.costFile": "Kosten CSV/XLSX",
@@ -355,6 +357,7 @@ const translations = {
     "action.edit": "Редагувати",
     "action.delete": "Видалити",
     "action.syncOaCatalog": "Синхронізувати OA каталог",
+    "action.syncInventory": "Синхронізувати залишки",
     "action.useMatch": "Застосувати",
     "action.viewLines": "Позиції",
     "field.costFile": "Файл цін CSV/XLSX",
@@ -1638,6 +1641,21 @@ document.getElementById("inventoryForm").addEventListener("submit", async (event
 });
 
 document.getElementById("clearInventoryButton").addEventListener("click", clearInventoryForm);
+
+document.getElementById("syncInventoryButton").addEventListener("click", async () => {
+  const button = document.getElementById("syncInventoryButton");
+  button.disabled = true;
+  setStatus("inventoryStatus", "status.loading", false, true);
+  try {
+    await requestJson("/inventory/sync-from-invoices", { method: "POST" });
+    await loadInventory();
+    setStatus("inventoryStatus", "status.loaded", false, true);
+  } catch (error) {
+    setStatus("inventoryStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
 
 document.getElementById("inventoryRows").addEventListener("click", async (event) => {
   const editButton = event.target.closest("button[data-edit-inventory]");
