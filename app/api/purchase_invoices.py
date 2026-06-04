@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -220,10 +220,15 @@ async def commit_purchase_invoice_endpoint(
 @router.get("", response_model=PurchaseInvoiceListResponse)
 async def list_purchase_invoices(
     db: Annotated[AsyncSession, Depends(get_db)],
+    start_date: Annotated[date | None, Query()] = None,
+    end_date: Annotated[date | None, Query()] = None,
 ) -> PurchaseInvoiceListResponse:
-    result = await db.scalars(
-        select(PurchaseInvoice).order_by(PurchaseInvoice.created_at.desc())
-    )
+    statement = select(PurchaseInvoice)
+    if start_date:
+        statement = statement.where(PurchaseInvoice.invoice_date >= start_date)
+    if end_date:
+        statement = statement.where(PurchaseInvoice.invoice_date <= end_date)
+    result = await db.scalars(statement.order_by(PurchaseInvoice.created_at.desc()))
     return PurchaseInvoiceListResponse(
         rows=[
             PurchaseInvoiceRow(

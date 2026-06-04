@@ -822,7 +822,7 @@ async function loadCosts() {
 }
 
 async function loadInvoices() {
-  const data = await requestJson("/imports/purchase-invoices");
+  const data = await requestJson(`/imports/purchase-invoices${reportQueryParams()}`);
   state.invoiceRows = data.rows;
   renderRows("invoiceImports", data.rows, (row) => `
     <tr data-invoice-row="${row.invoice_id}" class="${String(row.invoice_id) === String(state.selectedInvoiceId) ? "selectedRow" : ""}">
