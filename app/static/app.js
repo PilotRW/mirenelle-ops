@@ -649,6 +649,8 @@ const text = (value) => {
   return String(value);
 };
 
+const purchaseSummaryPeriod = (value) => (value === "all" ? t("period.all") : text(value));
+
 function lineTypeLabel(value) {
   const labels = {
     product: {
@@ -849,7 +851,7 @@ async function loadInvoices() {
   updateDashboardPurchase();
   renderRows("purchaseSummaryRows", summary.rows, (row) => `
     <tr>
-      <td>${row.month}</td>
+      <td>${purchaseSummaryPeriod(row.month)}</td>
       <td>${text(row.supplier_name)}</td>
       <td class="num">${row.quantity}</td>
       <td class="num">${money(row.product_subtotal_amount ?? row.subtotal_amount, row.currency)}</td>

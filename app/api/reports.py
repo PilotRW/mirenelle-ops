@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from sqlalchemy import Select, case, func, select
+from sqlalchemy import Select, case, func, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
@@ -797,7 +797,12 @@ async def purchase_summary(
     start_date: Annotated[date | None, Query()] = None,
     end_date: Annotated[date | None, Query()] = None,
 ) -> PurchaseSummaryResponse:
-    month_expr = func.date_trunc("month", PurchaseInvoice.invoice_date).label("month")
+    group_by_month = bool(start_date or end_date)
+    month_expr = (
+        func.date_trunc("month", PurchaseInvoice.invoice_date).label("month")
+        if group_by_month
+        else literal(None).label("month")
+    )
     total_expr = func.coalesce(
         PurchaseInvoiceLine.line_gross_amount,
         PurchaseInvoiceLine.line_net_amount + func.coalesce(PurchaseInvoiceLine.vat_amount, 0),
@@ -827,15 +832,16 @@ async def purchase_summary(
         .join(PurchaseInvoiceLine, PurchaseInvoiceLine.invoice_id == PurchaseInvoice.id)
     )
     query = apply_invoice_date_filters(query, start_date, end_date)
-    query = query.group_by(month_expr, PurchaseInvoice.supplier_name, PurchaseInvoice.currency).order_by(
-        month_expr.desc(),
-        PurchaseInvoice.supplier_name,
-    )
+    query = query.group_by(PurchaseInvoice.supplier_name, PurchaseInvoice.currency)
+    if group_by_month:
+        query = query.group_by(month_expr).order_by(month_expr.desc(), PurchaseInvoice.supplier_name)
+    else:
+        query = query.order_by(PurchaseInvoice.supplier_name)
     result = await db.execute(query)
     return PurchaseSummaryResponse(
         rows=[
             PurchaseSummaryRow(
-                month=row.month.date().isoformat() if row.month else "-",
+                month=row.month.date().isoformat() if row.month else "all",
                 supplier_name=row.supplier_name,
                 currency=row.currency,
                 invoices=row.invoices,
