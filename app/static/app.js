@@ -29,6 +29,7 @@ const translations = {
     "field.supplier": "Supplier",
     "field.amazonProductSearch": "Amazon product search",
     "field.invoiceProductSearch": "Invoice product search",
+    "field.invoiceProductsSearch": "Invoice product search",
     "field.transactionCsv": "Transaction CSV",
     "message.committedRaw": "Committed raw report.",
     "message.noData": "No data",
@@ -185,6 +186,7 @@ const translations = {
     "field.supplier": "Lieferant",
     "field.amazonProductSearch": "Amazon-Produkt suchen",
     "field.invoiceProductSearch": "Rechnungsprodukt suchen",
+    "field.invoiceProductsSearch": "Rechnungsprodukt suchen",
     "field.transactionCsv": "Transaktions-CSV",
     "message.committedRaw": "Rohdaten gespeichert.",
     "message.noData": "Keine Daten",
@@ -341,6 +343,7 @@ const translations = {
     "field.supplier": "Постачальник",
     "field.amazonProductSearch": "Пошук Amazon товару",
     "field.invoiceProductSearch": "Пошук товару з інвойсу",
+    "field.invoiceProductsSearch": "Пошук товару з інвойсу",
     "field.transactionCsv": "CSV транзакцій",
     "message.committedRaw": "Raw-звіт збережено.",
     "message.noData": "Немає даних",
@@ -857,38 +860,46 @@ function updateDashboardPurchase() {
 async function loadProductMappings() {
   const invoiceQuery = document.getElementById("invoiceLineSearch")?.value.trim() || "";
   const amazonQuery = document.getElementById("amazonProductSearch")?.value.trim() || "";
-  const [suggestions, mappings, invoiceProducts, amazonProducts] = await Promise.all([
-    requestJson("/product-mappings/suggestions"),
-    requestJson("/product-mappings"),
-    requestJson(`/product-mappings/invoice-products${invoiceQuery ? `?query=${encodeURIComponent(invoiceQuery)}` : ""}`),
-    requestJson(`/product-mappings/amazon-products${amazonQuery ? `?query=${encodeURIComponent(amazonQuery)}` : ""}`),
-  ]);
+  const invoiceProducts = await requestJson(`/product-mappings/invoice-products${invoiceQuery ? `?query=${encodeURIComponent(invoiceQuery)}` : ""}`);
   state.unmappedInvoiceLines = invoiceProducts.rows;
   if (!invoiceProducts.rows.some((row) => String(row.invoice_line_id) === String(state.selectedMappingInvoiceLineId))) {
     state.selectedMappingInvoiceLineId = invoiceProducts.rows[0]?.invoice_line_id || null;
   }
   renderManualInvoiceLines(invoiceProducts.rows);
-  renderManualAmazonProducts(amazonProducts.rows);
-  renderRows("mappingSuggestions", suggestions.rows, (row) => `
-    <tr>
-      <td>${text(row.invoice_product_name)}</td>
-      <td>${text(row.amazon_product_details)}</td>
-      <td class="num">${row.confidence}%</td>
-      <td>
-        <button type="button" class="compactButton" data-map-line="${row.invoice_line_id}" data-amazon-product="${encodeURIComponent(row.amazon_product_details)}" data-confidence="${row.confidence}">
-          ${t("action.useMatch")}
-        </button>
-      </td>
-    </tr>
-  `);
-  renderRows("productMappings", mappings.rows, (row) => `
-    <tr>
-      <td>${text(row.supplier_name)}</td>
-      <td>${text(row.invoice_product_name)}</td>
-      <td>${text(row.amazon_product_details)}</td>
-      <td>${text(row.match_method)}</td>
-    </tr>
-  `);
+
+  try {
+    const [suggestions, mappings, amazonProducts] = await Promise.all([
+      requestJson("/product-mappings/suggestions"),
+      requestJson("/product-mappings"),
+      requestJson(`/product-mappings/amazon-products${amazonQuery ? `?query=${encodeURIComponent(amazonQuery)}` : ""}`),
+    ]);
+    renderManualAmazonProducts(amazonProducts.rows);
+    renderRows("mappingSuggestions", suggestions.rows, (row) => `
+      <tr>
+        <td>${text(row.invoice_product_name)}</td>
+        <td>${text(row.amazon_product_details)}</td>
+        <td class="num">${row.confidence}%</td>
+        <td>
+          <button type="button" class="compactButton" data-map-line="${row.invoice_line_id}" data-amazon-product="${encodeURIComponent(row.amazon_product_details)}" data-confidence="${row.confidence}">
+            ${t("action.useMatch")}
+          </button>
+        </td>
+      </tr>
+    `);
+    renderRows("productMappings", mappings.rows, (row) => `
+      <tr>
+        <td>${text(row.supplier_name)}</td>
+        <td>${text(row.invoice_product_name)}</td>
+        <td>${text(row.amazon_product_details)}</td>
+        <td>${text(row.match_method)}</td>
+      </tr>
+    `);
+  } catch (error) {
+    renderManualAmazonProducts([]);
+    renderRows("mappingSuggestions", [], () => "");
+    renderRows("productMappings", [], () => "");
+    setStatus("mappingStatus", error.message, true);
+  }
 }
 
 function renderManualInvoiceLines(rows) {
