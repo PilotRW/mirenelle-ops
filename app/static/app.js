@@ -2055,7 +2055,7 @@ document.getElementById("genericImports").addEventListener("click", async (event
   }
 });
 
-document.getElementById("refreshButton").addEventListener("click", refreshAll);
+document.getElementById("refreshButton")?.addEventListener("click", refreshAll);
 
 document.querySelectorAll(".navItem").forEach((button) => {
   button.addEventListener("click", () => showSection(button.dataset.sectionTarget));
@@ -2097,7 +2097,7 @@ document.getElementById("languageSelect").addEventListener("change", (event) => 
   refreshAll().catch((error) => setStatus("cashflowStatus", error.message, true));
 });
 
-document.getElementById("mockCostsButton").addEventListener("click", async () => {
+document.getElementById("mockCostsButton")?.addEventListener("click", async () => {
   const button = document.getElementById("mockCostsButton");
   button.disabled = true;
   setStatus("costStatus", "status.mockingCosts", false, true);
