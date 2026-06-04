@@ -3,7 +3,7 @@ from decimal import Decimal
 import hashlib
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -170,12 +170,15 @@ async def preview_product_costs(
 @router.get("", response_model=ProductCostImportListResponse)
 async def list_product_cost_imports(
     db: Annotated[AsyncSession, Depends(get_db)],
+    start_date: Annotated[date | None, Query()] = None,
+    end_date: Annotated[date | None, Query()] = None,
 ) -> ProductCostImportListResponse:
-    result = await db.scalars(
-        select(ProductCostImport)
-        .where(~ProductCostImport.source_filename.ilike("invoice_costs_%"))
-        .order_by(ProductCostImport.created_at.desc())
-    )
+    statement = select(ProductCostImport).where(~ProductCostImport.source_filename.ilike("invoice_costs_%"))
+    if start_date:
+        statement = statement.where(ProductCostImport.effective_date >= start_date)
+    if end_date:
+        statement = statement.where(ProductCostImport.effective_date <= end_date)
+    result = await db.scalars(statement.order_by(ProductCostImport.created_at.desc()))
     return ProductCostImportListResponse(
         rows=[
             ProductCostImportRow(

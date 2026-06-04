@@ -779,7 +779,7 @@ function applySearchFilter() {
 }
 
 async function loadPayments() {
-  const data = await requestJson("/imports/amazon-payments");
+  const data = await requestJson(`/imports/amazon-payments${reportQueryParams()}`);
   state.paymentRows = data.rows;
   renderRows("paymentImports", data.rows, (row) => `
     <tr data-payment-row="${row.import_id}" class="${String(row.import_id) === String(state.selectedPaymentId) ? "selectedRow" : ""}">
@@ -851,7 +851,7 @@ function hidePaymentLines() {
 }
 
 async function loadCosts() {
-  const imports = await requestJson("/imports/product-costs");
+  const imports = await requestJson(`/imports/product-costs${reportQueryParams()}`);
   renderRows("costImports", imports.rows, (row) => `
     <tr>
       <td>${row.import_id}</td>

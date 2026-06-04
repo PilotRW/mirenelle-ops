@@ -1,6 +1,7 @@
+from datetime import date, datetime, time
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -140,10 +141,19 @@ async def preview_amazon_payment_transactions(
 @router.get("", response_model=AmazonPaymentImportListResponse)
 async def list_amazon_payment_imports(
     db: Annotated[AsyncSession, Depends(get_db)],
+    start_date: Annotated[date | None, Query()] = None,
+    end_date: Annotated[date | None, Query()] = None,
 ) -> AmazonPaymentImportListResponse:
-    result = await db.scalars(
-        select(AmazonPaymentImport).order_by(AmazonPaymentImport.created_at.desc())
-    )
+    statement = select(AmazonPaymentImport)
+    if start_date:
+        statement = statement.where(
+            AmazonPaymentImport.report_period_end >= datetime.combine(start_date, time.min)
+        )
+    if end_date:
+        statement = statement.where(
+            AmazonPaymentImport.report_period_start <= datetime.combine(end_date, time.max)
+        )
+    result = await db.scalars(statement.order_by(AmazonPaymentImport.created_at.desc()))
     return AmazonPaymentImportListResponse(
         rows=[
             AmazonPaymentImportRow(
