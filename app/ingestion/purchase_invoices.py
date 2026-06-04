@@ -109,6 +109,7 @@ INVOICE_HEADER_ALIASES: dict[str, set[str]] = {
 
 REQUIRED_INVOICE_FIELDS = {"product_name", "quantity", "unit_cost"}
 DATE_FORMATS = ("%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y", "%d-%m-%Y")
+TEXT_DATE_FORMATS = ("%b %d, %Y", "%B %d, %Y")
 PRODUCT_LINE_TYPE = "product"
 INBOUND_SHIPPING_LINE_TYPE = "inbound_shipping"
 FULFILLMENT_FEE_LINE_TYPE = "fulfillment_fee"
@@ -266,6 +267,7 @@ def extract_pdf_metadata(text: str) -> dict[str, str | date | Decimal | None]:
     invoice_number = first_regex(
         text,
         [
+            r"\bInvoice ID\s*:\s*([A-Z0-9][A-Z0-9\-/]+)",
             r"\bRECHNUNG\s+(\d{4,12})",
             r"(?:Rechnungsnr\./-datum)\s*[:#]?\s*([A-Z0-9][A-Z0-9\-/]+)\s*/\s*\d{1,2}[./-]\d{1,2}[./-]\d{2,4}",
             r"(?:Rechnungs-Nr\.?|Rechnungsnummer|Invoice\s*(?:No\.?|Number)|Facture\s*(?:N[°o]\.?|numéro)|Fattura\s*(?:n\.?|numero)|Factura\s*(?:n[ºo]\.?|número)|Faktura\s*(?:nr|numer)|Factuurnummer|Fakturanummer)\s*[:#]?\s*([A-Z0-9][A-Z0-9\-/]+)",
@@ -274,6 +276,7 @@ def extract_pdf_metadata(text: str) -> dict[str, str | date | Decimal | None]:
     invoice_date_value = first_regex(
         text,
         [
+            r"\bDate\s*:\s*([A-Z][a-z]{2,8}\s+\d{1,2}(?:st|nd|rd|th)?,\s+\d{4})",
             r"\bDatum\s*:\s*(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})",
             r"(?:Rechnungsnr\./-datum)\s*[:#]?\s*[A-Z0-9][A-Z0-9\-/]+\s*/\s*(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})",
             r"^\s*(?:Datum|Rechnungsdatum|Invoice\s*date|Date\s*de\s*facture|Data\s*fattura|Fecha\s*factura|Data\s*wystawienia|Factuurdatum|Fakturadatum)\s*[:#]?\s*(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\s*$",
@@ -287,6 +290,8 @@ def extract_pdf_metadata(text: str) -> dict[str, str | date | Decimal | None]:
     )
 
     supplier_name = None
+    if "Qogita EU BV" in text:
+        supplier_name = "Qogita EU BV"
     if "L & K BrandTrading GmbH" in text:
         supplier_name = "L & K BrandTrading GmbH"
     for line in text.splitlines():
@@ -615,7 +620,61 @@ def parse_lh_brands_pdf_invoice_rows(text: str) -> list[dict[str, str]]:
     return rows
 
 
+def parse_qogita_pdf_invoice_rows(text: str) -> list[dict[str, str]]:
+    if "Qogita EU BV" not in text and "qogita.com" not in text:
+        return []
+
+    vat_rate = first_regex(text, [r"\bVAT\s*\((\d+(?:[,.]\d+)?)%\)"])
+    detail_pattern = re.compile(
+        r"^(?P<seller_id>[A-Z0-9]{3,})\s+"
+        r"(?P<gtin>\d{8,14})\s*"
+        r"(?:€|EUR)?\s*(?P<unit>\d+(?:[,.]\d{2}))\s+"
+        r"(?P<quantity>\d+(?:[,.]\d+)?)\s*"
+        r"(?:€|EUR)?\s*(?P<net>\d+(?:[,.]\d{2}))$",
+        flags=re.IGNORECASE,
+    )
+    rows: list[dict[str, str]] = []
+    product_parts: list[str] = []
+    in_items = False
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if "NAME SELLER ID GTIN PRICE" in line:
+            in_items = True
+            product_parts = []
+            continue
+        if not in_items:
+            continue
+        if re.match(r"^(Subtotal|Shipping|VAT|Total|Transaction Summary)\b", line, flags=re.IGNORECASE):
+            break
+        detail_match = detail_pattern.match(line)
+        if detail_match:
+            product_name = " ".join(product_parts).strip()
+            if product_name:
+                rows.append(
+                    {
+                        "Supplier SKU": detail_match.group("seller_id"),
+                        "SKU": detail_match.group("seller_id"),
+                        "EAN": detail_match.group("gtin"),
+                        "Product name": product_name,
+                        "Quantity": detail_match.group("quantity"),
+                        "VAT %": vat_rate or "0",
+                        "Unit cost": detail_match.group("unit"),
+                        "Line net": detail_match.group("net"),
+                    }
+                )
+            product_parts = []
+            continue
+        product_parts.append(line)
+    return rows
+
+
 def parse_pdf_invoice_rows(text: str) -> list[dict[str, str]]:
+    qogita_rows = parse_qogita_pdf_invoice_rows(text)
+    if qogita_rows:
+        return qogita_rows
+
     brandtrading_rows = parse_brandtrading_pdf_invoice_rows(text)
     if brandtrading_rows:
         return brandtrading_rows
@@ -792,7 +851,13 @@ def parse_date(value: str | date | None) -> date | None:
     if isinstance(value, date):
         return value
     clean = str(value).strip()
+    clean = re.sub(r"\b(\d{1,2})(st|nd|rd|th)\b", r"\1", clean, flags=re.IGNORECASE)
     for date_format in DATE_FORMATS:
+        try:
+            return datetime.strptime(clean, date_format).date()
+        except ValueError:
+            continue
+    for date_format in TEXT_DATE_FORMATS:
         try:
             return datetime.strptime(clean, date_format).date()
         except ValueError:
