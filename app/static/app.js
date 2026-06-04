@@ -829,6 +829,7 @@ async function loadInvoices() {
       <td>${row.invoice_id}</td>
       <td>${text(row.supplier_name)}</td>
       <td>${text(row.invoice_number)}</td>
+      <td>${text(row.invoice_date)}</td>
       <td class="num">${row.row_count}</td>
       <td class="num">${row.total_amount === null ? "-" : money(row.total_amount, row.currency)}</td>
       <td class="actionsCell">
