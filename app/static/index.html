@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260604-11" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260604-14" />
   </head>
   <body>
     <div class="appShell">
@@ -208,6 +208,33 @@
                   </thead>
                   <tbody id="paymentImports"></tbody>
                 </table>
+              </div>
+              <div id="paymentLinesPanel" class="subPanel hidden">
+                <div class="sectionHeader">
+                  <h2 data-i18n="section.paymentLines">Payment Lines</h2>
+                  <span id="paymentLinesStatus" class="status" data-status-key="status.ready">Ready</span>
+                </div>
+                <div id="selectedPaymentInfo" class="selectedInvoiceInfo"></div>
+                <div class="tableWrap linesScroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th data-i18n="table.date">Date</th>
+                        <th data-i18n="table.status">Status</th>
+                        <th data-i18n="table.type">Type</th>
+                        <th data-i18n="table.sku">SKU</th>
+                        <th class="num" data-i18n="table.quantity">Quantity</th>
+                        <th data-i18n="table.product">Product</th>
+                        <th class="num" data-i18n="table.productCharges">Product charges</th>
+                        <th class="num" data-i18n="table.promo">Promo</th>
+                        <th class="num" data-i18n="table.fees">Fees</th>
+                        <th class="num" data-i18n="table.other">Other</th>
+                        <th class="num" data-i18n="table.total">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody id="paymentLineRows"></tbody>
+                  </table>
+                </div>
               </div>
             </section>
           </section>
@@ -743,6 +770,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260604-13"></script>
+    <script src="/ui/app.js?v=20260604-14"></script>
   </body>
 </html>

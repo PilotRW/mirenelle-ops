@@ -523,6 +523,10 @@ select {
   border-radius: 4px;
 }
 
+.linesScroll {
+  max-height: 460px;
+}
+
 .twoTables {
   display: grid;
   grid-template-columns: repeat(2, minmax(640px, 1fr));

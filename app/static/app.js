@@ -83,6 +83,7 @@ const translations = {
     "section.generalCashflow": "General Cashflow",
     "section.inventory": "Inventory",
     "section.invoiceLines": "Invoice Lines",
+    "section.paymentLines": "Payment Lines",
     "section.productCosts": "Product Costs",
     "section.productMappings": "Product Mappings",
     "section.oaCatalog": "OA Catalog",
@@ -121,6 +122,7 @@ const translations = {
     "table.cost": "Cost",
     "table.costCoverage": "Cost coverage",
     "table.costEur": "Cost EUR",
+    "table.date": "Date",
     "table.effective": "Effective",
     "table.expenseCategory": "Expense category",
     "table.fees": "Fees",
@@ -150,6 +152,7 @@ const translations = {
     "table.paymentRows": "Payment rows",
     "table.period": "Period",
     "table.product": "Product",
+    "table.productCharges": "Product charges",
     "table.promo": "Promo",
     "table.refunds": "Refunds",
     "table.reorderPoint": "Reorder point",
@@ -256,6 +259,7 @@ const translations = {
     "section.generalCashflow": "Gesamt-Cashflow",
     "section.inventory": "Bestand",
     "section.invoiceLines": "Rechnungszeilen",
+    "section.paymentLines": "Zahlungszeilen",
     "section.productCosts": "Einkaufspreise",
     "section.productMappings": "Produktzuordnung",
     "section.oaCatalog": "OA-Katalog",
@@ -294,6 +298,7 @@ const translations = {
     "table.cost": "Kosten",
     "table.costCoverage": "Kostenabdeckung",
     "table.costEur": "Kosten EUR",
+    "table.date": "Datum",
     "table.effective": "Gültig",
     "table.expenseCategory": "Ausgabenkategorie",
     "table.fees": "Gebühren",
@@ -323,6 +328,7 @@ const translations = {
     "table.paymentRows": "Zahlungszeilen",
     "table.period": "Zeitraum",
     "table.product": "Produkt",
+    "table.productCharges": "Produktumsatz",
     "table.promo": "Promo",
     "table.refunds": "Erstattungen",
     "table.reorderPoint": "Meldebestand",
@@ -429,6 +435,7 @@ const translations = {
     "section.generalCashflow": "Загальний cashflow",
     "section.inventory": "Товарні залишки",
     "section.invoiceLines": "Позиції інвойсу",
+    "section.paymentLines": "Рядки платежу",
     "section.productCosts": "Закупівельні ціни",
     "section.productMappings": "Мапінг товарів",
     "section.oaCatalog": "OA каталог",
@@ -467,6 +474,7 @@ const translations = {
     "table.cost": "Ціна",
     "table.costCoverage": "Покриття цін",
     "table.costEur": "Ціна EUR",
+    "table.date": "Дата",
     "table.effective": "Діє з",
     "table.expenseCategory": "Категорія витрат",
     "table.fees": "Комісії",
@@ -496,6 +504,7 @@ const translations = {
     "table.paymentRows": "Рядки платежів",
     "table.period": "Період",
     "table.product": "Товар",
+    "table.productCharges": "Продажі товару",
     "table.promo": "Промо",
     "table.refunds": "Повернення",
     "table.reorderPoint": "Мін. залишок",
@@ -531,6 +540,8 @@ const state = {
   dataQualitySummary: null,
   profitSummary: null,
   inventoryRows: [],
+  paymentRows: [],
+  selectedPaymentId: null,
   invoiceRows: [],
   selectedInvoiceId: null,
   selectedMappingInvoiceLineId: null,
@@ -769,14 +780,16 @@ function applySearchFilter() {
 
 async function loadPayments() {
   const data = await requestJson("/imports/amazon-payments");
+  state.paymentRows = data.rows;
   renderRows("paymentImports", data.rows, (row) => `
-    <tr>
+    <tr data-payment-row="${row.import_id}" class="${String(row.import_id) === String(state.selectedPaymentId) ? "selectedRow" : ""}">
       <td>${row.import_id}</td>
       <td>${row.marketplace}</td>
       <td class="num">${row.row_count}</td>
       <td>${text(row.report_period_start)} - ${text(row.report_period_end)}</td>
       <td>${row.filename}</td>
-      <td>
+      <td class="actionsCell">
+        <button type="button" class="compactButton" data-payment-lines="${row.import_id}">${t("action.viewLines")}</button>
         <button
           type="button"
           class="compactButton dangerButton"
@@ -786,6 +799,55 @@ async function loadPayments() {
       </td>
     </tr>
   `);
+}
+
+async function loadPaymentLines(importId) {
+  setStatus("paymentLinesStatus", "status.loading", false, true);
+  state.selectedPaymentId = String(importId);
+  document.querySelectorAll("#paymentImports tr").forEach((row) => {
+    row.classList.toggle("selectedRow", row.dataset.paymentRow === String(importId));
+  });
+  const selected = state.paymentRows.find((row) => String(row.import_id) === String(importId));
+  const panel = document.getElementById("paymentLinesPanel");
+  panel.classList.remove("hidden");
+  document.getElementById("selectedPaymentInfo").innerHTML = selected
+    ? `
+      <div><span>ID</span><strong>${selected.import_id}</strong></div>
+      <div><span>${t("field.marketplace")}</span><strong>${escapeHtml(selected.marketplace)}</strong></div>
+      <div><span>${t("table.period")}</span><strong>${text(selected.report_period_start)} - ${text(selected.report_period_end)}</strong></div>
+      <div><span>${t("table.file")}</span><strong>${escapeHtml(selected.filename)}</strong></div>
+      <div><span>${t("table.rows")}</span><strong>${selected.row_count}</strong></div>
+    `
+    : "";
+  const data = await requestJson(`/imports/amazon-payments/${importId}/lines`);
+  renderRows("paymentLineRows", data.rows, (row) => `
+    <tr>
+      <td>${text(row.transaction_date)}</td>
+      <td>${text(row.transaction_status)}</td>
+      <td>${text(row.transaction_type)}</td>
+      <td>${text(row.sku)}</td>
+      <td class="num">${text(row.quantity)}</td>
+      <td>${text(row.product_details)}</td>
+      <td class="num">${money(row.product_charges, row.currency)}</td>
+      <td class="num">${money(row.promotional_rebates, row.currency)}</td>
+      <td class="num">${money(row.amazon_fees, row.currency)}</td>
+      <td class="num">${money(row.other_amount, row.currency)}</td>
+      <td class="num">${money(row.total_amount, row.currency)}</td>
+    </tr>
+  `);
+  setStatus("paymentLinesStatus", "status.loaded", false, true);
+  panel.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+function hidePaymentLines() {
+  state.selectedPaymentId = null;
+  document.querySelectorAll("#paymentImports tr").forEach((row) => {
+    row.classList.remove("selectedRow");
+  });
+  document.getElementById("paymentLinesPanel").classList.add("hidden");
+  document.getElementById("selectedPaymentInfo").innerHTML = "";
+  renderRows("paymentLineRows", [], () => "");
+  setStatus("paymentLinesStatus", "status.ready", false, true);
 }
 
 async function loadCosts() {
@@ -1766,25 +1828,44 @@ document.getElementById("paymentForm").addEventListener("submit", (event) => {
 });
 
 document.getElementById("paymentImports").addEventListener("click", async (event) => {
-  const button = event.target.closest("button[data-delete-payment]");
-  if (!button) return;
+  const deleteButton = event.target.closest("button[data-delete-payment]");
+  if (deleteButton) {
+    const filename = deleteButton.dataset.deletePaymentName || "";
+    const confirmed = window.confirm(`${t("message.confirmDeletePayment")}\n\n${filename}`);
+    if (!confirmed) return;
 
-  const filename = button.dataset.deletePaymentName || "";
-  const confirmed = window.confirm(`${t("message.confirmDeletePayment")}\n\n${filename}`);
-  if (!confirmed) return;
+    deleteButton.disabled = true;
+    setStatus("paymentStatus", "status.loading", false, true);
+    try {
+      await requestJson(`/imports/amazon-payments/${deleteButton.dataset.deletePayment}`, {
+        method: "DELETE",
+      });
+      if (String(state.selectedPaymentId) === String(deleteButton.dataset.deletePayment)) {
+        hidePaymentLines();
+      }
+      await refreshAll();
+      setStatus("paymentStatus", "status.loaded", false, true);
+    } catch (error) {
+      setStatus("paymentStatus", error.message, true);
+    } finally {
+      deleteButton.disabled = false;
+    }
+    return;
+  }
 
-  button.disabled = true;
-  setStatus("paymentStatus", "status.loading", false, true);
+  const linesButton = event.target.closest("button[data-payment-lines]");
+  if (!linesButton) return;
+  if (String(state.selectedPaymentId) === String(linesButton.dataset.paymentLines)) {
+    hidePaymentLines();
+    return;
+  }
+  linesButton.disabled = true;
   try {
-    await requestJson(`/imports/amazon-payments/${button.dataset.deletePayment}`, {
-      method: "DELETE",
-    });
-    await refreshAll();
-    setStatus("paymentStatus", "status.loaded", false, true);
+    await loadPaymentLines(linesButton.dataset.paymentLines);
   } catch (error) {
-    setStatus("paymentStatus", error.message, true);
+    setStatus("paymentLinesStatus", error.message, true);
   } finally {
-    button.disabled = false;
+    linesButton.disabled = false;
   }
 });
 

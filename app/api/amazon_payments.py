@@ -66,6 +66,28 @@ class AmazonPaymentImportListResponse(BaseModel):
     rows: list[AmazonPaymentImportRow]
 
 
+class AmazonPaymentLineRow(BaseModel):
+    id: int
+    transaction_date: str
+    transaction_status: str
+    transaction_type: str
+    marketplace: str
+    currency: str
+    external_transaction_id: str | None
+    sku: str | None
+    quantity: float | None
+    product_details: str | None
+    product_charges: float
+    promotional_rebates: float
+    amazon_fees: float
+    other_amount: float
+    total_amount: float
+
+
+class AmazonPaymentLinesResponse(BaseModel):
+    rows: list[AmazonPaymentLineRow]
+
+
 class DeleteImportResponse(BaseModel):
     import_id: int
     deleted: bool
@@ -136,6 +158,44 @@ async def list_amazon_payment_imports(
                 if row.report_period_end
                 else None,
                 created_at=row.created_at.isoformat(),
+            )
+            for row in result
+        ]
+    )
+
+
+@router.get("/{import_id}/lines", response_model=AmazonPaymentLinesResponse)
+async def list_amazon_payment_lines(
+    import_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AmazonPaymentLinesResponse:
+    payment_import = await db.get(AmazonPaymentImport, import_id)
+    if payment_import is None:
+        raise HTTPException(status_code=404, detail="Amazon payment import not found.")
+
+    result = await db.scalars(
+        select(AmazonPaymentTransaction)
+        .where(AmazonPaymentTransaction.import_id == import_id)
+        .order_by(AmazonPaymentTransaction.transaction_date, AmazonPaymentTransaction.id)
+    )
+    return AmazonPaymentLinesResponse(
+        rows=[
+            AmazonPaymentLineRow(
+                id=row.id,
+                transaction_date=row.transaction_date.isoformat(),
+                transaction_status=row.transaction_status,
+                transaction_type=row.transaction_type,
+                marketplace=row.marketplace,
+                currency=row.currency,
+                external_transaction_id=row.external_transaction_id,
+                sku=row.sku,
+                quantity=float(row.quantity) if row.quantity is not None else None,
+                product_details=row.product_details,
+                product_charges=float(row.product_charges),
+                promotional_rebates=float(row.promotional_rebates),
+                amazon_fees=float(row.amazon_fees),
+                other_amount=float(row.other_amount),
+                total_amount=float(row.total_amount),
             )
             for row in result
         ]
