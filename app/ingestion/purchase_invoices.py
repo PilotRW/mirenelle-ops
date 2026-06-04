@@ -506,10 +506,123 @@ def parse_brandtrading_pdf_invoice_rows(text: str) -> list[dict[str, str]]:
     return rows
 
 
+def parse_lh_brands_pdf_invoice_rows(text: str) -> list[dict[str, str]]:
+    if "LH Brands GmbH" not in text:
+        return []
+
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    rows: list[dict[str, str]] = []
+    start_pattern = re.compile(r"^(?P<position>\d{1,4})\s+(?P<rest>.+)$")
+    amount_pattern = re.compile(
+        r"^(?P<quantity>\d+(?:[,.]\d+)?)\s+"
+        r"(?P<vat>\d+(?:[,.]\d+)?)\s*%\s+"
+        r"(?P<unit>[-0-9.,\s]+?)(?:€|EUR)?\s+"
+        r"(?P<net>[-0-9.,\s]+)(?:€|EUR)?$",
+        flags=re.IGNORECASE,
+    )
+    inline_pattern = re.compile(
+        r"^(?P<product>.+?)\s+"
+        r"(?P<quantity>\d+(?:[,.]\d+)?)\s+"
+        r"(?P<vat>\d+(?:[,.]\d+)?)\s*%\s+"
+        r"(?P<unit>[-0-9.,\s]+?)(?:€|EUR)?\s+"
+        r"(?P<net>[-0-9.,\s]+)(?:€|EUR)?$",
+        flags=re.IGNORECASE,
+    )
+    ignore_pattern = re.compile(
+        r"^(Rechnungs-Nr\.|Pos\.|Exkl\.|Gesamt$|LH Brands GmbH|Melnykova|Frau |Urschenb|Österreich|Deutschland|DE\d+|sales@|www\.|Kunden-Nr\.|Bestell-Nr\.|Bestelldatum|Datum|IdNr\.|USt-IdNr\.|Finanzamt|Bankverbindung|Commerzbank|IBAN|BIC|Gerichtsstand|Erfüllungsort|Geschäftsführer|Seite|Lieferadresse|Gesamtsumme|zzgl\.|Gewählte|Die Ware|Leistungsdatum)",
+        flags=re.IGNORECASE,
+    )
+
+    active: dict[str, str] | None = None
+    product_parts: list[str] = []
+
+    def finish_active(match: re.Match[str]) -> None:
+        nonlocal active, product_parts
+        if active is None:
+            return
+        active["Product name"] = " ".join(product_parts).strip()
+        active["Quantity"] = match.group("quantity")
+        active["VAT %"] = match.group("vat")
+        active["Unit cost"] = match.group("unit")
+        active["Line net"] = match.group("net")
+        rows.append(active)
+        active = None
+        product_parts = []
+
+    for line in lines:
+        amount_match = amount_pattern.match(line)
+        if amount_match and active is not None:
+            finish_active(amount_match)
+            continue
+
+        if active is not None:
+            ean_match = re.search(r"\bEAN\s*[:#]?\s*([0-9]{8,14})\b", line, flags=re.IGNORECASE)
+            if ean_match:
+                active["EAN"] = ean_match.group(1)
+                continue
+            if re.search(r"(Zolltarif|Herkunftsland|customs|origin|taric|hs\s*code)", line, flags=re.IGNORECASE):
+                continue
+            if ignore_pattern.search(line):
+                continue
+            product_parts.append(line)
+            continue
+
+        start_match = start_pattern.match(line)
+        if not start_match or int(start_match.group("position")) > 999:
+            continue
+
+        rest = start_match.group("rest").strip()
+        if rest.lower().startswith(("pos.", "prod.", "produkt", "product")):
+            continue
+
+        inline_match = inline_pattern.match(rest)
+        if inline_match:
+            product_value = inline_match.group("product").strip()
+            token, _, product_name = product_value.partition(" ")
+            supplier_sku = token if product_name and looks_like_supplier_sku(token) else ""
+            if not supplier_sku:
+                product_name = product_value
+            rows.append(
+                {
+                    "Supplier SKU": supplier_sku,
+                    "SKU": supplier_sku,
+                    "EAN": "",
+                    "Product name": product_name.strip(),
+                    "Quantity": inline_match.group("quantity"),
+                    "VAT %": inline_match.group("vat"),
+                    "Unit cost": inline_match.group("unit"),
+                    "Line net": inline_match.group("net"),
+                }
+            )
+            continue
+
+        token, _, product_name = rest.partition(" ")
+        supplier_sku = token if product_name and looks_like_supplier_sku(token) else ""
+        if not supplier_sku:
+            product_name = rest
+        active = {
+            "Supplier SKU": supplier_sku,
+            "SKU": supplier_sku,
+            "EAN": "",
+            "Product name": product_name.strip(),
+            "Quantity": "",
+            "VAT %": "",
+            "Unit cost": "",
+            "Line net": "",
+        }
+        product_parts = [product_name.strip()]
+
+    return rows
+
+
 def parse_pdf_invoice_rows(text: str) -> list[dict[str, str]]:
     brandtrading_rows = parse_brandtrading_pdf_invoice_rows(text)
     if brandtrading_rows:
         return brandtrading_rows
+
+    lh_brands_rows = parse_lh_brands_pdf_invoice_rows(text)
+    if lh_brands_rows:
+        return lh_brands_rows
 
     compact_rows = parse_compact_pdf_invoice_rows(text)
     if compact_rows:
