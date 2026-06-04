@@ -162,6 +162,7 @@ const translations = {
     "table.revenue": "Revenue",
     "table.roi": "ROI",
     "table.rows": "Rows",
+    "table.salesCurrency": "Sales currency",
     "table.sku": "SKU",
     "table.status": "Status",
     "table.subtotal": "Subtotal",
@@ -338,6 +339,7 @@ const translations = {
     "table.revenue": "Umsatz",
     "table.roi": "ROI",
     "table.rows": "Zeilen",
+    "table.salesCurrency": "Verkaufswährung",
     "table.sku": "SKU",
     "table.status": "Status",
     "table.subtotal": "Zwischensumme",
@@ -514,6 +516,7 @@ const translations = {
     "table.revenue": "Дохід",
     "table.roi": "ROI",
     "table.rows": "Рядки",
+    "table.salesCurrency": "Валюта продажу",
     "table.sku": "SKU",
     "table.status": "Статус",
     "table.subtotal": "Сума без ПДВ",
@@ -1543,6 +1546,7 @@ async function loadProfitability() {
       <td>${text(row.product_details)}</td>
       <td>${renderIdentifiers(row)}</td>
       <td>${row.currency}</td>
+      <td class="num">${row.fx_rate_to_eur}</td>
       <td class="num">${row.units_estimated}</td>
       <td class="num">${money(row.revenue_eur, "EUR")}</td>
       <td class="num">${row.average_selling_price_eur === null ? "-" : money(row.average_selling_price_eur, "EUR")}</td>

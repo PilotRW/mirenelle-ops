@@ -153,6 +153,7 @@ class ProductProfitabilityRow(BaseModel):
     sku: str | None
     ean: str | None
     currency: str
+    fx_rate_to_eur: float
     transaction_rows: int
     units_estimated: int
     revenue_original: float
@@ -803,6 +804,7 @@ async def product_profitability(
                 sku=sku,
                 ean=ean,
                 currency=str(bucket["currency"]),
+                fx_rate_to_eur=money(get_rate_for_currency(rates, str(bucket["currency"]))),
                 transaction_rows=int(bucket["transaction_rows"]),
                 units_estimated=units_estimated,
                 revenue_original=float(bucket["revenue_original"]),
