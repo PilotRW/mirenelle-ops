@@ -4,6 +4,7 @@ from app.models.amazon_payment_transaction_raw import AmazonPaymentTransactionRa
 from app.models.fx_rate import FxRate
 from app.models.generic_report_import import GenericReportImport
 from app.models.generic_report_row import GenericReportRow
+from app.models.inventory_item import InventoryItem
 from app.models.product_cost import ProductCost
 from app.models.product_cost_import import ProductCostImport
 from app.models.product_mapping import ProductMapping
@@ -18,6 +19,7 @@ __all__ = [
     "FxRate",
     "GenericReportImport",
     "GenericReportRow",
+    "InventoryItem",
     "ProductCost",
     "ProductCostImport",
     "ProductMapping",

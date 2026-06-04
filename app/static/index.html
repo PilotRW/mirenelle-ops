@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260604-4" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260604-5" />
   </head>
   <body>
     <div class="appShell">
@@ -46,6 +46,9 @@
             <p data-i18n="nav.operations">Operations</p>
             <button class="navItem" type="button" data-section-target="mappings">
               <span>⇄</span><span data-i18n="section.productMappings">Product Mappings</span>
+            </button>
+            <button class="navItem" type="button" data-section-target="inventory">
+              <span>▥</span><span data-i18n="section.inventory">Inventory</span>
             </button>
             <button class="navItem" type="button" data-section-target="settings">
               <span>⚙</span><span data-i18n="nav.settings">Settings</span>
@@ -527,6 +530,103 @@
             </section>
           </section>
 
+          <section id="section-inventory" class="pageSection">
+            <section class="panel">
+              <div class="sectionHeader">
+                <h2 data-i18n="section.inventory">Inventory</h2>
+                <span id="inventoryStatus" class="status" data-status-key="status.ready">Ready</span>
+              </div>
+              <div id="inventoryTotals" class="kpis"></div>
+              <form id="inventoryForm" class="formRow inventoryForm">
+                <input id="inventoryItemId" type="hidden" />
+                <label>
+                  <span data-i18n="table.sku">SKU</span>
+                  <input id="inventorySku" required />
+                </label>
+                <label>
+                  <span>EAN</span>
+                  <input id="inventoryEan" />
+                </label>
+                <label>
+                  <span>ASIN</span>
+                  <input id="inventoryAsin" />
+                </label>
+                <label>
+                  <span data-i18n="field.productName">Product name</span>
+                  <input id="inventoryProductName" />
+                </label>
+                <label>
+                  <span data-i18n="field.marketplace">Marketplace</span>
+                  <select id="inventoryMarketplace" required>
+                    <option value="EU">EU</option>
+                    <option value="DE">Germany - amazon.de</option>
+                    <option value="FR">France - amazon.fr</option>
+                    <option value="IT">Italy - amazon.it</option>
+                    <option value="ES">Spain - amazon.es</option>
+                    <option value="NL">Netherlands - amazon.nl</option>
+                    <option value="BE">Belgium - amazon.com.be</option>
+                    <option value="PL">Poland - amazon.pl</option>
+                    <option value="SE">Sweden - amazon.se</option>
+                    <option value="UK">United Kingdom - amazon.co.uk</option>
+                    <option value="IE">Ireland - amazon.ie</option>
+                  </select>
+                </label>
+                <label>
+                  <span data-i18n="field.fulfillment">Fulfillment</span>
+                  <select id="inventoryFulfillment" required>
+                    <option value="FBA">FBA</option>
+                    <option value="FBM">FBM</option>
+                    <option value="PREP">Prep center</option>
+                    <option value="SUPPLIER">Supplier</option>
+                  </select>
+                </label>
+                <label>
+                  <span data-i18n="table.onHand">On hand</span>
+                  <input id="inventoryOnHand" type="number" min="0" step="1" required />
+                </label>
+                <label>
+                  <span data-i18n="table.reserved">Reserved</span>
+                  <input id="inventoryReserved" type="number" min="0" step="1" value="0" required />
+                </label>
+                <label>
+                  <span data-i18n="table.inbound">Inbound</span>
+                  <input id="inventoryInbound" type="number" min="0" step="1" value="0" required />
+                </label>
+                <label>
+                  <span data-i18n="table.reorderPoint">Reorder point</span>
+                  <input id="inventoryReorderPoint" type="number" min="0" step="1" value="0" required />
+                </label>
+                <label>
+                  <span data-i18n="table.notes">Notes</span>
+                  <input id="inventoryNotes" />
+                </label>
+                <button type="submit" data-i18n="action.save">Save</button>
+                <button id="clearInventoryButton" class="secondaryButton" type="button" data-i18n="action.clear">Clear</button>
+              </form>
+              <div class="tableWrap inventoryTable">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="table.status">Status</th>
+                      <th data-i18n="table.product">Product</th>
+                      <th data-i18n="table.identifiers">ASIN / SKU / EAN</th>
+                      <th data-i18n="field.marketplace">Marketplace</th>
+                      <th data-i18n="field.fulfillment">Fulfillment</th>
+                      <th data-i18n="table.onHand">On hand</th>
+                      <th data-i18n="table.available">Available</th>
+                      <th data-i18n="table.reserved">Reserved</th>
+                      <th data-i18n="table.inbound">Inbound</th>
+                      <th data-i18n="table.reorderPoint">Reorder point</th>
+                      <th data-i18n="table.lastSync">Last sync</th>
+                      <th data-i18n="table.action">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="inventoryRows"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
           <section id="section-settings" class="pageSection">
             <div class="splitPanel">
             <section class="panel">
@@ -633,6 +733,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260604-4"></script>
+    <script src="/ui/app.js?v=20260604-5"></script>
   </body>
 </html>

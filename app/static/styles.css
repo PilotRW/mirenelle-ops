@@ -255,6 +255,31 @@ button:disabled {
   background: #d92d20;
 }
 
+.statusPill {
+  display: inline-flex;
+  min-width: 86px;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.statusPill.healthy {
+  color: #17663a;
+  background: #dcfce7;
+}
+
+.statusPill.low_stock {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.statusPill.out_of_stock {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
 .actionsCell {
   display: flex;
   gap: 8px;
@@ -454,6 +479,10 @@ button:disabled {
   grid-template-columns: minmax(180px, 220px) minmax(220px, 1fr) auto auto;
 }
 
+.inventoryForm {
+  grid-template-columns: repeat(6, minmax(130px, 1fr)) auto auto;
+}
+
 .mappingEditForm {
   grid-template-columns: minmax(140px, 180px) minmax(140px, 180px) minmax(140px, 180px) minmax(260px, 1fr) auto auto;
   padding: 14px;
@@ -503,6 +532,17 @@ select {
 }
 
 .mappingProductsTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.inventoryTable {
+  max-height: min(640px, calc(100vh - 390px));
+  overflow: auto;
+}
+
+.inventoryTable thead th {
   position: sticky;
   top: 0;
   z-index: 1;

@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api import amazon_payments
 from app.api import fx_rates
 from app.api import health
+from app.api import inventory
 from app.api import mock_costs
 from app.api import product_mappings
 from app.api import product_costs
@@ -21,6 +22,7 @@ app.mount("/ui", StaticFiles(directory="app/static", html=True), name="ui")
 app.include_router(amazon_payments.router)
 app.include_router(fx_rates.router)
 app.include_router(health.router)
+app.include_router(inventory.router)
 app.include_router(mock_costs.router)
 app.include_router(product_mappings.router)
 app.include_router(product_costs.router)

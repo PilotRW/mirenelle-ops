@@ -29,6 +29,7 @@ const translations = {
     "field.supplier": "Supplier",
     "field.supplierSku": "Supplier SKU",
     "field.productName": "Product name",
+    "field.fulfillment": "Fulfillment",
     "field.amazonProductSearch": "Amazon product search",
     "field.invoiceProductSearch": "Invoice product search",
     "field.invoiceProductsSearch": "Invoice product search",
@@ -40,6 +41,7 @@ const translations = {
     "message.confirmDeleteInvoice": "Delete this purchase invoice? Its invoice lines, invoice product costs, and mappings will be removed.",
     "message.confirmDeleteCostImport": "Delete this product cost import? Its product costs will be removed from analytics.",
     "message.confirmDeleteGenericReport": "Delete this raw report import?",
+    "message.confirmDeleteInventory": "Delete this inventory item?",
     "message.selectInvoiceLine": "Select an invoice product first.",
     "metric.withEan": "With EAN",
     "preview.detectedFields": "Detected fields",
@@ -78,6 +80,7 @@ const translations = {
     "section.amazonPayments": "Amazon Payments",
     "section.fxRates": "FX Rates",
     "section.generalCashflow": "General Cashflow",
+    "section.inventory": "Inventory",
     "section.invoiceLines": "Invoice Lines",
     "section.productCosts": "Product Costs",
     "section.productMappings": "Product Mappings",
@@ -100,6 +103,9 @@ const translations = {
     "status.breakeven": "breakeven",
     "status.unknown": "unknown",
     "status.unmapped": "unmapped",
+    "status.healthy": "healthy",
+    "status.lowStock": "low stock",
+    "status.outOfStock": "out of stock",
     "status.ready": "Ready",
     "status.saved": "Saved",
     "status.saving": "Saving",
@@ -125,6 +131,8 @@ const translations = {
     "table.identifiers": "ASIN / SKU / EAN",
     "table.invoiceProduct": "Invoice product",
     "table.inboundShipping": "Inbound shipping",
+    "table.available": "Available",
+    "table.inbound": "Inbound",
     "table.lineType": "Line type",
     "table.lastSync": "Last sync",
     "table.market": "Market",
@@ -136,11 +144,14 @@ const translations = {
     "table.month": "Month",
     "table.name": "Name",
     "table.other": "Other",
+    "table.onHand": "On hand",
     "table.paymentRows": "Payment rows",
     "table.period": "Period",
     "table.product": "Product",
     "table.promo": "Promo",
     "table.refunds": "Refunds",
+    "table.reorderPoint": "Reorder point",
+    "table.reserved": "Reserved",
     "table.quantity": "Quantity",
     "table.revenueEur": "Revenue EUR",
     "table.revenue": "Revenue",
@@ -151,6 +162,7 @@ const translations = {
     "table.subtotal": "Subtotal",
     "table.total": "Total",
     "table.totalEur": "Total EUR",
+    "table.notes": "Notes",
     "table.transfers": "Transfers",
     "table.type": "Type",
     "table.units": "Units",
@@ -188,6 +200,7 @@ const translations = {
     "field.supplier": "Lieferant",
     "field.supplierSku": "Lieferanten-SKU",
     "field.productName": "Produktname",
+    "field.fulfillment": "Fulfillment",
     "field.amazonProductSearch": "Amazon-Produkt suchen",
     "field.invoiceProductSearch": "Rechnungsprodukt suchen",
     "field.invoiceProductsSearch": "Rechnungsprodukt suchen",
@@ -199,6 +212,7 @@ const translations = {
     "message.confirmDeleteInvoice": "Diese Einkaufsrechnung löschen? Rechnungszeilen, daraus erzeugte Produktkosten und Zuordnungen werden entfernt.",
     "message.confirmDeleteCostImport": "Diesen Produktkosten-Import löschen? Die Produktkosten werden aus der Analyse entfernt.",
     "message.confirmDeleteGenericReport": "Diesen Rohreport-Import löschen?",
+    "message.confirmDeleteInventory": "Diesen Bestandseintrag löschen?",
     "message.selectInvoiceLine": "Wähle zuerst ein Rechnungsprodukt.",
     "metric.withEan": "Mit EAN",
     "preview.detectedFields": "Erkannte Felder",
@@ -237,6 +251,7 @@ const translations = {
     "section.amazonPayments": "Amazon-Zahlungen",
     "section.fxRates": "Wechselkurse",
     "section.generalCashflow": "Gesamt-Cashflow",
+    "section.inventory": "Bestand",
     "section.invoiceLines": "Rechnungszeilen",
     "section.productCosts": "Einkaufspreise",
     "section.productMappings": "Produktzuordnung",
@@ -259,6 +274,9 @@ const translations = {
     "status.breakeven": "Null",
     "status.unknown": "unbekannt",
     "status.unmapped": "nicht zugeordnet",
+    "status.healthy": "gesund",
+    "status.lowStock": "niedriger Bestand",
+    "status.outOfStock": "ausverkauft",
     "status.ready": "Bereit",
     "status.saved": "Gespeichert",
     "status.saving": "Speichert",
@@ -283,6 +301,8 @@ const translations = {
     "table.id": "ID",
     "table.identifiers": "ASIN / SKU / EAN",
     "table.invoiceProduct": "Rechnungsprodukt",
+    "table.available": "Verfügbar",
+    "table.inbound": "Inbound",
     "table.inboundShipping": "Transport",
     "table.lineType": "Zeilentyp",
     "table.lastSync": "Letzte Synchronisierung",
@@ -295,11 +315,14 @@ const translations = {
     "table.month": "Monat",
     "table.name": "Name",
     "table.other": "Sonstiges",
+    "table.onHand": "Auf Lager",
     "table.paymentRows": "Zahlungszeilen",
     "table.period": "Zeitraum",
     "table.product": "Produkt",
     "table.promo": "Promo",
     "table.refunds": "Erstattungen",
+    "table.reorderPoint": "Meldebestand",
+    "table.reserved": "Reserviert",
     "table.quantity": "Menge",
     "table.revenueEur": "Umsatz EUR",
     "table.revenue": "Umsatz",
@@ -310,6 +333,7 @@ const translations = {
     "table.subtotal": "Zwischensumme",
     "table.total": "Summe",
     "table.totalEur": "Summe EUR",
+    "table.notes": "Notizen",
     "table.transfers": "Überträge",
     "table.type": "Typ",
     "table.units": "Einheiten",
@@ -347,6 +371,7 @@ const translations = {
     "field.supplier": "Постачальник",
     "field.supplierSku": "SKU постачальника",
     "field.productName": "Назва товару",
+    "field.fulfillment": "Фулфілмент",
     "field.amazonProductSearch": "Пошук Amazon товару",
     "field.invoiceProductSearch": "Пошук товару з інвойсу",
     "field.invoiceProductsSearch": "Пошук товару з інвойсу",
@@ -358,6 +383,7 @@ const translations = {
     "message.confirmDeleteInvoice": "Видалити цей інвойс закупівлі? Позиції, створені ціни товарів і мапінги буде видалено.",
     "message.confirmDeleteCostImport": "Видалити цей імпорт закупівельних цін? Його ціни зникнуть з аналітики.",
     "message.confirmDeleteGenericReport": "Видалити цей raw-імпорт звіту?",
+    "message.confirmDeleteInventory": "Видалити цей запис залишків?",
     "message.selectInvoiceLine": "Спочатку обери товар з інвойсу.",
     "metric.withEan": "З EAN",
     "preview.detectedFields": "Розпізнані поля",
@@ -396,6 +422,7 @@ const translations = {
     "section.amazonPayments": "Amazon платежі",
     "section.fxRates": "Курси валют",
     "section.generalCashflow": "Загальний cashflow",
+    "section.inventory": "Товарні залишки",
     "section.invoiceLines": "Позиції інвойсу",
     "section.productCosts": "Закупівельні ціни",
     "section.productMappings": "Мапінг товарів",
@@ -418,6 +445,9 @@ const translations = {
     "status.breakeven": "в нуль",
     "status.unknown": "невідомо",
     "status.unmapped": "не зіставлено",
+    "status.healthy": "норма",
+    "status.lowStock": "низький залишок",
+    "status.outOfStock": "немає в наявності",
     "status.ready": "Готово",
     "status.saved": "Збережено",
     "status.saving": "Збереження",
@@ -443,6 +473,8 @@ const translations = {
     "table.identifiers": "ASIN / SKU / EAN",
     "table.invoiceProduct": "Товар з інвойсу",
     "table.inboundShipping": "Транспорт",
+    "table.available": "Доступно",
+    "table.inbound": "В дорозі",
     "table.lineType": "Тип рядка",
     "table.lastSync": "Остання синхронізація",
     "table.market": "Маркет",
@@ -454,11 +486,14 @@ const translations = {
     "table.month": "Місяць",
     "table.name": "Назва",
     "table.other": "Інше",
+    "table.onHand": "На складі",
     "table.paymentRows": "Рядки платежів",
     "table.period": "Період",
     "table.product": "Товар",
     "table.promo": "Промо",
     "table.refunds": "Повернення",
+    "table.reorderPoint": "Мін. залишок",
+    "table.reserved": "Зарезервовано",
     "table.quantity": "Кількість",
     "table.revenueEur": "Дохід EUR",
     "table.revenue": "Дохід",
@@ -469,6 +504,7 @@ const translations = {
     "table.subtotal": "Сума без ПДВ",
     "table.total": "Разом",
     "table.totalEur": "Разом EUR",
+    "table.notes": "Нотатки",
     "table.transfers": "Перекази",
     "table.type": "Тип",
     "table.units": "Одиниці",
@@ -488,6 +524,7 @@ const state = {
   amazonPnlSummary: null,
   dataQualitySummary: null,
   profitSummary: null,
+  inventoryRows: [],
   invoiceRows: [],
   selectedInvoiceId: null,
   selectedMappingInvoiceLineId: null,
@@ -504,6 +541,7 @@ const sectionTitleKey = {
   invoices: "section.purchaseInvoices",
   costs: "section.productCosts",
   mappings: "section.productMappings",
+  inventory: "section.inventory",
   settings: "nav.settings",
 };
 
@@ -963,6 +1001,70 @@ function renderManualAmazonProducts(rows) {
   `);
 }
 
+function inventoryStatusLabel(status) {
+  if (status === "healthy") return t("status.healthy");
+  if (status === "low_stock") return t("status.lowStock");
+  if (status === "out_of_stock") return t("status.outOfStock");
+  return text(status);
+}
+
+function renderInventoryTotals(summary) {
+  document.getElementById("inventoryTotals").innerHTML = `
+    <div class="kpi">
+      <span data-i18n="table.product">${t("table.product")}</span>
+      <strong>${summary.products}</strong>
+    </div>
+    <div class="kpi">
+      <span data-i18n="table.onHand">${t("table.onHand")}</span>
+      <strong>${summary.total_on_hand}</strong>
+    </div>
+    <div class="kpi">
+      <span data-i18n="table.available">${t("table.available")}</span>
+      <strong>${summary.total_available}</strong>
+    </div>
+    <div class="kpi">
+      <span data-i18n="table.inbound">${t("table.inbound")}</span>
+      <strong>${summary.total_inbound}</strong>
+    </div>
+    <div class="kpi">
+      <span data-i18n="status.lowStock">${t("status.lowStock")}</span>
+      <strong>${summary.low_stock}</strong>
+    </div>
+    <div class="kpi">
+      <span data-i18n="status.outOfStock">${t("status.outOfStock")}</span>
+      <strong>${summary.out_of_stock}</strong>
+    </div>
+  `;
+}
+
+async function loadInventory() {
+  const [summary, items] = await Promise.all([
+    requestJson("/inventory/summary"),
+    requestJson("/inventory/items"),
+  ]);
+  state.inventoryRows = items.rows;
+  renderInventoryTotals(summary);
+  renderRows("inventoryRows", items.rows, (row) => `
+    <tr>
+      <td><span class="statusPill ${row.status}">${inventoryStatusLabel(row.status)}</span></td>
+      <td>${text(row.product_name)}</td>
+      <td>${renderIdentifiers(row)}</td>
+      <td>${text(row.marketplace)}</td>
+      <td>${text(row.fulfillment_channel)}</td>
+      <td class="num">${row.quantity_on_hand}</td>
+      <td class="num">${row.quantity_available}</td>
+      <td class="num">${row.quantity_reserved}</td>
+      <td class="num">${row.quantity_inbound}</td>
+      <td class="num">${row.reorder_point}</td>
+      <td>${new Date(row.updated_at).toLocaleString(localeByLanguage[state.language] || "en-US")}</td>
+      <td>
+        <button type="button" class="compactButton" data-edit-inventory="${row.id}">${t("action.edit")}</button>
+        <button type="button" class="compactButton dangerButton" data-delete-inventory="${row.id}" data-delete-inventory-name="${escapeHtml(row.sku)}">${t("action.delete")}</button>
+      </td>
+    </tr>
+  `);
+}
+
 async function loadFxRates() {
   const data = await requestJson("/settings/fx-rates");
   renderRows("fxRates", data.rows, (row) => `
@@ -1375,11 +1477,12 @@ async function loadProfitability() {
 
 async function refreshAll() {
   setStatus("cashflowStatus", "status.loading", false, true);
-  await Promise.all([loadPayments(), loadCosts(), loadInvoices(), loadProductMappings(), loadFxRates(), loadSupplierCatalogStats(), loadGenericImports(), loadCashflow(), loadAmazonPnl(), loadDataQuality(), loadProfitability()]);
+  await Promise.all([loadPayments(), loadCosts(), loadInvoices(), loadProductMappings(), loadInventory(), loadFxRates(), loadSupplierCatalogStats(), loadGenericImports(), loadCashflow(), loadAmazonPnl(), loadDataQuality(), loadProfitability()]);
   setStatus("paymentStatus", "status.ready", false, true);
   setStatus("costStatus", "status.ready", false, true);
   setStatus("invoiceStatus", "status.ready", false, true);
   setStatus("mappingStatus", "status.ready", false, true);
+  setStatus("inventoryStatus", "status.ready", false, true);
   setStatus("fxStatus", "status.ready", false, true);
   setStatus("catalogStatus", "status.ready", false, true);
   setStatus("cashflowStatus", "status.loaded", false, true);
@@ -1483,6 +1586,97 @@ document.getElementById("invoiceProductEditForm").addEventListener("submit", asy
 });
 
 document.getElementById("clearInvoiceProductEditButton").addEventListener("click", clearInvoiceProductEditForm);
+
+function clearInventoryForm() {
+  document.getElementById("inventoryItemId").value = "";
+  document.getElementById("inventorySku").value = "";
+  document.getElementById("inventoryEan").value = "";
+  document.getElementById("inventoryAsin").value = "";
+  document.getElementById("inventoryProductName").value = "";
+  document.getElementById("inventoryMarketplace").value = "EU";
+  document.getElementById("inventoryFulfillment").value = "FBA";
+  document.getElementById("inventoryOnHand").value = "";
+  document.getElementById("inventoryReserved").value = "0";
+  document.getElementById("inventoryInbound").value = "0";
+  document.getElementById("inventoryReorderPoint").value = "0";
+  document.getElementById("inventoryNotes").value = "";
+}
+
+document.getElementById("inventoryForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const button = event.currentTarget.querySelector('button[type="submit"]');
+  const itemId = document.getElementById("inventoryItemId").value;
+  const payload = {
+    sku: document.getElementById("inventorySku").value.trim(),
+    ean: document.getElementById("inventoryEan").value.trim() || null,
+    asin: document.getElementById("inventoryAsin").value.trim() || null,
+    product_name: document.getElementById("inventoryProductName").value.trim() || null,
+    marketplace: document.getElementById("inventoryMarketplace").value,
+    fulfillment_channel: document.getElementById("inventoryFulfillment").value,
+    quantity_on_hand: Number(document.getElementById("inventoryOnHand").value),
+    quantity_reserved: Number(document.getElementById("inventoryReserved").value),
+    quantity_inbound: Number(document.getElementById("inventoryInbound").value),
+    reorder_point: Number(document.getElementById("inventoryReorderPoint").value),
+    notes: document.getElementById("inventoryNotes").value.trim() || null,
+  };
+  button.disabled = true;
+  setStatus("inventoryStatus", "status.saving", false, true);
+  try {
+    await requestJson(itemId ? `/inventory/items/${itemId}` : "/inventory/items", {
+      method: itemId ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    clearInventoryForm();
+    await loadInventory();
+    setStatus("inventoryStatus", "status.saved", false, true);
+  } catch (error) {
+    setStatus("inventoryStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("clearInventoryButton").addEventListener("click", clearInventoryForm);
+
+document.getElementById("inventoryRows").addEventListener("click", async (event) => {
+  const editButton = event.target.closest("button[data-edit-inventory]");
+  if (editButton) {
+    const row = state.inventoryRows.find((item) => String(item.id) === String(editButton.dataset.editInventory));
+    if (!row) return;
+    document.getElementById("inventoryItemId").value = row.id;
+    document.getElementById("inventorySku").value = row.sku || "";
+    document.getElementById("inventoryEan").value = row.ean || "";
+    document.getElementById("inventoryAsin").value = row.asin || "";
+    document.getElementById("inventoryProductName").value = row.product_name || "";
+    document.getElementById("inventoryMarketplace").value = row.marketplace || "EU";
+    document.getElementById("inventoryFulfillment").value = row.fulfillment_channel || "FBA";
+    document.getElementById("inventoryOnHand").value = row.quantity_on_hand;
+    document.getElementById("inventoryReserved").value = row.quantity_reserved;
+    document.getElementById("inventoryInbound").value = row.quantity_inbound;
+    document.getElementById("inventoryReorderPoint").value = row.reorder_point;
+    document.getElementById("inventoryNotes").value = row.notes || "";
+    document.getElementById("inventorySku").focus();
+    return;
+  }
+
+  const deleteButton = event.target.closest("button[data-delete-inventory]");
+  if (!deleteButton) return;
+  const label = deleteButton.dataset.deleteInventoryName || "";
+  const confirmed = window.confirm(`${t("message.confirmDeleteInventory")}\n\n${label}`);
+  if (!confirmed) return;
+  deleteButton.disabled = true;
+  setStatus("inventoryStatus", "status.loading", false, true);
+  try {
+    await requestJson(`/inventory/items/${deleteButton.dataset.deleteInventory}`, { method: "DELETE" });
+    await loadInventory();
+    setStatus("inventoryStatus", "status.loaded", false, true);
+  } catch (error) {
+    setStatus("inventoryStatus", error.message, true);
+  } finally {
+    deleteButton.disabled = false;
+  }
+});
 
 document.getElementById("manualAmazonProducts").addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-manual-map-product]");
