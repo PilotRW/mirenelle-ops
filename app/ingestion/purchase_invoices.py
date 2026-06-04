@@ -266,6 +266,7 @@ def extract_pdf_metadata(text: str) -> dict[str, str | date | Decimal | None]:
     invoice_number = first_regex(
         text,
         [
+            r"\bRECHNUNG\s+(\d{4,12})",
             r"(?:Rechnungsnr\./-datum)\s*[:#]?\s*([A-Z0-9][A-Z0-9\-/]+)\s*/\s*\d{1,2}[./-]\d{1,2}[./-]\d{2,4}",
             r"(?:Rechnungs-Nr\.?|Rechnungsnummer|Invoice\s*(?:No\.?|Number)|Facture\s*(?:N[°o]\.?|numéro)|Fattura\s*(?:n\.?|numero)|Factura\s*(?:n[ºo]\.?|número)|Faktura\s*(?:nr|numer)|Factuurnummer|Fakturanummer)\s*[:#]?\s*([A-Z0-9][A-Z0-9\-/]+)",
         ],
@@ -273,6 +274,7 @@ def extract_pdf_metadata(text: str) -> dict[str, str | date | Decimal | None]:
     invoice_date_value = first_regex(
         text,
         [
+            r"\bDatum\s*:\s*(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})",
             r"(?:Rechnungsnr\./-datum)\s*[:#]?\s*[A-Z0-9][A-Z0-9\-/]+\s*/\s*(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})",
             r"^\s*(?:Datum|Rechnungsdatum|Invoice\s*date|Date\s*de\s*facture|Data\s*fattura|Fecha\s*factura|Data\s*wystawienia|Factuurdatum|Fakturadatum)\s*[:#]?\s*(\d{1,2}[./-]\d{1,2}[./-]\d{2,4})\s*$",
         ],
@@ -285,7 +287,11 @@ def extract_pdf_metadata(text: str) -> dict[str, str | date | Decimal | None]:
     )
 
     supplier_name = None
+    if "L & K BrandTrading GmbH" in text:
+        supplier_name = "L & K BrandTrading GmbH"
     for line in text.splitlines():
+        if supplier_name:
+            break
         clean = line.strip()
         if clean.lower().startswith("computeruniverse"):
             supplier_name = clean.split("|")[0].strip()
@@ -305,6 +311,21 @@ def extract_pdf_metadata(text: str) -> dict[str, str | date | Decimal | None]:
             vat_amount = last_amount_in_line(clean) or vat_amount
         elif re.match(r"^(Gesamtbetrag|Grand\s+total|Total\s+gross|Total)\b", clean, flags=re.IGNORECASE):
             total_amount = last_amount_in_line(clean) or total_amount
+
+    if subtotal_amount is None or vat_amount is None or total_amount is None:
+        totals_match = re.search(
+            r"Netto\s*€\s*MwSt\s*%\s*MwSt\s*€\s*Brutto\s*€\s*"
+            r"(?P<subtotal>\d+(?:[,.]\d{2}))\s*"
+            r"(?P<vat_rate>\d+(?:[,.]\d+)?)\s+"
+            r"(?P<vat>\d+(?:[,.]\d{2}))\s+"
+            r"(?P<total>\d+(?:[,.]\d{2}))\s*Endbetrag",
+            text,
+            flags=re.IGNORECASE,
+        )
+        if totals_match:
+            subtotal_amount = subtotal_amount or parse_pdf_amount(totals_match.group("subtotal"))
+            vat_amount = vat_amount or parse_pdf_amount(totals_match.group("vat"))
+            total_amount = total_amount or parse_pdf_amount(totals_match.group("total"))
 
     return {
         "supplier_name": supplier_name,
@@ -447,7 +468,49 @@ def parse_compact_pdf_invoice_rows(text: str) -> list[dict[str, str]]:
     return rows
 
 
+def parse_brandtrading_pdf_invoice_rows(text: str) -> list[dict[str, str]]:
+    if "L & K BrandTrading GmbH" not in text and "brandtrading.de" not in text:
+        return []
+
+    vat_rate = first_regex(
+        text,
+        [r"Netto\s*€\s*MwSt\s*%\s*MwSt\s*€\s*Brutto\s*€\s*\d+(?:[,.]\d{2})\s*(\d+(?:[,.]\d+)?)\s+\d+(?:[,.]\d{2})\s+\d+(?:[,.]\d{2})"],
+    )
+    compact_text = re.sub(r"\s+", " ", text)
+    item_pattern = re.compile(
+        r"(?P<ean>\d{13})(?=[A-ZÄÖÜa-zäöü])"
+        r"(?P<product>.+?)\s+"
+        r"(?P<quantity>\d+(?:[,.]\d+)?)\s+"
+        r"(?P<unit>\d+(?:[,.]\d{2}))\s+"
+        r"(?P<net>\d+(?:[,.]\d{2}))"
+        r"(?=Gesamt:|Netto\s*€|Endbetrag|$)",
+        flags=re.IGNORECASE,
+    )
+    rows: list[dict[str, str]] = []
+    for match in item_pattern.finditer(compact_text):
+        product_name = re.sub(r"\s+", " ", match.group("product")).strip()
+        if not product_name:
+            continue
+        rows.append(
+            {
+                "Supplier SKU": match.group("ean"),
+                "SKU": match.group("ean"),
+                "EAN": match.group("ean"),
+                "Product name": product_name,
+                "Quantity": match.group("quantity"),
+                "VAT %": vat_rate or "",
+                "Unit cost": match.group("unit"),
+                "Line net": match.group("net"),
+            }
+        )
+    return rows
+
+
 def parse_pdf_invoice_rows(text: str) -> list[dict[str, str]]:
+    brandtrading_rows = parse_brandtrading_pdf_invoice_rows(text)
+    if brandtrading_rows:
+        return brandtrading_rows
+
     compact_rows = parse_compact_pdf_invoice_rows(text)
     if compact_rows:
         return compact_rows
