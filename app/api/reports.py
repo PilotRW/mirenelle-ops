@@ -14,6 +14,7 @@ from app.models.product_mapping import ProductMapping
 from app.models.purchase_invoice import PurchaseInvoice
 from app.models.purchase_invoice_line import PurchaseInvoiceLine
 from app.services.fx import convert_to_eur_with_rate, get_latest_fx_rates, get_rate_for_currency
+from app.services.product_mapping_service import product_similarity
 from app.services.transaction_classifier import classify_payment_type, is_order_payment
 
 
@@ -175,6 +176,21 @@ def raw_lookup(raw_row: dict | None, *keys: str) -> str | None:
         if value:
             return str(value)
     return None
+
+
+def best_product_name_match(
+    product_details: str,
+    candidates: list[tuple[str, object]],
+    min_score: Decimal = Decimal("60"),
+) -> object | None:
+    best_item = None
+    best_score = Decimal("0")
+    for name, item in candidates:
+        score = product_similarity(product_details, name)
+        if score > best_score:
+            best_item = item
+            best_score = score
+    return best_item if best_score >= min_score else None
 
 
 class ProductProfitabilitySummary(BaseModel):
@@ -681,13 +697,33 @@ async def product_profitability(
     )
     cost_by_name: dict[str, ProductCost] = {}
     cost_by_sku: dict[str, ProductCost] = {}
+    cost_candidates: list[tuple[str, ProductCost]] = []
     for cost in latest_costs:
         cost_by_sku.setdefault(cost.sku, cost)
         if cost.product_name:
             cost_by_name.setdefault(cost.product_name, cost)
+            cost_candidates.append((cost.product_name, cost))
+
+    invoice_line_rows = await db.scalars(
+        select(PurchaseInvoiceLine)
+        .where(PurchaseInvoiceLine.line_type == "product")
+        .order_by(PurchaseInvoiceLine.created_at.desc(), PurchaseInvoiceLine.id.desc())
+    )
+    invoice_line_candidates: list[tuple[str, PurchaseInvoiceLine]] = [
+        (line.product_name, line)
+        for line in invoice_line_rows
+        if line.product_name
+    ]
+
+    mapping_rows = await db.scalars(select(ProductMapping).order_by(ProductMapping.id.desc()))
+    mapping_by_product: dict[str, ProductMapping] = {}
+    mapping_candidates: list[tuple[str, ProductMapping]] = []
+    for mapping in mapping_rows:
+        mapping_by_product.setdefault(mapping.amazon_product_details, mapping)
+        mapping_candidates.append((mapping.amazon_product_details, mapping))
 
     mapping_cost_rows = await db.execute(
-        select(ProductMapping, ProductCost, PurchaseInvoiceLine)
+        select(ProductMapping, ProductCost)
         .join(PurchaseInvoiceLine, PurchaseInvoiceLine.id == ProductMapping.invoice_line_id)
         .join(ProductCost, ProductCost.product_name == PurchaseInvoiceLine.product_name)
         .order_by(
@@ -699,19 +735,37 @@ async def product_profitability(
     cost_by_mapping: dict[str, ProductCost] = {}
     sku_by_mapping: dict[str, str | None] = {}
     ean_by_mapping: dict[str, str | None] = {}
-    for mapping, cost, invoice_line in mapping_cost_rows:
+    for mapping, cost in mapping_cost_rows:
         cost_by_mapping.setdefault(mapping.amazon_product_details, cost)
-        sku_by_mapping.setdefault(mapping.amazon_product_details, invoice_line.sku or invoice_line.supplier_sku)
-        ean_by_mapping.setdefault(mapping.amazon_product_details, invoice_line.ean)
+        sku_by_mapping.setdefault(mapping.amazon_product_details, mapping.sku or mapping.supplier_sku)
+        ean_by_mapping.setdefault(mapping.amazon_product_details, mapping.ean)
 
     rows: list[ProductProfitabilityRow] = []
     for bucket in by_product.values():
         product_details = str(bucket["product_details"])
         tx_sku = str(bucket.get("sku") or "") or None
-        cost = (cost_by_sku.get(tx_sku) if tx_sku else None) or cost_by_name.get(product_details) or cost_by_mapping.get(product_details)
-        sku = tx_sku or sku_by_mapping.get(product_details) or (cost.sku if cost else None)
+        mapping = mapping_by_product.get(product_details) or best_product_name_match(product_details, mapping_candidates)
+        invoice_line = best_product_name_match(product_details, invoice_line_candidates)
+        cost = (
+            (cost_by_sku.get(tx_sku) if tx_sku else None)
+            or cost_by_name.get(product_details)
+            or cost_by_mapping.get(product_details)
+            or (cost_by_mapping.get(mapping.amazon_product_details) if isinstance(mapping, ProductMapping) else None)
+            or best_product_name_match(product_details, cost_candidates)
+        )
+        sku = (
+            tx_sku
+            or sku_by_mapping.get(product_details)
+            or (mapping.sku or mapping.supplier_sku if isinstance(mapping, ProductMapping) else None)
+            or (invoice_line.sku or invoice_line.supplier_sku if isinstance(invoice_line, PurchaseInvoiceLine) else None)
+            or (cost.sku if cost else None)
+        )
         asin = None
-        ean = ean_by_mapping.get(product_details)
+        ean = (
+            ean_by_mapping.get(product_details)
+            or (mapping.ean if isinstance(mapping, ProductMapping) else None)
+            or (invoice_line.ean if isinstance(invoice_line, PurchaseInvoiceLine) else None)
+        )
         if ean is None and cost:
             asin = raw_lookup(cost.raw_row, "asin", "ASIN")
             ean = raw_lookup(cost.raw_row, "ean", "EAN") or raw_lookup(cost.raw_row.get("raw_row"), "ean", "EAN")
