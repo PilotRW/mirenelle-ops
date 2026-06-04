@@ -28,6 +28,7 @@ const translations = {
     "field.search": "Search",
     "field.supplier": "Supplier",
     "field.amazonProductSearch": "Amazon product search",
+    "field.invoiceProductSearch": "Invoice product search",
     "field.transactionCsv": "Transaction CSV",
     "message.committedRaw": "Committed raw report.",
     "message.noData": "No data",
@@ -36,6 +37,7 @@ const translations = {
     "message.confirmDeleteInvoice": "Delete this purchase invoice? Its invoice lines, invoice product costs, and mappings will be removed.",
     "message.confirmDeleteCostImport": "Delete this product cost import? Its product costs will be removed from analytics.",
     "message.confirmDeleteGenericReport": "Delete this raw report import?",
+    "message.selectInvoiceLine": "Select an invoice product first.",
     "metric.withEan": "With EAN",
     "preview.detectedFields": "Detected fields",
     "preview.expenses": "Expenses",
@@ -181,6 +183,7 @@ const translations = {
     "field.search": "Suchen",
     "field.supplier": "Lieferant",
     "field.amazonProductSearch": "Amazon-Produkt suchen",
+    "field.invoiceProductSearch": "Rechnungsprodukt suchen",
     "field.transactionCsv": "Transaktions-CSV",
     "message.committedRaw": "Rohdaten gespeichert.",
     "message.noData": "Keine Daten",
@@ -189,6 +192,7 @@ const translations = {
     "message.confirmDeleteInvoice": "Diese Einkaufsrechnung löschen? Rechnungszeilen, daraus erzeugte Produktkosten und Zuordnungen werden entfernt.",
     "message.confirmDeleteCostImport": "Diesen Produktkosten-Import löschen? Die Produktkosten werden aus der Analyse entfernt.",
     "message.confirmDeleteGenericReport": "Diesen Rohreport-Import löschen?",
+    "message.selectInvoiceLine": "Wähle zuerst ein Rechnungsprodukt.",
     "metric.withEan": "Mit EAN",
     "preview.detectedFields": "Erkannte Felder",
     "preview.expenses": "Ausgaben",
@@ -334,6 +338,7 @@ const translations = {
     "field.search": "Пошук",
     "field.supplier": "Постачальник",
     "field.amazonProductSearch": "Пошук Amazon товару",
+    "field.invoiceProductSearch": "Пошук товару з інвойсу",
     "field.transactionCsv": "CSV транзакцій",
     "message.committedRaw": "Raw-звіт збережено.",
     "message.noData": "Немає даних",
@@ -342,6 +347,7 @@ const translations = {
     "message.confirmDeleteInvoice": "Видалити цей інвойс закупівлі? Позиції, створені ціни товарів і мапінги буде видалено.",
     "message.confirmDeleteCostImport": "Видалити цей імпорт закупівельних цін? Його ціни зникнуть з аналітики.",
     "message.confirmDeleteGenericReport": "Видалити цей raw-імпорт звіту?",
+    "message.selectInvoiceLine": "Спочатку обери товар з інвойсу.",
     "metric.withEan": "З EAN",
     "preview.detectedFields": "Розпізнані поля",
     "preview.expenses": "Витрати",
@@ -472,6 +478,7 @@ const state = {
   profitSummary: null,
   invoiceRows: [],
   selectedInvoiceId: null,
+  selectedMappingInvoiceLineId: null,
   unmappedInvoiceLines: [],
   productCostRows: [],
 };
@@ -845,22 +852,19 @@ function updateDashboardPurchase() {
 }
 
 async function loadProductMappings() {
+  const invoiceQuery = document.getElementById("invoiceLineSearch")?.value.trim() || "";
+  const amazonQuery = document.getElementById("amazonProductSearch")?.value.trim() || "";
   const [suggestions, mappings, unmapped, amazonProducts] = await Promise.all([
     requestJson("/product-mappings/suggestions"),
     requestJson("/product-mappings"),
-    requestJson("/product-mappings/unmapped-invoice-lines"),
-    requestJson("/product-mappings/amazon-products"),
+    requestJson(`/product-mappings/unmapped-invoice-lines${invoiceQuery ? `?query=${encodeURIComponent(invoiceQuery)}` : ""}`),
+    requestJson(`/product-mappings/amazon-products${amazonQuery ? `?query=${encodeURIComponent(amazonQuery)}` : ""}`),
   ]);
   state.unmappedInvoiceLines = unmapped.rows;
-  const lineSelect = document.getElementById("manualInvoiceLineSelect");
-  lineSelect.innerHTML = unmapped.rows.length
-    ? unmapped.rows.map((row) => `
-      <option value="${row.invoice_line_id}">
-        ${escapeHtml([row.supplier_sku || row.sku || row.ean, row.invoice_product_name].filter(Boolean).join(" · "))}
-      </option>
-    `).join("")
-    : `<option value="">${t("message.noData")}</option>`;
-  lineSelect.disabled = !unmapped.rows.length;
+  if (!unmapped.rows.some((row) => String(row.invoice_line_id) === String(state.selectedMappingInvoiceLineId))) {
+    state.selectedMappingInvoiceLineId = unmapped.rows[0]?.invoice_line_id || null;
+  }
+  renderManualInvoiceLines(unmapped.rows);
   renderManualAmazonProducts(amazonProducts.rows);
   renderRows("mappingSuggestions", suggestions.rows, (row) => `
     <tr>
@@ -880,6 +884,17 @@ async function loadProductMappings() {
       <td>${text(row.invoice_product_name)}</td>
       <td>${text(row.amazon_product_details)}</td>
       <td>${text(row.match_method)}</td>
+    </tr>
+  `);
+}
+
+function renderManualInvoiceLines(rows) {
+  renderRows("manualInvoiceLines", rows, (row) => `
+    <tr data-manual-invoice-line="${row.invoice_line_id}" class="${String(row.invoice_line_id) === String(state.selectedMappingInvoiceLineId) ? "selectedRow" : ""}">
+      <td>${text(row.supplier_name)}</td>
+      <td>${text(row.supplier_sku || row.sku)}</td>
+      <td>${text(row.ean)}</td>
+      <td>${text(row.invoice_product_name)}</td>
     </tr>
   `);
 }
@@ -1350,13 +1365,11 @@ document.getElementById("mappingSuggestions").addEventListener("click", async (e
 
 document.getElementById("manualMappingForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const query = document.getElementById("amazonProductSearch").value.trim();
   const button = event.currentTarget.querySelector("button");
   button.disabled = true;
   setStatus("mappingStatus", "status.loading", false, true);
   try {
-    const data = await requestJson(`/product-mappings/amazon-products${query ? `?query=${encodeURIComponent(query)}` : ""}`);
-    renderManualAmazonProducts(data.rows);
+    await loadProductMappings();
     setStatus("mappingStatus", "status.loaded", false, true);
   } catch (error) {
     setStatus("mappingStatus", error.message, true);
@@ -1365,11 +1378,22 @@ document.getElementById("manualMappingForm").addEventListener("submit", async (e
   }
 });
 
+document.getElementById("manualInvoiceLines").addEventListener("click", (event) => {
+  const row = event.target.closest("tr[data-manual-invoice-line]");
+  if (!row) return;
+  state.selectedMappingInvoiceLineId = Number(row.dataset.manualInvoiceLine);
+  document.querySelectorAll("#manualInvoiceLines tr").forEach((item) => {
+    item.classList.toggle("selectedRow", item.dataset.manualInvoiceLine === String(state.selectedMappingInvoiceLineId));
+  });
+});
+
 document.getElementById("manualAmazonProducts").addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-manual-map-product]");
   if (!button) return;
-  const lineSelect = document.getElementById("manualInvoiceLineSelect");
-  if (!lineSelect.value) return;
+  if (!state.selectedMappingInvoiceLineId) {
+    setStatus("mappingStatus", "message.selectInvoiceLine", true, true);
+    return;
+  }
   button.disabled = true;
   setStatus("mappingStatus", "status.saving", false, true);
   try {
@@ -1377,7 +1401,7 @@ document.getElementById("manualAmazonProducts").addEventListener("click", async 
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        invoice_line_id: Number(lineSelect.value),
+        invoice_line_id: Number(state.selectedMappingInvoiceLineId),
         amazon_product_details: decodeURIComponent(button.dataset.manualMapProduct),
         match_method: "operator_manual_search",
       }),

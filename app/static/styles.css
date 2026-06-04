@@ -486,6 +486,14 @@ select {
   border: 0;
 }
 
+.mappingResults {
+  margin-top: 16px;
+}
+
+#manualInvoiceLines tr {
+  cursor: pointer;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

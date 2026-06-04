@@ -439,8 +439,8 @@
               </div>
               <form id="manualMappingForm" class="formRow mappingForm">
                 <label>
-                  <span data-i18n="table.invoiceProduct">Invoice product</span>
-                  <select id="manualInvoiceLineSelect" required></select>
+                  <span data-i18n="field.invoiceProductSearch">Invoice product search</span>
+                  <input id="invoiceLineSearch" type="search" />
                 </label>
                 <label>
                   <span data-i18n="field.amazonProductSearch">Amazon product search</span>
@@ -448,7 +448,18 @@
                 </label>
                 <button type="submit" class="secondaryButton" data-i18n="action.search">Search</button>
               </form>
-              <div class="tableWrap">
+              <div class="tableWrap twoTables">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="field.supplier">Supplier</th>
+                      <th data-i18n="table.sku">SKU</th>
+                      <th>EAN</th>
+                      <th data-i18n="table.invoiceProduct">Invoice product</th>
+                    </tr>
+                  </thead>
+                  <tbody id="manualInvoiceLines"></tbody>
+                </table>
                 <table>
                   <thead>
                     <tr>
@@ -461,7 +472,7 @@
                   <tbody id="manualAmazonProducts"></tbody>
                 </table>
               </div>
-              <div class="tableWrap twoTables">
+              <div class="tableWrap twoTables mappingResults">
                 <table>
                   <thead>
                     <tr>
