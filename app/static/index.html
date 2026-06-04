@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260604-10" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260604-11" />
   </head>
   <body>
     <div class="appShell">
@@ -102,12 +102,12 @@
                       <tr>
                         <th data-i18n="table.type">Type</th>
                         <th data-i18n="table.status">Status</th>
-                        <th data-i18n="table.rows">Rows</th>
-                        <th data-i18n="table.units">Units</th>
+                        <th class="num" data-i18n="table.rows">Rows</th>
+                        <th class="num" data-i18n="table.units">Units</th>
                         <th data-i18n="table.product">Product</th>
-                        <th data-i18n="table.fees">Fees</th>
-                        <th data-i18n="table.other">Other</th>
-                        <th data-i18n="table.totalEur">Total EUR</th>
+                        <th class="num" data-i18n="table.fees">Fees</th>
+                        <th class="num" data-i18n="table.other">Other</th>
+                        <th class="num" data-i18n="table.totalEur">Total EUR</th>
                       </tr>
                     </thead>
                     <tbody id="pnlRows"></tbody>
@@ -126,9 +126,9 @@
                       <tr>
                         <th data-i18n="table.sku">SKU</th>
                         <th data-i18n="table.product">Product</th>
-                        <th data-i18n="table.units">Units</th>
-                        <th data-i18n="table.revenueEur">Revenue EUR</th>
-                        <th data-i18n="table.avgSellingPrice">Avg selling price</th>
+                        <th class="num" data-i18n="table.units">Units</th>
+                        <th class="num" data-i18n="table.revenueEur">Revenue EUR</th>
+                        <th class="num" data-i18n="table.avgSellingPrice">Avg selling price</th>
                       </tr>
                     </thead>
                     <tbody id="missingCostRows"></tbody>
@@ -150,14 +150,14 @@
                         <th data-i18n="table.product">Product</th>
                         <th data-i18n="table.identifiers">ASIN / SKU / EAN</th>
                         <th data-i18n="field.currency">Currency</th>
-                        <th data-i18n="table.units">Units</th>
-                        <th data-i18n="table.revenueEur">Revenue EUR</th>
-                        <th data-i18n="table.avgSellingPrice">Avg selling price</th>
-                        <th data-i18n="table.costEur">Cost EUR</th>
-                        <th data-i18n="table.cogsEur">COGS EUR</th>
-                        <th data-i18n="table.grossProfit">Gross Profit</th>
-                        <th data-i18n="table.margin">Margin</th>
-                        <th data-i18n="table.roi">ROI</th>
+                        <th class="num" data-i18n="table.units">Units</th>
+                        <th class="num" data-i18n="table.revenueEur">Revenue EUR</th>
+                        <th class="num" data-i18n="table.avgSellingPrice">Avg selling price</th>
+                        <th class="num" data-i18n="table.costEur">Cost EUR</th>
+                        <th class="num" data-i18n="table.cogsEur">COGS EUR</th>
+                        <th class="num" data-i18n="table.grossProfit">Gross Profit</th>
+                        <th class="num" data-i18n="table.margin">Margin</th>
+                        <th class="num" data-i18n="table.roi">ROI</th>
                         <th data-i18n="table.status">Status</th>
                       </tr>
                     </thead>
@@ -202,7 +202,7 @@
                     <tr>
                       <th data-i18n="table.id">ID</th>
                       <th data-i18n="field.marketplace">Marketplace</th>
-                      <th data-i18n="table.rows">Rows</th>
+                      <th class="num" data-i18n="table.rows">Rows</th>
                       <th data-i18n="table.period">Period</th>
                       <th data-i18n="table.file">File</th>
                       <th data-i18n="table.action">Action</th>
@@ -253,8 +253,8 @@
                       <th data-i18n="field.supplier">Supplier</th>
                       <th data-i18n="field.invoiceNumber">Invoice number</th>
                       <th data-i18n="field.invoiceDate">Invoice date</th>
-                      <th data-i18n="table.rows">Rows</th>
-                      <th data-i18n="table.total">Total</th>
+                      <th class="num" data-i18n="table.rows">Rows</th>
+                      <th class="num" data-i18n="table.total">Total</th>
                       <th data-i18n="table.action">Action</th>
                     </tr>
                   </thead>
@@ -275,9 +275,9 @@
                         <th data-i18n="table.sku">SKU</th>
                         <th>EAN</th>
                         <th data-i18n="table.product">Product</th>
-                        <th data-i18n="table.quantity">Quantity</th>
-                        <th data-i18n="table.cost">Cost</th>
-                        <th data-i18n="table.subtotal">Subtotal</th>
+                        <th class="num" data-i18n="table.quantity">Quantity</th>
+                        <th class="num" data-i18n="table.cost">Cost</th>
+                        <th class="num" data-i18n="table.subtotal">Subtotal</th>
                         <th data-i18n="table.expenseCategory">Expense category</th>
                       </tr>
                     </thead>
@@ -296,11 +296,11 @@
                       <tr>
                         <th data-i18n="table.month">Month</th>
                         <th data-i18n="field.supplier">Supplier</th>
-                        <th data-i18n="table.quantity">Quantity</th>
-                        <th data-i18n="preview.products">Products</th>
-                        <th data-i18n="preview.expenses">Expenses</th>
-                        <th data-i18n="table.inboundShipping">Inbound shipping</th>
-                        <th data-i18n="table.total">Total</th>
+                        <th class="num" data-i18n="table.quantity">Quantity</th>
+                        <th class="num" data-i18n="preview.products">Products</th>
+                        <th class="num" data-i18n="preview.expenses">Expenses</th>
+                        <th class="num" data-i18n="table.inboundShipping">Inbound shipping</th>
+                        <th class="num" data-i18n="table.total">Total</th>
                       </tr>
                     </thead>
                     <tbody id="purchaseSummaryRows"></tbody>
@@ -357,7 +357,7 @@
                   <thead>
                     <tr>
                       <th data-i18n="table.id">ID</th>
-                      <th data-i18n="table.rows">Rows</th>
+                      <th class="num" data-i18n="table.rows">Rows</th>
                       <th data-i18n="table.effective">Effective</th>
                       <th data-i18n="table.file">File</th>
                       <th data-i18n="table.action">Action</th>
@@ -371,7 +371,7 @@
                       <th data-i18n="table.sku">SKU</th>
                       <th>EAN</th>
                       <th data-i18n="table.name">Name</th>
-                      <th data-i18n="table.cost">Cost</th>
+                      <th class="num" data-i18n="table.cost">Cost</th>
                       <th data-i18n="table.effective">Effective</th>
                       <th data-i18n="table.action">Action</th>
                     </tr>
@@ -396,15 +396,15 @@
                       <th data-i18n="table.month">Month</th>
                       <th data-i18n="table.market">Market</th>
                       <th data-i18n="field.currency">Currency</th>
-                      <th data-i18n="table.fxToEur">FX to EUR</th>
+                      <th class="num" data-i18n="table.fxToEur">FX to EUR</th>
                       <th data-i18n="table.type">Type</th>
-                      <th data-i18n="table.rows">Rows</th>
-                      <th data-i18n="table.product">Product</th>
-                      <th data-i18n="table.promo">Promo</th>
-                      <th data-i18n="table.fees">Fees</th>
-                      <th data-i18n="table.other">Other</th>
-                      <th data-i18n="table.total">Total</th>
-                      <th data-i18n="table.totalEur">Total EUR</th>
+                      <th class="num" data-i18n="table.rows">Rows</th>
+                      <th class="num" data-i18n="table.product">Product</th>
+                      <th class="num" data-i18n="table.promo">Promo</th>
+                      <th class="num" data-i18n="table.fees">Fees</th>
+                      <th class="num" data-i18n="table.other">Other</th>
+                      <th class="num" data-i18n="table.total">Total</th>
+                      <th class="num" data-i18n="table.totalEur">Total EUR</th>
                     </tr>
                   </thead>
                   <tbody id="cashflowRows"></tbody>
@@ -426,14 +426,14 @@
                       <th data-i18n="table.product">Product</th>
                       <th data-i18n="table.identifiers">ASIN / SKU / EAN</th>
                       <th data-i18n="field.currency">Currency</th>
-                      <th data-i18n="table.units">Units</th>
-                      <th data-i18n="table.revenueEur">Revenue EUR</th>
-                      <th data-i18n="table.avgSellingPrice">Avg selling price</th>
-                      <th data-i18n="table.costEur">Cost EUR</th>
-                      <th data-i18n="table.cogsEur">COGS EUR</th>
-                      <th data-i18n="table.grossProfit">Gross Profit</th>
-                      <th data-i18n="table.margin">Margin</th>
-                      <th data-i18n="table.roi">ROI</th>
+                      <th class="num" data-i18n="table.units">Units</th>
+                      <th class="num" data-i18n="table.revenueEur">Revenue EUR</th>
+                      <th class="num" data-i18n="table.avgSellingPrice">Avg selling price</th>
+                      <th class="num" data-i18n="table.costEur">Cost EUR</th>
+                      <th class="num" data-i18n="table.cogsEur">COGS EUR</th>
+                      <th class="num" data-i18n="table.grossProfit">Gross Profit</th>
+                      <th class="num" data-i18n="table.margin">Margin</th>
+                      <th class="num" data-i18n="table.roi">ROI</th>
                       <th data-i18n="table.status">Status</th>
                     </tr>
                   </thead>
@@ -490,8 +490,8 @@
                       <th data-i18n="table.sku">SKU</th>
                       <th>EAN</th>
                       <th data-i18n="table.invoiceProduct">Invoice product</th>
-                      <th data-i18n="table.quantity">Quantity</th>
-                      <th data-i18n="table.cost">Cost</th>
+                      <th class="num" data-i18n="table.quantity">Quantity</th>
+                      <th class="num" data-i18n="table.cost">Cost</th>
                       <th data-i18n="table.status">Status</th>
                       <th data-i18n="table.action">Action</th>
                     </tr>
@@ -504,7 +504,7 @@
                   <thead>
                     <tr>
                       <th data-i18n="table.amazonProduct">Amazon product</th>
-                      <th data-i18n="table.rows">Rows</th>
+                      <th class="num" data-i18n="table.rows">Rows</th>
                       <th data-i18n="table.revenue">Revenue</th>
                       <th data-i18n="table.action">Action</th>
                     </tr>
@@ -730,7 +730,7 @@
                       <tr>
                         <th data-i18n="table.id">ID</th>
                         <th data-i18n="table.type">Type</th>
-                        <th data-i18n="table.rows">Rows</th>
+                        <th class="num" data-i18n="table.rows">Rows</th>
                         <th data-i18n="table.file">File</th>
                         <th data-i18n="table.action">Action</th>
                       </tr>
