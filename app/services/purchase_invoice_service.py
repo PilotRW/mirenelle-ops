@@ -10,9 +10,14 @@ from app.models.product_cost_import import ProductCostImport
 from app.models.purchase_invoice import PurchaseInvoice
 from app.models.purchase_invoice_line import PurchaseInvoiceLine
 from app.services.amazon_payment_import_service import DuplicateImportError
+from app.services.app_settings import get_landed_cost_allocation_method
 
 
 CENT = Decimal("0.01")
+LANDED_ALLOCATION_LABELS = {
+    "by_quantity": "invoice_inbound_shipping_by_quantity",
+    "by_line_value": "invoice_inbound_shipping_by_line_value",
+}
 
 
 def money(value: Decimal | int | str | None) -> Decimal:
@@ -23,7 +28,7 @@ def money(value: Decimal | int | str | None) -> Decimal:
     return Decimal(str(value))
 
 
-def allocated_landed_costs(parsed_rows: list[dict]) -> dict[int, dict[str, Decimal]]:
+def allocated_landed_costs(parsed_rows: list[dict], allocation_method: str = "by_quantity") -> dict[int, dict[str, Decimal | str]]:
     product_indexes = [
         index
         for index, row in enumerate(parsed_rows)
@@ -44,20 +49,33 @@ def allocated_landed_costs(parsed_rows: list[dict]) -> dict[int, dict[str, Decim
                 "allocated_inbound_shipping": Decimal("0"),
                 "allocated_inbound_shipping_per_unit": Decimal("0"),
                 "landed_unit_cost": money(parsed_rows[index].get("unit_cost")).quantize(CENT, rounding=ROUND_HALF_UP),
+                "landed_cost_allocation": LANDED_ALLOCATION_LABELS.get(allocation_method, LANDED_ALLOCATION_LABELS["by_quantity"]),
             }
             for index in product_indexes
         }
 
-    allocation_basis = {
-        index: money(parsed_rows[index].get("line_net_amount"))
-        for index in product_indexes
-    }
-    basis_total = sum(allocation_basis.values(), Decimal("0"))
-    if basis_total <= 0:
+    if allocation_method == "by_line_value":
+        allocation_basis = {
+            index: money(parsed_rows[index].get("line_net_amount"))
+            for index in product_indexes
+        }
+        fallback_basis = {
+            index: money(parsed_rows[index].get("quantity"))
+            for index in product_indexes
+        }
+    else:
+        allocation_method = "by_quantity"
         allocation_basis = {
             index: money(parsed_rows[index].get("quantity"))
             for index in product_indexes
         }
+        fallback_basis = {
+            index: money(parsed_rows[index].get("line_net_amount"))
+            for index in product_indexes
+        }
+    basis_total = sum(allocation_basis.values(), Decimal("0"))
+    if basis_total <= 0:
+        allocation_basis = fallback_basis
         basis_total = sum(allocation_basis.values(), Decimal("0"))
 
     allocations: dict[int, dict[str, Decimal]] = {}
@@ -83,6 +101,7 @@ def allocated_landed_costs(parsed_rows: list[dict]) -> dict[int, dict[str, Decim
             "allocated_inbound_shipping": allocated,
             "allocated_inbound_shipping_per_unit": allocated_per_unit,
             "landed_unit_cost": (base_unit_cost + allocated_per_unit).quantize(CENT, rounding=ROUND_HALF_UP),
+            "landed_cost_allocation": LANDED_ALLOCATION_LABELS[allocation_method],
         }
     return allocations
 
@@ -123,6 +142,8 @@ async def commit_purchase_invoice(
         for parsed in preview.parsed_rows
         if parsed["line_type"] == PRODUCT_LINE_TYPE and (parsed["sku"] or parsed["supplier_sku"] or parsed["ean"])
     ]
+    allocation_method = await get_landed_cost_allocation_method(db)
+
     cost_import = ProductCostImport(
         source_filename=f"invoice_costs_{preview.filename}",
         source_sha256=source_sha256,
@@ -132,13 +153,14 @@ async def commit_purchase_invoice(
             "product_name": "invoice.product_name",
             "sku": "invoice.sku_or_supplier_sku_or_ean",
             "purchase_cost": "invoice.unit_cost + allocated_inbound_shipping_per_unit",
+            "landed_cost_allocation_method": allocation_method,
         },
         row_count=len(product_rows),
     )
     db.add(cost_import)
     await db.flush()
 
-    landed_costs = allocated_landed_costs(preview.parsed_rows)
+    landed_costs = allocated_landed_costs(preview.parsed_rows, allocation_method=allocation_method)
 
     for row_number, (raw_row, parsed) in enumerate(zip(preview.raw_rows, preview.parsed_rows), start=2):
         sku = str(parsed["sku"] or parsed["supplier_sku"] or parsed["ean"] or "")
@@ -181,7 +203,7 @@ async def commit_purchase_invoice(
                         "base_unit_cost": str(landed.get("base_unit_cost", parsed["unit_cost"])),
                         "allocated_inbound_shipping": str(landed.get("allocated_inbound_shipping", Decimal("0"))),
                         "allocated_inbound_shipping_per_unit": str(landed.get("allocated_inbound_shipping_per_unit", Decimal("0"))),
-                        "landed_cost_allocation": "invoice_inbound_shipping_by_line_net_amount",
+                        "landed_cost_allocation": str(landed.get("landed_cost_allocation", LANDED_ALLOCATION_LABELS[allocation_method])),
                         "raw_row": raw_row,
                     },
                 )

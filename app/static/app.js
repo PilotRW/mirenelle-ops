@@ -17,6 +17,9 @@ const translations = {
     "action.syncInventory": "Sync stock",
     "action.useMatch": "Use",
     "action.viewLines": "Lines",
+    "allocation.byLineValue": "By line value",
+    "allocation.byQuantity": "By quantity",
+    "field.allocationMethod": "Allocation method",
     "field.costFile": "Cost CSV/XLSX",
     "field.csvReport": "CSV report",
     "field.currency": "Currency",
@@ -84,6 +87,7 @@ const translations = {
     "section.generalCashflow": "General Cashflow",
     "section.inventory": "Inventory",
     "section.invoiceLines": "Invoice Lines",
+    "section.landedCost": "Landed Cost",
     "section.paymentLines": "Payment Lines",
     "section.productCosts": "Product Costs",
     "section.productMappings": "Product Mappings",
@@ -195,6 +199,9 @@ const translations = {
     "action.syncInventory": "Bestand synchronisieren",
     "action.useMatch": "Nutzen",
     "action.viewLines": "Zeilen",
+    "allocation.byLineValue": "Nach Zeilenwert",
+    "allocation.byQuantity": "Nach Menge",
+    "field.allocationMethod": "Verteilungsmethode",
     "field.costFile": "Kosten CSV/XLSX",
     "field.csvReport": "CSV-Report",
     "field.currency": "Währung",
@@ -262,6 +269,7 @@ const translations = {
     "section.generalCashflow": "Gesamt-Cashflow",
     "section.inventory": "Bestand",
     "section.invoiceLines": "Rechnungszeilen",
+    "section.landedCost": "Landed Cost",
     "section.paymentLines": "Zahlungszeilen",
     "section.productCosts": "Einkaufspreise",
     "section.productMappings": "Produktzuordnung",
@@ -373,6 +381,9 @@ const translations = {
     "action.syncInventory": "Синхронізувати залишки",
     "action.useMatch": "Застосувати",
     "action.viewLines": "Позиції",
+    "allocation.byLineValue": "За вартістю рядка",
+    "allocation.byQuantity": "За кількістю",
+    "field.allocationMethod": "Метод розподілу",
     "field.costFile": "Файл цін CSV/XLSX",
     "field.csvReport": "CSV-звіт",
     "field.currency": "Валюта",
@@ -440,6 +451,7 @@ const translations = {
     "section.generalCashflow": "Загальний cashflow",
     "section.inventory": "Товарні залишки",
     "section.invoiceLines": "Позиції інвойсу",
+    "section.landedCost": "Landed Cost",
     "section.paymentLines": "Рядки платежу",
     "section.productCosts": "Закупівельні ціни",
     "section.productMappings": "Мапінг товарів",
@@ -1165,6 +1177,14 @@ async function loadFxRates() {
   `);
 }
 
+async function loadLandedCostSettings() {
+  const data = await requestJson("/settings/landed-cost");
+  const select = document.querySelector('#landedCostForm select[name="allocation_method"]');
+  if (select) {
+    select.value = data.allocation_method;
+  }
+}
+
 async function loadSupplierCatalogStats() {
   const data = await requestJson("/integrations/oa-pipeline/catalog");
   document.getElementById("catalogItems").textContent = data.items;
@@ -1567,13 +1587,14 @@ async function loadProfitability() {
 
 async function refreshAll() {
   setStatus("cashflowStatus", "status.loading", false, true);
-  await Promise.all([loadPayments(), loadCosts(), loadInvoices(), loadProductMappings(), loadInventory(), loadFxRates(), loadSupplierCatalogStats(), loadGenericImports(), loadCashflow(), loadAmazonPnl(), loadDataQuality(), loadProfitability()]);
+  await Promise.all([loadPayments(), loadCosts(), loadInvoices(), loadProductMappings(), loadInventory(), loadFxRates(), loadLandedCostSettings(), loadSupplierCatalogStats(), loadGenericImports(), loadCashflow(), loadAmazonPnl(), loadDataQuality(), loadProfitability()]);
   setStatus("paymentStatus", "status.ready", false, true);
   setStatus("costStatus", "status.ready", false, true);
   setStatus("invoiceStatus", "status.ready", false, true);
   setStatus("mappingStatus", "status.ready", false, true);
   setStatus("inventoryStatus", "status.ready", false, true);
   setStatus("fxStatus", "status.ready", false, true);
+  setStatus("landedCostStatus", "status.ready", false, true);
   setStatus("catalogStatus", "status.ready", false, true);
   setStatus("cashflowStatus", "status.loaded", false, true);
   setStatus("profitStatus", "status.loaded", false, true);
@@ -2072,6 +2093,30 @@ document.getElementById("fxForm").addEventListener("submit", async (event) => {
     await refreshAll();
   } catch (error) {
     setStatus("fxStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("landedCostForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector("button");
+  button.disabled = true;
+  setStatus("landedCostStatus", "status.saving", false, true);
+  try {
+    const body = new FormData(form);
+    await requestJson("/settings/landed-cost", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        allocation_method: body.get("allocation_method"),
+      }),
+    });
+    setStatus("landedCostStatus", "status.saved", false, true);
+    await refreshAll();
+  } catch (error) {
+    setStatus("landedCostStatus", error.message, true);
   } finally {
     button.disabled = false;
   }

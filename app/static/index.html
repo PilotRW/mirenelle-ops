@@ -693,6 +693,23 @@
 
               <section class="panel">
                 <div class="sectionHeader">
+                  <h2 data-i18n="section.landedCost">Landed Cost</h2>
+                  <span id="landedCostStatus" class="status" data-status-key="status.ready">Ready</span>
+                </div>
+                <form id="landedCostForm" class="formRow fxForm">
+                  <label>
+                    <span data-i18n="field.allocationMethod">Allocation method</span>
+                    <select name="allocation_method" required>
+                      <option value="by_quantity" data-i18n="allocation.byQuantity">By quantity</option>
+                      <option value="by_line_value" data-i18n="allocation.byLineValue">By line value</option>
+                    </select>
+                  </label>
+                  <button type="submit" data-i18n="action.save">Save</button>
+                </form>
+              </section>
+
+              <section class="panel">
+                <div class="sectionHeader">
                   <h2 data-i18n="section.fxRates">FX Rates</h2>
                   <span id="fxStatus" class="status" data-status-key="status.ready">Ready</span>
                 </div>
@@ -773,6 +790,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260605-02"></script>
+    <script src="/ui/app.js?v=20260605-04"></script>
   </body>
 </html>
