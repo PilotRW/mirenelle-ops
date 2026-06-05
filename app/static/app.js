@@ -159,6 +159,7 @@ const translations = {
     "table.product": "Product",
     "table.productCharges": "Product charges",
     "table.promo": "Promo",
+    "table.purchased": "Purchased",
     "table.refunds": "Refunds",
     "table.reorderPoint": "Reorder point",
     "table.reserved": "Reserved",
@@ -169,6 +170,7 @@ const translations = {
     "table.rows": "Rows",
     "table.salesCurrency": "Sales currency",
     "table.sku": "SKU",
+    "table.sold": "Sold",
     "table.status": "Status",
     "table.subtotal": "Subtotal",
     "table.total": "Total",
@@ -341,6 +343,7 @@ const translations = {
     "table.product": "Produkt",
     "table.productCharges": "Produktumsatz",
     "table.promo": "Promo",
+    "table.purchased": "Gekauft",
     "table.refunds": "Erstattungen",
     "table.reorderPoint": "Meldebestand",
     "table.reserved": "Reserviert",
@@ -351,6 +354,7 @@ const translations = {
     "table.rows": "Zeilen",
     "table.salesCurrency": "Verkaufswährung",
     "table.sku": "SKU",
+    "table.sold": "Verkauft",
     "table.status": "Status",
     "table.subtotal": "Zwischensumme",
     "table.total": "Summe",
@@ -523,6 +527,7 @@ const translations = {
     "table.product": "Товар",
     "table.productCharges": "Продажі товару",
     "table.promo": "Промо",
+    "table.purchased": "Куплено",
     "table.refunds": "Повернення",
     "table.reorderPoint": "Мін. залишок",
     "table.reserved": "Зарезервовано",
@@ -533,6 +538,7 @@ const translations = {
     "table.rows": "Рядки",
     "table.salesCurrency": "Валюта продажу",
     "table.sku": "SKU",
+    "table.sold": "Продано",
     "table.status": "Статус",
     "table.subtotal": "Сума без ПДВ",
     "table.total": "Разом",
@@ -1152,6 +1158,8 @@ async function loadInventory() {
       <td>${renderIdentifiers(row)}</td>
       <td>${text(row.marketplace)}</td>
       <td>${text(row.fulfillment_channel)}</td>
+      <td class="num">${row.purchased_quantity}</td>
+      <td class="num">${row.sold_quantity}</td>
       <td class="num">${row.quantity_on_hand}</td>
       <td class="num">${row.quantity_available}</td>
       <td class="num">${row.quantity_reserved}</td>

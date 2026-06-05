@@ -41,6 +41,8 @@ class InventoryItemRow(BaseModel):
     product_name: str | None
     marketplace: str
     fulfillment_channel: str
+    purchased_quantity: float
+    sold_quantity: float
     quantity_on_hand: float
     quantity_reserved: float
     quantity_available: float
@@ -90,7 +92,11 @@ def inventory_status(item: InventoryItem) -> str:
     return "healthy"
 
 
-def inventory_row(item: InventoryItem) -> InventoryItemRow:
+def inventory_row(
+    item: InventoryItem,
+    purchased_quantity: Decimal | None = None,
+    sold_quantity: Decimal | None = None,
+) -> InventoryItemRow:
     available = (item.quantity_on_hand or Decimal("0")) - (item.quantity_reserved or Decimal("0"))
     return InventoryItemRow(
         id=item.id,
@@ -100,6 +106,8 @@ def inventory_row(item: InventoryItem) -> InventoryItemRow:
         product_name=item.product_name,
         marketplace=item.marketplace,
         fulfillment_channel=item.fulfillment_channel,
+        purchased_quantity=float(purchased_quantity or 0),
+        sold_quantity=float(sold_quantity or 0),
         quantity_on_hand=float(item.quantity_on_hand or 0),
         quantity_reserved=float(item.quantity_reserved or 0),
         quantity_available=float(available),
@@ -139,82 +147,9 @@ def best_purchased_match(product_details_aliases: set[str], candidates: list[tup
     return best_sku if best_score >= Decimal("55") else None
 
 
-@router.get("/items", response_model=InventoryListResponse)
-async def list_inventory_items(
-    db: Annotated[AsyncSession, Depends(get_db)],
-    query: Annotated[str | None, Query()] = None,
-    marketplace: Annotated[str | None, Query()] = None,
-) -> InventoryListResponse:
-    statement = select(InventoryItem).order_by(InventoryItem.marketplace, InventoryItem.sku)
-    if query:
-        pattern = f"%{query}%"
-        statement = statement.where(
-            InventoryItem.sku.ilike(pattern)
-            | InventoryItem.ean.ilike(pattern)
-            | InventoryItem.asin.ilike(pattern)
-            | InventoryItem.product_name.ilike(pattern)
-        )
-    if marketplace and marketplace.upper() != "ALL":
-        statement = statement.where(InventoryItem.marketplace == marketplace.upper())
-    result = await db.scalars(statement)
-    return InventoryListResponse(rows=[inventory_row(item) for item in result])
-
-
-@router.get("/summary", response_model=InventorySummaryResponse)
-async def inventory_summary(
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> InventorySummaryResponse:
-    items = list(await db.scalars(select(InventoryItem)))
-    total_on_hand = Decimal("0")
-    total_available = Decimal("0")
-    total_inbound = Decimal("0")
-    low_stock = 0
-    out_of_stock = 0
-    for item in items:
-        available = (item.quantity_on_hand or Decimal("0")) - (item.quantity_reserved or Decimal("0"))
-        total_on_hand += item.quantity_on_hand or Decimal("0")
-        total_available += available
-        total_inbound += item.quantity_inbound or Decimal("0")
-        status = inventory_status(item)
-        low_stock += 1 if status == "low_stock" else 0
-        out_of_stock += 1 if status == "out_of_stock" else 0
-    return InventorySummaryResponse(
-        products=len(items),
-        total_on_hand=float(total_on_hand),
-        total_available=float(total_available),
-        total_inbound=float(total_inbound),
-        low_stock=low_stock,
-        out_of_stock=out_of_stock,
-    )
-
-
-@router.post("/items", response_model=InventoryItemRow)
-async def upsert_inventory_item(
-    payload: InventoryItemRequest,
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> InventoryItemRow:
-    sku = payload.sku.strip()
-    marketplace = payload.marketplace.strip().upper()
-    fulfillment_channel = payload.fulfillment_channel.strip().upper()
-    item = await db.scalar(
-        select(InventoryItem)
-        .where(InventoryItem.sku == sku)
-        .where(InventoryItem.marketplace == marketplace)
-        .where(InventoryItem.fulfillment_channel == fulfillment_channel)
-    )
-    if item is None:
-        item = InventoryItem(sku=sku, marketplace=marketplace, fulfillment_channel=fulfillment_channel)
-        db.add(item)
-    apply_inventory_payload(item, payload)
-    await db.commit()
-    await db.refresh(item)
-    return inventory_row(item)
-
-
-@router.post("/sync-from-invoices", response_model=SyncInventoryResponse)
-async def sync_inventory_from_invoices(
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> SyncInventoryResponse:
+async def calculate_inventory_quantities(
+    db: AsyncSession,
+) -> tuple[dict[str, dict], defaultdict[str, Decimal], Decimal, Decimal]:
     purchased: dict[str, dict] = {}
     purchased_candidates: list[tuple[str, str]] = []
     invoice_lines = await db.scalars(
@@ -304,6 +239,102 @@ async def sync_inventory_from_invoices(
         else:
             sales_unmatched += quantity
 
+    return purchased, sold_by_sku, sales_matched, sales_unmatched
+
+
+@router.get("/items", response_model=InventoryListResponse)
+async def list_inventory_items(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    query: Annotated[str | None, Query()] = None,
+    marketplace: Annotated[str | None, Query()] = None,
+) -> InventoryListResponse:
+    statement = select(InventoryItem).order_by(InventoryItem.marketplace, InventoryItem.sku)
+    if query:
+        pattern = f"%{query}%"
+        statement = statement.where(
+            InventoryItem.sku.ilike(pattern)
+            | InventoryItem.ean.ilike(pattern)
+            | InventoryItem.asin.ilike(pattern)
+            | InventoryItem.product_name.ilike(pattern)
+        )
+    if marketplace and marketplace.upper() != "ALL":
+        statement = statement.where(InventoryItem.marketplace == marketplace.upper())
+    result = await db.scalars(statement)
+    purchased, sold_by_sku, _, _ = await calculate_inventory_quantities(db)
+    return InventoryListResponse(
+        rows=[
+            inventory_row(
+                item,
+                purchased_quantity=purchased.get(item.sku, {}).get("quantity", Decimal("0")),
+                sold_quantity=sold_by_sku[item.sku],
+            )
+            for item in result
+        ]
+    )
+
+
+@router.get("/summary", response_model=InventorySummaryResponse)
+async def inventory_summary(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> InventorySummaryResponse:
+    items = list(await db.scalars(select(InventoryItem)))
+    total_on_hand = Decimal("0")
+    total_available = Decimal("0")
+    total_inbound = Decimal("0")
+    low_stock = 0
+    out_of_stock = 0
+    for item in items:
+        available = (item.quantity_on_hand or Decimal("0")) - (item.quantity_reserved or Decimal("0"))
+        total_on_hand += item.quantity_on_hand or Decimal("0")
+        total_available += available
+        total_inbound += item.quantity_inbound or Decimal("0")
+        status = inventory_status(item)
+        low_stock += 1 if status == "low_stock" else 0
+        out_of_stock += 1 if status == "out_of_stock" else 0
+    return InventorySummaryResponse(
+        products=len(items),
+        total_on_hand=float(total_on_hand),
+        total_available=float(total_available),
+        total_inbound=float(total_inbound),
+        low_stock=low_stock,
+        out_of_stock=out_of_stock,
+    )
+
+
+@router.post("/items", response_model=InventoryItemRow)
+async def upsert_inventory_item(
+    payload: InventoryItemRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> InventoryItemRow:
+    sku = payload.sku.strip()
+    marketplace = payload.marketplace.strip().upper()
+    fulfillment_channel = payload.fulfillment_channel.strip().upper()
+    item = await db.scalar(
+        select(InventoryItem)
+        .where(InventoryItem.sku == sku)
+        .where(InventoryItem.marketplace == marketplace)
+        .where(InventoryItem.fulfillment_channel == fulfillment_channel)
+    )
+    if item is None:
+        item = InventoryItem(sku=sku, marketplace=marketplace, fulfillment_channel=fulfillment_channel)
+        db.add(item)
+    apply_inventory_payload(item, payload)
+    await db.commit()
+    await db.refresh(item)
+    purchased, sold_by_sku, _, _ = await calculate_inventory_quantities(db)
+    return inventory_row(
+        item,
+        purchased_quantity=purchased.get(item.sku, {}).get("quantity", Decimal("0")),
+        sold_quantity=sold_by_sku[item.sku],
+    )
+
+
+@router.post("/sync-from-invoices", response_model=SyncInventoryResponse)
+async def sync_inventory_from_invoices(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> SyncInventoryResponse:
+    purchased, sold_by_sku, sales_matched, sales_unmatched = await calculate_inventory_quantities(db)
+
     created = 0
     updated = 0
     for sku, values in purchased.items():
@@ -352,7 +383,12 @@ async def update_inventory_item(
     apply_inventory_payload(item, payload)
     await db.commit()
     await db.refresh(item)
-    return inventory_row(item)
+    purchased, sold_by_sku, _, _ = await calculate_inventory_quantities(db)
+    return inventory_row(
+        item,
+        purchased_quantity=purchased.get(item.sku, {}).get("quantity", Decimal("0")),
+        sold_quantity=sold_by_sku[item.sku],
+    )
 
 
 @router.delete("/items/{item_id}", response_model=DeleteInventoryItemResponse)
