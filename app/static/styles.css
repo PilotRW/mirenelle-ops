@@ -518,9 +518,21 @@ select {
 }
 
 .tableWrap {
+  max-height: min(640px, calc(100vh - 320px));
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: 4px;
+}
+
+.tableWrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-shadow: 0 1px 0 var(--line);
+}
+
+.profitabilityTable {
+  max-height: min(760px, calc(100vh - 260px));
 }
 
 .linesScroll {
@@ -531,6 +543,8 @@ select {
   display: grid;
   grid-template-columns: repeat(2, minmax(640px, 1fr));
   gap: 16px;
+  max-height: none;
+  overflow: visible;
   border: 0;
 }
 
@@ -543,21 +557,9 @@ select {
   overflow: auto;
 }
 
-.mappingProductsTable thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
 .inventoryTable {
   max-height: min(640px, calc(100vh - 390px));
   overflow: auto;
-}
-
-.inventoryTable thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
 }
 
 #manualInvoiceLines tr {
