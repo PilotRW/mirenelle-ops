@@ -10,7 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import get_db
 from app.models.amazon_payment_transaction import AmazonPaymentTransaction
 from app.models.inventory_item import InventoryItem
+from app.models.product_mapping import ProductMapping
 from app.models.purchase_invoice_line import PurchaseInvoiceLine
+from app.services.product_mapping_service import product_similarity
 from app.services.transaction_classifier import is_order_payment
 
 
@@ -71,6 +73,8 @@ class SyncInventoryResponse(BaseModel):
     products: int
     created: int
     updated: int
+    sales_matched: float
+    sales_unmatched: float
 
 
 def clean_text(value: str | None) -> str | None:
@@ -119,6 +123,20 @@ def apply_inventory_payload(item: InventoryItem, payload: InventoryItemRequest) 
     item.quantity_inbound = Decimal(str(payload.quantity_inbound))
     item.reorder_point = Decimal(str(payload.reorder_point))
     item.notes = clean_text(payload.notes)
+
+
+def best_purchased_match(product_details_aliases: set[str], candidates: list[tuple[str, str]]) -> str | None:
+    if not product_details_aliases:
+        return None
+    best_sku = None
+    best_score = Decimal("0")
+    for product_details in product_details_aliases:
+        for product_name, sku in candidates:
+            score = product_similarity(product_details, product_name)
+            if score > best_score:
+                best_score = score
+                best_sku = sku
+    return best_sku if best_score >= Decimal("55") else None
 
 
 @router.get("/items", response_model=InventoryListResponse)
@@ -198,6 +216,7 @@ async def sync_inventory_from_invoices(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> SyncInventoryResponse:
     purchased: dict[str, dict] = {}
+    purchased_candidates: list[tuple[str, str]] = []
     invoice_lines = await db.scalars(
         select(PurchaseInvoiceLine)
         .where(PurchaseInvoiceLine.line_type == "product")
@@ -224,7 +243,22 @@ async def sync_inventory_from_invoices(
         if line.product_name:
             purchased[sku]["product_name"] = line.product_name
 
+    for sku, values in purchased.items():
+        product_name = values.get("product_name")
+        if product_name:
+            purchased_candidates.append((product_name, sku))
+
+    mapped_product_skus: dict[str, str] = {}
+    mapping_rows = await db.scalars(select(ProductMapping).order_by(ProductMapping.id.desc()))
+    for mapping in mapping_rows:
+        mapped_sku = (mapping.sku or mapping.supplier_sku or mapping.ean or "").strip()
+        if mapped_sku and mapped_sku in purchased:
+            mapped_product_skus.setdefault(mapping.amazon_product_details, mapped_sku)
+
     sold_by_sku: defaultdict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    sales_matched = Decimal("0")
+    sales_unmatched = Decimal("0")
+    sales_buckets: dict[str, dict] = {}
     payment_rows = await db.scalars(
         select(AmazonPaymentTransaction)
         .where(AmazonPaymentTransaction.sku.is_not(None))
@@ -236,7 +270,39 @@ async def sync_inventory_from_invoices(
         sku = (payment.sku or "").strip()
         if not sku:
             continue
-        sold_by_sku[sku] += abs(payment.quantity or Decimal("0"))
+        bucket = sales_buckets.setdefault(
+            sku,
+            {
+                "quantity": Decimal("0"),
+                "product_details_aliases": set(),
+            },
+        )
+        bucket["quantity"] += abs(payment.quantity or Decimal("0"))
+        if payment.product_details:
+            bucket["product_details_aliases"].add(str(payment.product_details))
+
+    for sku, bucket in sales_buckets.items():
+        quantity = bucket["quantity"]
+        product_details_aliases = set(bucket["product_details_aliases"])
+        product_details_aliases.add(sku)
+        matched_sku = (
+            sku
+            if sku in purchased
+            else next(
+                (
+                    mapped_product_skus[alias]
+                    for alias in product_details_aliases
+                    if alias in mapped_product_skus
+                ),
+                None,
+            )
+            or best_purchased_match(product_details_aliases, purchased_candidates)
+        )
+        if matched_sku:
+            sold_by_sku[matched_sku] += quantity
+            sales_matched += quantity
+        else:
+            sales_unmatched += quantity
 
     created = 0
     updated = 0
@@ -258,10 +324,20 @@ async def sync_inventory_from_invoices(
         item.quantity_on_hand = max(Decimal("0"), values["quantity"] - sold_by_sku[sku])
         item.quantity_reserved = Decimal("0")
         item.quantity_inbound = Decimal("0")
-        item.notes = "Estimated from purchase invoices minus Amazon order quantities."
+        sold_quantity = sold_by_sku[sku]
+        item.notes = (
+            "Estimated from purchase invoices minus matched Amazon order quantities. "
+            f"Purchased: {values['quantity']}; matched sold: {sold_quantity}."
+        )
 
     await db.commit()
-    return SyncInventoryResponse(products=len(purchased), created=created, updated=updated)
+    return SyncInventoryResponse(
+        products=len(purchased),
+        created=created,
+        updated=updated,
+        sales_matched=float(sales_matched),
+        sales_unmatched=float(sales_unmatched),
+    )
 
 
 @router.put("/items/{item_id}", response_model=InventoryItemRow)
