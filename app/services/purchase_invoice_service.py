@@ -1,5 +1,5 @@
 from datetime import datetime
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +10,81 @@ from app.models.product_cost_import import ProductCostImport
 from app.models.purchase_invoice import PurchaseInvoice
 from app.models.purchase_invoice_line import PurchaseInvoiceLine
 from app.services.amazon_payment_import_service import DuplicateImportError
+
+
+CENT = Decimal("0.01")
+
+
+def money(value: Decimal | int | str | None) -> Decimal:
+    if value is None:
+        return Decimal("0")
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value))
+
+
+def allocated_landed_costs(parsed_rows: list[dict]) -> dict[int, dict[str, Decimal]]:
+    product_indexes = [
+        index
+        for index, row in enumerate(parsed_rows)
+        if row["line_type"] == PRODUCT_LINE_TYPE and (row["sku"] or row["supplier_sku"] or row["ean"])
+    ]
+    inbound_shipping_total = sum(
+        (
+            money(row.get("line_net_amount"))
+            for row in parsed_rows
+            if row.get("line_type") == "inbound_shipping"
+        ),
+        Decimal("0"),
+    )
+    if not product_indexes or inbound_shipping_total <= 0:
+        return {
+            index: {
+                "base_unit_cost": money(parsed_rows[index].get("unit_cost")),
+                "allocated_inbound_shipping": Decimal("0"),
+                "allocated_inbound_shipping_per_unit": Decimal("0"),
+                "landed_unit_cost": money(parsed_rows[index].get("unit_cost")).quantize(CENT, rounding=ROUND_HALF_UP),
+            }
+            for index in product_indexes
+        }
+
+    allocation_basis = {
+        index: money(parsed_rows[index].get("line_net_amount"))
+        for index in product_indexes
+    }
+    basis_total = sum(allocation_basis.values(), Decimal("0"))
+    if basis_total <= 0:
+        allocation_basis = {
+            index: money(parsed_rows[index].get("quantity"))
+            for index in product_indexes
+        }
+        basis_total = sum(allocation_basis.values(), Decimal("0"))
+
+    allocations: dict[int, dict[str, Decimal]] = {}
+    allocated_so_far = Decimal("0")
+    for position, index in enumerate(product_indexes):
+        row = parsed_rows[index]
+        quantity = money(row.get("quantity"))
+        base_unit_cost = money(row.get("unit_cost"))
+        if basis_total <= 0:
+            allocated = Decimal("0")
+        elif position == len(product_indexes) - 1:
+            allocated = inbound_shipping_total - allocated_so_far
+        else:
+            allocated = (inbound_shipping_total * allocation_basis[index] / basis_total).quantize(CENT, rounding=ROUND_HALF_UP)
+            allocated_so_far += allocated
+        allocated_per_unit = (
+            (allocated / quantity).quantize(CENT, rounding=ROUND_HALF_UP)
+            if quantity > 0
+            else Decimal("0")
+        )
+        allocations[index] = {
+            "base_unit_cost": base_unit_cost,
+            "allocated_inbound_shipping": allocated,
+            "allocated_inbound_shipping_per_unit": allocated_per_unit,
+            "landed_unit_cost": (base_unit_cost + allocated_per_unit).quantize(CENT, rounding=ROUND_HALF_UP),
+        }
+    return allocations
 
 
 async def commit_purchase_invoice(
@@ -56,12 +131,14 @@ async def commit_purchase_invoice(
         header_mapping={
             "product_name": "invoice.product_name",
             "sku": "invoice.sku_or_supplier_sku_or_ean",
-            "purchase_cost": "invoice.unit_cost",
+            "purchase_cost": "invoice.unit_cost + allocated_inbound_shipping_per_unit",
         },
         row_count=len(product_rows),
     )
     db.add(cost_import)
     await db.flush()
+
+    landed_costs = allocated_landed_costs(preview.parsed_rows)
 
     for row_number, (raw_row, parsed) in enumerate(zip(preview.raw_rows, preview.parsed_rows), start=2):
         sku = str(parsed["sku"] or parsed["supplier_sku"] or parsed["ean"] or "")
@@ -86,12 +163,13 @@ async def commit_purchase_invoice(
             )
         )
         if sku and parsed["line_type"] == PRODUCT_LINE_TYPE:
+            landed = landed_costs.get(row_number - 2, {})
             db.add(
                 ProductCost(
                     import_id=cost_import.id,
                     sku=sku,
                     product_name=str(parsed["product_name"]),
-                    purchase_cost=parsed["unit_cost"],
+                    purchase_cost=landed.get("landed_unit_cost", parsed["unit_cost"]),
                     currency=str(parsed["currency"]),
                     effective_date=effective_date,
                     raw_row={
@@ -100,6 +178,10 @@ async def commit_purchase_invoice(
                         "invoice_number": preview.invoice_number,
                         "supplier_name": preview.supplier_name,
                         "ean": parsed["ean"],
+                        "base_unit_cost": str(landed.get("base_unit_cost", parsed["unit_cost"])),
+                        "allocated_inbound_shipping": str(landed.get("allocated_inbound_shipping", Decimal("0"))),
+                        "allocated_inbound_shipping_per_unit": str(landed.get("allocated_inbound_shipping_per_unit", Decimal("0"))),
+                        "landed_cost_allocation": "invoice_inbound_shipping_by_line_net_amount",
                         "raw_row": raw_row,
                     },
                 )
