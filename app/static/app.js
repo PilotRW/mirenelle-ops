@@ -7,6 +7,7 @@ const translations = {
     "action.mockCosts": "Mock Costs",
     "action.preview": "Preview",
     "action.refresh": "Refresh",
+    "action.refreshReports": "Refresh reports",
     "action.search": "Search",
     "action.save": "Save",
     "action.clear": "Clear",
@@ -184,6 +185,7 @@ const translations = {
     "action.mockCosts": "Preise mocken",
     "action.preview": "Vorschau",
     "action.refresh": "Aktualisieren",
+    "action.refreshReports": "Reports aktualisieren",
     "action.search": "Suchen",
     "action.save": "Speichern",
     "action.clear": "Leeren",
@@ -361,6 +363,7 @@ const translations = {
     "action.mockCosts": "Mock цін",
     "action.preview": "Preview",
     "action.refresh": "Оновити",
+    "action.refreshReports": "Оновити звіти",
     "action.search": "Пошук",
     "action.save": "Зберегти",
     "action.clear": "Очистити",
@@ -1577,6 +1580,15 @@ async function refreshAll() {
   applySearchFilter();
 }
 
+async function runRefreshAll(button = null) {
+  if (button) button.disabled = true;
+  try {
+    await refreshAll();
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
 document.getElementById("mappingSuggestions").addEventListener("click", async (event) => {
   const button = event.target.closest("button[data-map-line]");
   if (!button) return;
@@ -2142,7 +2154,10 @@ document.getElementById("genericImports").addEventListener("click", async (event
   }
 });
 
-document.getElementById("refreshButton")?.addEventListener("click", refreshAll);
+document.getElementById("refreshButton")?.addEventListener("click", () => runRefreshAll());
+document.getElementById("refreshReportsButton")?.addEventListener("click", (event) => {
+  runRefreshAll(event.currentTarget).catch((error) => setStatus("cashflowStatus", error.message, true));
+});
 
 document.querySelectorAll(".navItem").forEach((button) => {
   button.addEventListener("click", () => showSection(button.dataset.sectionTarget));
