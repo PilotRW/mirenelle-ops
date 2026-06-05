@@ -16,10 +16,77 @@ DATE_FORMATS = (
     "%d/%m/%Y",
     "%d.%m.%Y",
     "%Y-%m-%d",
+    "%d %m %Y %H:%M:%S UTC",
     "%d.%m.%Y %H:%M:%S UTC",
     "%d/%m/%Y %H:%M:%S UTC",
     "%Y-%m-%d %H:%M:%S UTC",
 )
+
+
+LOCALIZED_MONTHS = {
+    "jan": "01",
+    "janv": "01",
+    "januar": "01",
+    "januari": "01",
+    "enero": "01",
+    "ene": "01",
+    "févr": "02",
+    "fevr": "02",
+    "feb": "02",
+    "februar": "02",
+    "febrero": "02",
+    "februari": "02",
+    "märz": "03",
+    "maerz": "03",
+    "mrt": "03",
+    "mars": "03",
+    "marzo": "03",
+    "mar": "03",
+    "apr": "04",
+    "avril": "04",
+    "avr": "04",
+    "abril": "04",
+    "mai": "05",
+    "may": "05",
+    "mei": "05",
+    "jun": "06",
+    "juin": "06",
+    "juni": "06",
+    "junio": "06",
+    "jul": "07",
+    "juil": "07",
+    "juli": "07",
+    "julio": "07",
+    "août": "08",
+    "aout": "08",
+    "aug": "08",
+    "august": "08",
+    "agosto": "08",
+    "ago": "08",
+    "sept": "09",
+    "sep": "09",
+    "september": "09",
+    "septembre": "09",
+    "septiembre": "09",
+    "okt": "10",
+    "oct": "10",
+    "oktober": "10",
+    "octobre": "10",
+    "octubre": "10",
+    "nov": "11",
+    "november": "11",
+    "novembre": "11",
+    "noviembre": "11",
+    "déc": "12",
+    "dec": "12",
+    "dez": "12",
+    "dezember": "12",
+    "december": "12",
+    "décembre": "12",
+    "decembre": "12",
+    "diciembre": "12",
+    "dic": "12",
+}
 
 
 @dataclass(frozen=True)
@@ -128,12 +195,25 @@ def parse_date(value: str | None) -> date:
     if not value:
         raise ValueError("Missing date value")
     clean = value.strip()
-    for date_format in DATE_FORMATS:
-        try:
-            return datetime.strptime(clean, date_format).date()
-        except ValueError:
-            continue
+    candidates = [clean, normalize_localized_month(clean)]
+    for candidate in candidates:
+        for date_format in DATE_FORMATS:
+            try:
+                return datetime.strptime(candidate, date_format).date()
+            except ValueError:
+                continue
     raise ValueError(f"Unsupported date value: {value}")
+
+
+def normalize_localized_month(value: str) -> str:
+    parts = value.split()
+    if len(parts) < 3:
+        return value
+    normalized_parts = []
+    for part in parts:
+        key = part.strip(".,").casefold()
+        normalized_parts.append(LOCALIZED_MONTHS.get(key, part))
+    return " ".join(normalized_parts)
 
 
 def decimal_to_float(value: Decimal | float | int | None) -> float:
@@ -156,16 +236,16 @@ def parse_payment_transaction_row(
         amazon_fees += parse_decimal(row.get(mapping["other_transaction_fees"]))
     return {
         "transaction_date": parse_date(row.get(mapping["transaction_date"])),
-        "transaction_status": row.get(mapping["transaction_status"]),
+        "transaction_status": row.get(mapping["transaction_status"]) if "transaction_status" in mapping else None,
         "transaction_type": row.get(mapping["transaction_type"]),
         "external_transaction_id": row.get(mapping["external_transaction_id"]),
         "sku": row.get(mapping["sku"]) if "sku" in mapping else None,
         "quantity": parse_decimal(row.get(mapping["quantity"])) if "quantity" in mapping else None,
         "product_details": row.get(mapping["product_details"]),
         "product_charges": parse_decimal(row.get(mapping["product_charges"])),
-        "promotional_rebates": parse_decimal(row.get(mapping["promotional_rebates"])),
+        "promotional_rebates": parse_decimal(row.get(mapping["promotional_rebates"])) if "promotional_rebates" in mapping else Decimal("0"),
         "amazon_fees": amazon_fees,
-        "other_amount": parse_decimal(row.get(mapping["other_amount"])),
+        "other_amount": parse_decimal(row.get(mapping["other_amount"])) if "other_amount" in mapping else Decimal("0"),
         "total_amount": parse_decimal(row.get(mapping["total_amount"])),
         "currency": currency,
     }
