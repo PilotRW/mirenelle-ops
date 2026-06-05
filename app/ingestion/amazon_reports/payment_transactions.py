@@ -72,19 +72,24 @@ def find_header_start(text: str, delimiter: str) -> str:
             cells = next(csv.reader([line], delimiter=delimiter))
         except csv.Error:
             continue
-        normalized = {cell.strip().casefold() for cell in cells}
-        if (
-            ("sku" in normalized or "seller sku" in normalized)
-            and ("bestellnummer" in normalized or "order id" in normalized)
-            and ("typ" in normalized or "transaction type" in normalized)
-        ):
-            return "\n".join(lines[index:])
-        if "date" in normalized and "transaction type" in normalized and "product details" in normalized:
+        mapping = detect_payment_transaction_mapping(cells)
+        mapped_required_fields = REQUIRED_PREVIEW_HEADER_FIELDS - set(mapping.missing_fields)
+        if len(mapped_required_fields) >= 5:
             return "\n".join(lines[index:])
     return text
 
 
-def extract_currency(headers: list[str], total_header: str | None) -> str | None:
+REQUIRED_PREVIEW_HEADER_FIELDS = {
+    "transaction_date",
+    "transaction_type",
+    "external_transaction_id",
+    "product_details",
+    "product_charges",
+    "total_amount",
+}
+
+
+def extract_currency(headers: list[str], total_header: str | None, text: str = "") -> str | None:
     candidates = [total_header] if total_header else []
     candidates.extend(headers)
     for header in candidates:
@@ -93,8 +98,15 @@ def extract_currency(headers: list[str], total_header: str | None) -> str | None
         match = re.search(r"\(([A-Z]{3})\)", header)
         if match:
             return match.group(1)
-    if any(header in {"Umsätze", "Umsatze", "Gesamt"} for header in headers):
+    normalized_text = text.casefold()
+    if any(marker in normalized_text for marker in ("euro", "eur", "euros")):
         return "EUR"
+    if any(marker in normalized_text for marker in ("svenska kronor", "kronor", "sek")):
+        return "SEK"
+    if any(marker in normalized_text for marker in ("zł", "zloty", "złoty", "pln")):
+        return "PLN"
+    if any(marker in normalized_text for marker in ("pound", "gbp", "sterling")):
+        return "GBP"
     return None
 
 
@@ -195,7 +207,7 @@ def build_payment_transaction_preview(
 
     mapping_result = detect_payment_transaction_mapping(headers)
     total_header = mapping_result.mapping.get("total_amount")
-    currency = extract_currency(headers, total_header)
+    currency = extract_currency(headers, total_header, text)
 
     validation_errors: list[str] = []
     normalized_sample_rows: list[dict[str, str | int | float | None]] = []
