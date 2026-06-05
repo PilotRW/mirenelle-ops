@@ -1506,7 +1506,7 @@ function updateDashboardProfit() {
 }
 
 async function loadProfitability() {
-  const data = await requestJson(`/reports/product-profitability${reportQueryParams()}`);
+  const data = await requestJson(`/reports/product-profitability${reportQueryParams({ limit: 5000 })}`);
   const summary = data.summary;
   state.profitSummary = summary;
   updateDashboardProfit();

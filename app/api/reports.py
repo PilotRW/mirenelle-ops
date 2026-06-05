@@ -633,7 +633,7 @@ async def data_quality(
 @router.get("/product-profitability", response_model=ProductProfitabilityResponse)
 async def product_profitability(
     db: Annotated[AsyncSession, Depends(get_db)],
-    limit: Annotated[int, Query(ge=1, le=500)] = 100,
+    limit: Annotated[int, Query(ge=1, le=10000)] = 5000,
     start_date: Annotated[date | None, Query()] = None,
     end_date: Annotated[date | None, Query()] = None,
 ) -> ProductProfitabilityResponse:
