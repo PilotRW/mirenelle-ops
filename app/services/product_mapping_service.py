@@ -16,6 +16,7 @@ def normalize_product_text(value: str | None) -> str:
     if not value:
         return ""
     normalized = value.casefold()
+    normalized = re.sub(r"(?<=[a-z0-9])['’`´](?=[a-z0-9])", "", normalized)
     normalized = re.sub(r"[^a-z0-9а-яіїєґąćęłńóśźżäöüß]+", " ", normalized)
     return re.sub(r"\s+", " ", normalized).strip()
 
@@ -30,8 +31,27 @@ def product_similarity(left: str | None, right: str | None) -> Decimal:
     left_tokens = set(left_norm.split())
     right_tokens = set(right_norm.split())
     token_score = len(left_tokens & right_tokens) / len(left_tokens | right_tokens) if left_tokens and right_tokens else 0
-    score = (sequence_score * 0.65) + (token_score * 0.35)
+    shared_tokens = left_tokens & right_tokens
+    containment_score = (
+        len(shared_tokens) / min(len(left_tokens), len(right_tokens))
+        if left_tokens and right_tokens
+        else 0
+    )
+    score = (sequence_score * 0.45) + (token_score * 0.25) + (containment_score * 0.30)
+    bundle_mismatch = has_bundle_signal(left_norm) != has_bundle_signal(right_norm)
+    if len(shared_tokens) >= 3 and containment_score >= 0.70 and not bundle_mismatch:
+        score = max(score, containment_score)
+    if bundle_mismatch:
+        score = min(score, 0.45)
     return Decimal(str(round(score * 100, 2)))
+
+
+def has_bundle_signal(value: str) -> bool:
+    return bool(
+        re.search(r"\b(pack|set|types|stuks|stück|stuck|pcs|pc|шт|штук)\b", value)
+        or re.search(r"\b(12|10|6|5|4|3|2)\s*(pcs|pc|stuks|stück|stuck|шт|штук)\b", value)
+        or re.search(r"\b(packung|verpackung)\s+(von|of)\s+\d+\b", value)
+    )
 
 
 @dataclass(frozen=True)

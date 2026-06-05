@@ -194,6 +194,22 @@ def best_product_name_match(
     return best_item if best_score >= min_score else None
 
 
+def best_product_alias_match(
+    product_details_aliases: set[str],
+    candidates: list[tuple[str, object]],
+    min_score: Decimal = Decimal("60"),
+) -> object | None:
+    best_item = None
+    best_score = Decimal("0")
+    for product_details in product_details_aliases:
+        for name, item in candidates:
+            score = product_similarity(product_details, name)
+            if score > best_score:
+                best_item = item
+                best_score = score
+    return best_item if best_score >= min_score else None
+
+
 class ProductProfitabilitySummary(BaseModel):
     products: int
     matched_products: int
@@ -676,8 +692,11 @@ async def product_profitability(
                 "units_estimated": 0,
                 "revenue_original": 0.0,
                 "revenue_eur": 0.0,
+                "product_details_aliases": set(),
             },
         )
+        if row.product_details:
+            bucket["product_details_aliases"].add(str(row.product_details))
         if row.product_details and (
             not bucket.get("product_details")
             or len(str(row.product_details)) > len(str(bucket.get("product_details") or ""))
@@ -744,15 +763,18 @@ async def product_profitability(
     rows: list[ProductProfitabilityRow] = []
     for bucket in by_product.values():
         product_details = str(bucket["product_details"])
+        product_details_aliases = bucket.get("product_details_aliases")
+        if not isinstance(product_details_aliases, set):
+            product_details_aliases = {product_details}
         tx_sku = str(bucket.get("sku") or "") or None
-        mapping = mapping_by_product.get(product_details) or best_product_name_match(product_details, mapping_candidates)
-        invoice_line = best_product_name_match(product_details, invoice_line_candidates)
+        mapping = mapping_by_product.get(product_details) or best_product_alias_match(product_details_aliases, mapping_candidates)
+        invoice_line = best_product_alias_match(product_details_aliases, invoice_line_candidates)
         cost = (
             (cost_by_sku.get(tx_sku) if tx_sku else None)
             or cost_by_name.get(product_details)
             or cost_by_mapping.get(product_details)
             or (cost_by_mapping.get(mapping.amazon_product_details) if isinstance(mapping, ProductMapping) else None)
-            or best_product_name_match(product_details, cost_candidates)
+            or best_product_alias_match(product_details_aliases, cost_candidates, min_score=Decimal("55"))
         )
         sku = (
             tx_sku
