@@ -21,6 +21,8 @@ MARKETPLACE_IDS: dict[str, str] = {
     "UK": "A1F83G8C2ARO7P",
 }
 
+EU_MARKETPLACES: tuple[str, ...] = ("DE", "FR", "IT", "ES", "NL", "BE", "PL", "SE")
+
 DONE_REPORT_STATUSES = {"DONE"}
 FAILED_REPORT_STATUSES = {"CANCELLED", "FATAL"}
 

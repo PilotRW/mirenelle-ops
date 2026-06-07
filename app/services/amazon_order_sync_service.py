@@ -11,6 +11,7 @@ from app.services.amazon_order_import_service import commit_order_report_import
 from app.services.amazon_payment_import_service import DuplicateImportError
 from app.services.amazon_sp_api_client import (
     DONE_REPORT_STATUSES,
+    EU_MARKETPLACES,
     FAILED_REPORT_STATUSES,
     AmazonSpApiClient,
     AmazonSpApiError,
@@ -42,17 +43,18 @@ async def sync_orders_report(
     wait_timeout_seconds: int = 300,
 ) -> AmazonOrderSyncResult:
     results: list[AmazonOrderSyncResult] = []
-    for chunk_start, chunk_end in _date_chunks(start_date, end_date):
-        results.append(
-            await _sync_orders_report_chunk(
-                db=db,
-                marketplace=marketplace,
-                start_date=chunk_start,
-                end_date=chunk_end,
-                poll_interval_seconds=poll_interval_seconds,
-                wait_timeout_seconds=wait_timeout_seconds,
+    for marketplace_code in _marketplace_codes(marketplace):
+        for chunk_start, chunk_end in _date_chunks(start_date, end_date):
+            results.append(
+                await _sync_orders_report_chunk(
+                    db=db,
+                    marketplace=marketplace_code,
+                    start_date=chunk_start,
+                    end_date=chunk_end,
+                    poll_interval_seconds=poll_interval_seconds,
+                    wait_timeout_seconds=wait_timeout_seconds,
+                )
             )
-        )
     return _merge_results(results)
 
 
@@ -161,6 +163,13 @@ def _date_chunks(start_date: date, end_date: date) -> list[tuple[date, date]]:
         chunks.append((current, chunk_end))
         current = chunk_end + timedelta(days=1)
     return chunks
+
+
+def _marketplace_codes(marketplace: str) -> tuple[str, ...]:
+    normalized = marketplace.upper()
+    if normalized == "EU":
+        return EU_MARKETPLACES
+    return (normalized,)
 
 
 def _merge_results(results: list[AmazonOrderSyncResult]) -> AmazonOrderSyncResult:

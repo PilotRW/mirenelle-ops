@@ -277,7 +277,9 @@ http://localhost:8010/ui/
 ```
 
 Open `Amazon Connector` in the left sidebar, choose marketplace and period,
-then click `Download orders`. The UI calls:
+then click `Download orders`. The default marketplace option is `All EU
+marketplaces`, which downloads DE, FR, IT, ES, NL, BE, PL, and SE one by one.
+The UI calls:
 
 ```text
 POST /integrations/amazon-sp-api/orders/sync

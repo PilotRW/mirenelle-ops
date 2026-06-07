@@ -142,6 +142,9 @@ Completed:
   `GET_FLAT_FILE_ALL_ORDERS_DATA_BY_ORDER_DATE_GENERAL`, poll processing,
   download the report document, and import it through the existing order parser.
   Periods longer than 30 days are split into multiple report requests.
+- Amazon Connector defaults to `All EU marketplaces` because the account can
+  sell across Europe even when Germany is the primary marketplace. The current
+  EU set is DE, FR, IT, ES, NL, BE, PL, and SE.
 
 Current verified inventory examples:
 

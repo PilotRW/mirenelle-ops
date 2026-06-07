@@ -18,6 +18,7 @@ from app.services.amazon_order_import_service import commit_order_report_import
 from app.services.amazon_order_sync_service import sync_orders_report
 from app.services.amazon_payment_import_service import DuplicateImportError
 from app.services.amazon_sp_api_client import (
+    EU_MARKETPLACES,
     MARKETPLACE_IDS,
     AmazonSpApiConfigError,
     AmazonSpApiError,
@@ -35,6 +36,7 @@ class AmazonConnectorStatusResponse(BaseModel):
     region: str
     phase_1_report_type: str
     marketplace_ids: dict[str, str]
+    eu_marketplaces: list[str]
 
 
 class AmazonOrderPreviewResponse(BaseModel):
@@ -132,6 +134,7 @@ async def amazon_connector_status() -> AmazonConnectorStatusResponse:
         region=settings.AMAZON_SP_API_REGION,
         phase_1_report_type=REPORT_TYPE_ALL_ORDERS_BY_ORDER_DATE,
         marketplace_ids=MARKETPLACE_IDS,
+        eu_marketplaces=list(EU_MARKETPLACES),
     )
 
 
