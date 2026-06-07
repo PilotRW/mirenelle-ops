@@ -1,6 +1,6 @@
 # Mirenelle Ops - Project State
 
-Last updated: 2026-05-29
+Last updated: 2026-06-07
 
 ## Product Direction
 
@@ -21,9 +21,15 @@ Create a separate service for ecommerce operations and accounting:
 - It may run against the same local Postgres instance as `oa-pipeline`.
 - Do not mix Alembic migrations or application tables with the `oa` database.
 - Integrate with `oa-pipeline` later through API/export boundaries.
-- Start with report ingestion before Amazon API/SP-API connectors.
+- Start with report ingestion; add Amazon SP-API only as a read-only/download
+  connector.
 - Marketplace reports stay in the original sale currency.
 - General/consolidated reports are shown in EUR.
+- Amazon API integration must not push/write data to Amazon.
+- Supplier invoice inbound shipping is treated as landed cost. Default
+  allocation is by purchased unit quantity, with an alternative by line value.
+- Product sets/bundles are deferred because current sold sets are represented
+  as single sellable products, not assembled from component inventory.
 
 ## Current Input Reports
 
@@ -119,17 +125,40 @@ Completed:
 - Verified preview with German and Swedish transaction files.
 - Committed sample transaction files for DE, BE, ES, NL, and SE into the local
   `mirenelle_ops` database.
+- Added landed-cost allocation settings and applied default quantity-based
+  inbound shipping allocation into product costs.
+- Added inventory sync that matches invoice purchases to Amazon sales by SKU,
+  confirmed mappings, aliases, and fuzzy product names.
+- Inventory now shows purchased quantity, sold quantity, and on-hand quantity.
+- Fixed Amazon Payments quantity handling for multi-unit order rows.
+- Added fulfillment channel parsing for Amazon Payments. Imported payment lines
+  now preserve FBA/FBM/UNKNOWN, payment line details display fulfillment, and
+  profitability/P&L can split rows by fulfillment channel.
+- Added read-only Amazon SP-API Orders connector scaffold: status endpoint,
+  manual All Orders report preview/commit, imports list, order import tables,
+  and report parser for FBA/FBM quantities.
+
+Current verified inventory examples:
+
+- `I2318`: purchased 121, sold 19, on hand 102.
+- `I8510`: purchased 70, sold 19, on hand 51.
+- `L1006`: purchased 10, sold 9, on hand 1.
+- `Dr.Beckmann`: purchased 24, sold 13, on hand 11.
+- `Cif`: purchased 32, sold 4, on hand 28.
 
 Next:
 
-1. Test purchase invoice importer with more real supplier invoice layouts.
-2. Return to landed-cost allocation after several real invoice imports and
-   expense taxonomy stabilization. Initial default should likely allocate
-   inbound shipping by product subtotal, with quantity/manual alternatives.
-3. Test with the remaining marketplace transaction reports.
-4. Add OCR/repair fallback for image-based or malformed PDFs.
-5. Add manual edit/search flow for product mappings beyond suggested matches.
-6. Add Customer Returns import after seeing the real file headers.
-7. Add Reimbursements import after seeing the real file headers.
-8. Add Service Fees import if the separate report has richer fields than
+1. Implement the real read-only SP-API report download worker:
+   `createReport` -> poll `getReport` -> `getReportDocument` -> download ->
+   import through the existing parser.
+2. Use imported Amazon Orders as the source of truth for order quantity,
+   fulfillment channel, SKU, and ASIN; keep Amazon Payments as the money/fees
+   source and reconcile by order/SKU/period.
+3. Add Fulfillment-Box / prep-center tariff settings for storage, prep,
+   labels, packing, and outbound handling.
+4. Add read-only FBA inventory connector after SP-API credentials are available.
+5. Add Customer Returns import after seeing the real file headers.
+6. Add Reimbursements import after seeing the real file headers.
+7. Add Service Fees import if the separate report has richer fields than
    Transaction View.
+8. Add OCR/repair fallback for image-based or malformed PDFs.
