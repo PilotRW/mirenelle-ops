@@ -28,6 +28,7 @@ const translations = {
     "field.invoiceFile": "Invoice CSV/XLSX/PDF",
     "field.invoiceNumber": "Invoice number",
     "field.marketplace": "Marketplace",
+    "field.ordersReport": "All Orders report",
     "field.rateToEur": "Rate to EUR",
     "field.reportType": "Report type",
     "field.search": "Search",
@@ -83,6 +84,7 @@ const translations = {
     "report.reimbursements": "Reimbursements",
     "report.serviceFees": "Service Fees",
     "section.amazonPayments": "Amazon Payments",
+    "section.amazonConnector": "Amazon SP-API",
     "section.fxRates": "FX Rates",
     "section.generalCashflow": "General Cashflow",
     "section.inventory": "Inventory",
@@ -212,6 +214,7 @@ const translations = {
     "field.invoiceFile": "Rechnung CSV/XLSX/PDF",
     "field.invoiceNumber": "Rechnungsnummer",
     "field.marketplace": "Marketplace",
+    "field.ordersReport": "All-Orders-Report",
     "field.rateToEur": "Kurs zu EUR",
     "field.reportType": "Reporttyp",
     "field.search": "Suchen",
@@ -267,6 +270,7 @@ const translations = {
     "report.reimbursements": "Erstattungen",
     "report.serviceFees": "Servicegebühren",
     "section.amazonPayments": "Amazon-Zahlungen",
+    "section.amazonConnector": "Amazon SP-API",
     "section.fxRates": "Wechselkurse",
     "section.generalCashflow": "Gesamt-Cashflow",
     "section.inventory": "Bestand",
@@ -396,6 +400,7 @@ const translations = {
     "field.invoiceFile": "Інвойс CSV/XLSX/PDF",
     "field.invoiceNumber": "Номер інвойсу",
     "field.marketplace": "Маркетплейс",
+    "field.ordersReport": "All Orders звіт",
     "field.rateToEur": "Курс до EUR",
     "field.reportType": "Тип звіту",
     "field.search": "Пошук",
@@ -451,6 +456,7 @@ const translations = {
     "report.reimbursements": "Компенсації",
     "report.serviceFees": "Сервісні збори",
     "section.amazonPayments": "Amazon платежі",
+    "section.amazonConnector": "Amazon SP-API",
     "section.fxRates": "Курси валют",
     "section.generalCashflow": "Загальний cashflow",
     "section.inventory": "Товарні залишки",
@@ -1203,6 +1209,39 @@ async function loadSupplierCatalogStats() {
     : "-";
 }
 
+async function loadAmazonConnector() {
+  const [status, imports] = await Promise.all([
+    requestJson("/integrations/amazon-sp-api/status"),
+    requestJson("/integrations/amazon-sp-api/orders/imports"),
+  ]);
+  document.getElementById("amazonConnectorTotals").innerHTML = `
+    <div class="kpi">
+      <span>${t("table.status")}</span>
+      <strong>${status.configured ? "Configured" : "Manual"}</strong>
+    </div>
+    <div class="kpi">
+      <span>${t("table.type")}</span>
+      <strong>${status.phase_1_report_type}</strong>
+    </div>
+    <div class="kpi">
+      <span>${t("table.rows")}</span>
+      <strong>${imports.rows.length}</strong>
+    </div>
+  `;
+  renderRows("amazonOrderImports", imports.rows, (row) => `
+    <tr>
+      <td>${row.import_id}</td>
+      <td>${text(row.marketplace)}</td>
+      <td class="num">${row.row_count}</td>
+      <td class="num">${row.fba_quantity}</td>
+      <td class="num">${row.fbm_quantity}</td>
+      <td>${text(row.report_period_start)} - ${text(row.report_period_end)}</td>
+      <td>${text(row.filename)}</td>
+    </tr>
+  `);
+  setStatus("amazonConnectorStatus", status.configured ? "status.ready" : status.missing_settings.join(", "), !status.configured, status.configured);
+}
+
 async function loadGenericImports() {
   const data = await requestJson("/imports/report-preview");
   renderRows("genericImports", data.rows, (row) => `
@@ -1329,6 +1368,33 @@ function renderInvoicePreview(preview) {
         ${mappingEntries.map(([key, value]) => `<div><dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}
       </dl>
     </details>
+  `;
+}
+
+function renderAmazonOrdersPreview(preview) {
+  const target = document.getElementById("amazonOrdersPreview");
+  target.classList.remove("empty");
+  const errors = preview.validation_errors || [];
+  target.innerHTML = `
+    <div class="previewHeader">
+      <div>
+        <strong>${t("preview.previewReady")}</strong>
+        <span>${escapeHtml(preview.filename)}</span>
+      </div>
+      <span class="previewBadge ${preview.can_commit ? "ok" : "bad"}">${preview.can_commit ? t("status.ready") : t("preview.needsReview")}</span>
+    </div>
+    <div class="previewFacts">
+      <div><span>${t("field.marketplace")}</span><strong>${escapeHtml(preview.marketplace)}</strong></div>
+      <div><span>${t("table.rows")}</span><strong>${preview.row_count}</strong></div>
+      <div><span>${t("preview.quantity")}</span><strong>${preview.totals.quantity}</strong></div>
+      <div><span>FBA</span><strong>${preview.totals.fba_quantity}</strong></div>
+      <div><span>FBM</span><strong>${preview.totals.fbm_quantity}</strong></div>
+    </div>
+    <div class="previewIssues ${errors.length || preview.missing_fields.length ? "" : "ok"}">
+      <strong>${errors.length || preview.missing_fields.length ? t("preview.validationErrors") : t("preview.noIssues")}</strong>
+      ${preview.missing_fields.length ? `<p>${preview.missing_fields.map(escapeHtml).join(", ")}</p>` : ""}
+      ${errors.length ? `<ul>${errors.map((error) => `<li>${escapeHtml(error)}</li>`).join("")}</ul>` : ""}
+    </div>
   `;
 }
 
@@ -1598,7 +1664,7 @@ async function loadProfitability() {
 
 async function refreshAll() {
   setStatus("cashflowStatus", "status.loading", false, true);
-  await Promise.all([loadPayments(), loadCosts(), loadInvoices(), loadProductMappings(), loadInventory(), loadFxRates(), loadLandedCostSettings(), loadSupplierCatalogStats(), loadGenericImports(), loadCashflow(), loadAmazonPnl(), loadDataQuality(), loadProfitability()]);
+  await Promise.all([loadPayments(), loadCosts(), loadInvoices(), loadProductMappings(), loadInventory(), loadFxRates(), loadLandedCostSettings(), loadSupplierCatalogStats(), loadAmazonConnector(), loadGenericImports(), loadCashflow(), loadAmazonPnl(), loadDataQuality(), loadProfitability()]);
   setStatus("paymentStatus", "status.ready", false, true);
   setStatus("costStatus", "status.ready", false, true);
   setStatus("invoiceStatus", "status.ready", false, true);
@@ -2143,6 +2209,43 @@ document.getElementById("syncCatalogButton").addEventListener("click", async () 
     setStatus("catalogStatus", "status.loaded", false, true);
   } catch (error) {
     setStatus("catalogStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("amazonOrdersPreviewButton").addEventListener("click", async () => {
+  const form = document.getElementById("amazonOrdersForm");
+  const button = document.getElementById("amazonOrdersPreviewButton");
+  button.disabled = true;
+  setStatus("amazonConnectorStatus", "status.loading", false, true);
+  try {
+    const body = new FormData(form);
+    const preview = await requestJson("/integrations/amazon-sp-api/orders/preview", { method: "POST", body });
+    renderAmazonOrdersPreview(preview);
+    setStatus("amazonConnectorStatus", "status.loaded", false, true);
+  } catch (error) {
+    setStatus("amazonConnectorStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("amazonOrdersForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  setStatus("amazonConnectorStatus", "status.uploading", false, true);
+  try {
+    const body = new FormData(form);
+    await requestJson("/integrations/amazon-sp-api/orders/commit", { method: "POST", body });
+    form.reset();
+    document.getElementById("amazonOrdersPreview").textContent = t("status.imported");
+    await loadAmazonConnector();
+    setStatus("amazonConnectorStatus", "status.imported", false, true);
+  } catch (error) {
+    setStatus("amazonConnectorStatus", error.message, true);
   } finally {
     button.disabled = false;
   }

@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api import amazon_payments
+from app.api import amazon_connector
 from app.api import fx_rates
 from app.api import health
 from app.api import inventory
@@ -21,6 +22,7 @@ app = FastAPI(title="Mirenelle Ops")
 app.mount("/ui", StaticFiles(directory="app/static", html=True), name="ui")
 
 app.include_router(amazon_payments.router)
+app.include_router(amazon_connector.router)
 app.include_router(fx_rates.router)
 app.include_router(health.router)
 app.include_router(inventory.router)
