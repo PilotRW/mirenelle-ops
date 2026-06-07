@@ -13,6 +13,8 @@ const translations = {
     "action.clear": "Clear",
     "action.edit": "Edit",
     "action.delete": "Delete",
+    "action.downloadOrders": "Download orders",
+    "action.commitManualReport": "Commit manual report",
     "action.syncOaCatalog": "Sync OA catalog",
     "action.syncInventory": "Sync stock",
     "action.useMatch": "Use",
@@ -24,6 +26,7 @@ const translations = {
     "field.csvReport": "CSV report",
     "field.currency": "Currency",
     "field.effectiveDate": "Effective date",
+    "field.endDate": "End date",
     "field.invoiceDate": "Invoice date",
     "field.invoiceFile": "Invoice CSV/XLSX/PDF",
     "field.invoiceNumber": "Invoice number",
@@ -32,6 +35,7 @@ const translations = {
     "field.rateToEur": "Rate to EUR",
     "field.reportType": "Report type",
     "field.search": "Search",
+    "field.startDate": "Start date",
     "field.supplier": "Supplier",
     "field.supplierSku": "Supplier SKU",
     "field.productName": "Product name",
@@ -101,6 +105,7 @@ const translations = {
     "section.purchaseInvoices": "Purchase Invoices",
     "section.reportPreview": "Report Preview",
     "status.committed": "Committed",
+    "status.duplicate": "Already imported",
     "status.imported": "Imported",
     "status.loaded": "Loaded",
     "status.loading": "Loading",
@@ -199,6 +204,8 @@ const translations = {
     "action.clear": "Leeren",
     "action.edit": "Bearbeiten",
     "action.delete": "Löschen",
+    "action.downloadOrders": "Bestellungen laden",
+    "action.commitManualReport": "Manuellen Report speichern",
     "action.syncOaCatalog": "OA-Katalog synchronisieren",
     "action.syncInventory": "Bestand synchronisieren",
     "action.useMatch": "Nutzen",
@@ -210,6 +217,7 @@ const translations = {
     "field.csvReport": "CSV-Report",
     "field.currency": "Währung",
     "field.effectiveDate": "Gültig ab",
+    "field.endDate": "Enddatum",
     "field.invoiceDate": "Rechnungsdatum",
     "field.invoiceFile": "Rechnung CSV/XLSX/PDF",
     "field.invoiceNumber": "Rechnungsnummer",
@@ -218,6 +226,7 @@ const translations = {
     "field.rateToEur": "Kurs zu EUR",
     "field.reportType": "Reporttyp",
     "field.search": "Suchen",
+    "field.startDate": "Startdatum",
     "field.supplier": "Lieferant",
     "field.supplierSku": "Lieferanten-SKU",
     "field.productName": "Produktname",
@@ -287,6 +296,7 @@ const translations = {
     "section.purchaseInvoices": "Einkaufsrechnungen",
     "section.reportPreview": "Report-Vorschau",
     "status.committed": "Gespeichert",
+    "status.duplicate": "Bereits importiert",
     "status.imported": "Importiert",
     "status.loaded": "Geladen",
     "status.loading": "Lädt",
@@ -385,6 +395,8 @@ const translations = {
     "action.clear": "Очистити",
     "action.edit": "Редагувати",
     "action.delete": "Видалити",
+    "action.downloadOrders": "Завантажити замовлення",
+    "action.commitManualReport": "Зберегти ручний звіт",
     "action.syncOaCatalog": "Синхронізувати OA каталог",
     "action.syncInventory": "Синхронізувати залишки",
     "action.useMatch": "Застосувати",
@@ -396,6 +408,7 @@ const translations = {
     "field.csvReport": "CSV-звіт",
     "field.currency": "Валюта",
     "field.effectiveDate": "Дата дії",
+    "field.endDate": "Дата завершення",
     "field.invoiceDate": "Дата інвойсу",
     "field.invoiceFile": "Інвойс CSV/XLSX/PDF",
     "field.invoiceNumber": "Номер інвойсу",
@@ -404,6 +417,7 @@ const translations = {
     "field.rateToEur": "Курс до EUR",
     "field.reportType": "Тип звіту",
     "field.search": "Пошук",
+    "field.startDate": "Дата початку",
     "field.supplier": "Постачальник",
     "field.supplierSku": "SKU постачальника",
     "field.productName": "Назва товару",
@@ -473,6 +487,7 @@ const translations = {
     "section.purchaseInvoices": "Інвойси закупівель",
     "section.reportPreview": "Preview звіту",
     "status.committed": "Збережено",
+    "status.duplicate": "Вже імпортовано",
     "status.imported": "Імпортовано",
     "status.loaded": "Завантажено",
     "status.loading": "Завантаження",
@@ -589,6 +604,7 @@ const sectionTitleKey = {
   costs: "section.productCosts",
   mappings: "section.productMappings",
   inventory: "section.inventory",
+  connector: "section.amazonConnector",
   settings: "nav.settings",
 };
 
@@ -656,6 +672,10 @@ function syncPeriodControls() {
   preset.value = state.periodPreset;
   start.value = state.startDate;
   end.value = state.endDate;
+  const connectorStart = document.querySelector('#amazonOrdersSyncForm input[name="start_date"]');
+  const connectorEnd = document.querySelector('#amazonOrdersSyncForm input[name="end_date"]');
+  if (connectorStart && !connectorStart.value) connectorStart.value = state.startDate;
+  if (connectorEnd && !connectorEnd.value) connectorEnd.value = state.endDate;
   const isCustom = state.periodPreset === "custom";
   start.disabled = !isCustom;
   end.disabled = !isCustom;
@@ -1394,6 +1414,30 @@ function renderAmazonOrdersPreview(preview) {
       <strong>${errors.length || preview.missing_fields.length ? t("preview.validationErrors") : t("preview.noIssues")}</strong>
       ${preview.missing_fields.length ? `<p>${preview.missing_fields.map(escapeHtml).join(", ")}</p>` : ""}
       ${errors.length ? `<ul>${errors.map((error) => `<li>${escapeHtml(error)}</li>`).join("")}</ul>` : ""}
+    </div>
+  `;
+}
+
+function renderAmazonOrdersSyncResult(result) {
+  const target = document.getElementById("amazonOrdersPreview");
+  target.classList.remove("empty");
+  const reportIds = result.report_ids?.length ? result.report_ids.join(", ") : result.report_id;
+  const importIds = result.import_ids?.length ? result.import_ids.join(", ") : text(result.import_id);
+  target.innerHTML = `
+    <div class="previewHeader">
+      <div>
+        <strong>${result.status === "duplicate" ? t("status.duplicate") : t("status.imported")}</strong>
+        <span>${escapeHtml(result.filename || "-")}</span>
+      </div>
+      <span class="previewBadge ok">${escapeHtml(result.processing_status || result.status)}</span>
+    </div>
+    <div class="previewFacts">
+      <div><span>Reports</span><strong>${result.report_ids?.length || 1}</strong></div>
+      <div><span>Report ID</span><strong>${escapeHtml(reportIds || "-")}</strong></div>
+      <div><span>${t("table.id")}</span><strong>${escapeHtml(importIds || "-")}</strong></div>
+      <div><span>${t("table.rows")}</span><strong>${result.row_count}</strong></div>
+      <div><span>FBA</span><strong>${result.fba_quantity}</strong></div>
+      <div><span>FBM</span><strong>${result.fbm_quantity}</strong></div>
     </div>
   `;
 }
@@ -2209,6 +2253,35 @@ document.getElementById("syncCatalogButton").addEventListener("click", async () 
     setStatus("catalogStatus", "status.loaded", false, true);
   } catch (error) {
     setStatus("catalogStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("amazonOrdersSyncForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const formData = new FormData(form);
+  button.disabled = true;
+  setStatus("amazonConnectorStatus", "status.loading", false, true);
+  try {
+    const result = await requestJson("/integrations/amazon-sp-api/orders/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        marketplace: formData.get("marketplace"),
+        start_date: formData.get("start_date"),
+        end_date: formData.get("end_date"),
+        poll_interval_seconds: 30,
+        wait_timeout_seconds: 300,
+      }),
+    });
+    renderAmazonOrdersSyncResult(result);
+    await loadAmazonConnector();
+    setStatus("amazonConnectorStatus", result.status === "duplicate" ? "status.duplicate" : "status.imported", false, true);
+  } catch (error) {
+    setStatus("amazonConnectorStatus", error.message, true);
   } finally {
     button.disabled = false;
   }

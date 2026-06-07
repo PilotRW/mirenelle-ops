@@ -248,3 +248,50 @@ raw_row
 Important: Transaction View exports may not include SKU, ASIN, or quantity.
 SKU-level profit requires another Amazon order/item report or a reliable product
 mapping source.
+
+## Amazon SP-API Connector
+
+The connector is read-only. It downloads Amazon reports and imports them into
+local tables; it does not push or mutate anything in Amazon.
+
+Required `.env` settings:
+
+```env
+AMAZON_SP_API_REFRESH_TOKEN=
+AMAZON_SP_API_LWA_CLIENT_ID=
+AMAZON_SP_API_LWA_CLIENT_SECRET=
+AMAZON_SP_API_REGION=eu-west-1
+AMAZON_SP_API_ENDPOINT=https://sellingpartnerapi-eu.amazon.com
+```
+
+Run the app after editing `.env`:
+
+```bash
+docker compose up -d --build
+```
+
+UI path:
+
+```text
+http://localhost:8010/ui/
+```
+
+Open `Amazon Connector` in the left sidebar, choose marketplace and period,
+then click `Download orders`. The UI calls:
+
+```text
+POST /integrations/amazon-sp-api/orders/sync
+```
+
+Current report type:
+
+```text
+GET_FLAT_FILE_ALL_ORDERS_DATA_BY_ORDER_DATE_GENERAL
+```
+
+Amazon limits this order-tracking report range to 30 days. The connector
+automatically splits longer UI periods into multiple report downloads and
+imports them as one sync action.
+
+Manual All Orders report upload remains available on the same page as a
+fallback/debug path.

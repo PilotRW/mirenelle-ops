@@ -1,7 +1,8 @@
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +15,14 @@ from app.ingestion.amazon_reports.order_reports import (
 from app.models.amazon_order_import import AmazonOrderImport
 from app.models.amazon_order_item import AmazonOrderItem
 from app.services.amazon_order_import_service import commit_order_report_import
+from app.services.amazon_order_sync_service import sync_orders_report
 from app.services.amazon_payment_import_service import DuplicateImportError
+from app.services.amazon_sp_api_client import (
+    MARKETPLACE_IDS,
+    AmazonSpApiConfigError,
+    AmazonSpApiError,
+    missing_connector_settings,
+)
 
 
 router = APIRouter(prefix="/integrations/amazon-sp-api", tags=["amazon-sp-api"])
@@ -26,6 +34,7 @@ class AmazonConnectorStatusResponse(BaseModel):
     endpoint: str
     region: str
     phase_1_report_type: str
+    marketplace_ids: dict[str, str]
 
 
 class AmazonOrderPreviewResponse(BaseModel):
@@ -71,16 +80,27 @@ class AmazonOrderImportListResponse(BaseModel):
     rows: list[AmazonOrderImportRow]
 
 
-def missing_connector_settings() -> list[str]:
-    required = {
-        "AMAZON_SP_API_REFRESH_TOKEN": settings.AMAZON_SP_API_REFRESH_TOKEN,
-        "AMAZON_SP_API_LWA_CLIENT_ID": settings.AMAZON_SP_API_LWA_CLIENT_ID,
-        "AMAZON_SP_API_LWA_CLIENT_SECRET": settings.AMAZON_SP_API_LWA_CLIENT_SECRET,
-        "AMAZON_SP_API_AWS_ACCESS_KEY": settings.AMAZON_SP_API_AWS_ACCESS_KEY,
-        "AMAZON_SP_API_AWS_SECRET_KEY": settings.AMAZON_SP_API_AWS_SECRET_KEY,
-        "AMAZON_SP_API_AWS_ROLE_ARN": settings.AMAZON_SP_API_AWS_ROLE_ARN,
-    }
-    return [key for key, value in required.items() if not value]
+class AmazonOrderSyncRequest(BaseModel):
+    marketplace: str = Field(min_length=2, max_length=3)
+    start_date: date
+    end_date: date
+    poll_interval_seconds: int = Field(default=30, ge=10, le=300)
+    wait_timeout_seconds: int = Field(default=300, ge=30, le=1800)
+
+
+class AmazonOrderSyncResponse(BaseModel):
+    status: str
+    report_id: str
+    report_document_id: str | None
+    import_id: int | None
+    report_ids: list[str]
+    report_document_ids: list[str]
+    import_ids: list[int]
+    filename: str | None
+    row_count: int
+    fba_quantity: float
+    fbm_quantity: float
+    processing_status: str
 
 
 def build_preview_response(preview, marketplace: str) -> AmazonOrderPreviewResponse:
@@ -111,6 +131,7 @@ async def amazon_connector_status() -> AmazonConnectorStatusResponse:
         endpoint=settings.AMAZON_SP_API_ENDPOINT,
         region=settings.AMAZON_SP_API_REGION,
         phase_1_report_type=REPORT_TYPE_ALL_ORDERS_BY_ORDER_DATE,
+        marketplace_ids=MARKETPLACE_IDS,
     )
 
 
@@ -207,8 +228,11 @@ async def list_amazon_order_imports(
     )
 
 
-@router.post("/orders/sync")
-async def sync_amazon_orders_report() -> dict:
+@router.post("/orders/sync", response_model=AmazonOrderSyncResponse)
+async def sync_amazon_orders_report(
+    payload: AmazonOrderSyncRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AmazonOrderSyncResponse:
     missing = missing_connector_settings()
     if missing:
         raise HTTPException(
@@ -218,7 +242,32 @@ async def sync_amazon_orders_report() -> dict:
                 "missing_settings": missing,
             },
         )
-    raise HTTPException(
-        status_code=501,
-        detail="SP-API download worker is not enabled yet. Manual All Orders report import is available.",
+    if payload.end_date < payload.start_date:
+        raise HTTPException(status_code=400, detail="end_date must be greater than or equal to start_date.")
+    try:
+        result = await sync_orders_report(
+            db=db,
+            marketplace=payload.marketplace.upper(),
+            start_date=payload.start_date,
+            end_date=payload.end_date,
+            poll_interval_seconds=payload.poll_interval_seconds,
+            wait_timeout_seconds=payload.wait_timeout_seconds,
+        )
+    except AmazonSpApiConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except AmazonSpApiError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return AmazonOrderSyncResponse(
+        status=result.status,
+        report_id=result.report_id or "",
+        report_document_id=result.report_document_id,
+        import_id=result.import_id,
+        report_ids=result.report_ids,
+        report_document_ids=result.report_document_ids,
+        import_ids=result.import_ids,
+        filename=result.filename,
+        row_count=result.row_count,
+        fba_quantity=result.fba_quantity,
+        fbm_quantity=result.fbm_quantity,
+        processing_status=result.processing_status,
     )

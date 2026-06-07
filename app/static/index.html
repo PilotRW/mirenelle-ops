@@ -50,6 +50,9 @@
             <button class="navItem" type="button" data-section-target="inventory">
               <span>▥</span><span data-i18n="section.inventory">Inventory</span>
             </button>
+            <button class="navItem" type="button" data-section-target="connector">
+              <span>⇣</span><span data-i18n="section.amazonConnector">Amazon Connector</span>
+            </button>
             <button class="navItem" type="button" data-section-target="settings">
               <span>⚙</span><span data-i18n="nav.settings">Settings</span>
             </button>
@@ -673,9 +676,82 @@
             </section>
           </section>
 
+          <section id="section-connector" class="pageSection">
+            <section class="panel">
+              <div class="sectionHeader">
+                <h2 data-i18n="section.amazonConnector">Amazon Connector</h2>
+                <span id="amazonConnectorStatus" class="status" data-status-key="status.ready">Ready</span>
+              </div>
+              <div id="amazonConnectorTotals" class="kpis"></div>
+              <form id="amazonOrdersSyncForm" class="formRow genericForm">
+                <label>
+                  <span data-i18n="field.marketplace">Marketplace</span>
+                  <select name="marketplace" required>
+                    <option value="DE">Germany - amazon.de</option>
+                    <option value="FR">France - amazon.fr</option>
+                    <option value="IT">Italy - amazon.it</option>
+                    <option value="ES">Spain - amazon.es</option>
+                    <option value="NL">Netherlands - amazon.nl</option>
+                    <option value="BE">Belgium - amazon.com.be</option>
+                    <option value="PL">Poland - amazon.pl</option>
+                    <option value="SE">Sweden - amazon.se</option>
+                    <option value="UK">United Kingdom - amazon.co.uk</option>
+                  </select>
+                </label>
+                <label>
+                  <span data-i18n="field.startDate">Start date</span>
+                  <input name="start_date" type="date" required />
+                </label>
+                <label>
+                  <span data-i18n="field.endDate">End date</span>
+                  <input name="end_date" type="date" required />
+                </label>
+                <button type="submit" data-i18n="action.downloadOrders">Download orders</button>
+              </form>
+              <pre id="amazonOrdersPreview" class="previewBox" data-i18n="message.noPreview">No preview loaded.</pre>
+              <form id="amazonOrdersForm" class="formRow genericForm">
+                <label>
+                  <span data-i18n="field.marketplace">Marketplace</span>
+                  <select name="marketplace" required>
+                    <option value="DE">Germany - amazon.de</option>
+                    <option value="FR">France - amazon.fr</option>
+                    <option value="IT">Italy - amazon.it</option>
+                    <option value="ES">Spain - amazon.es</option>
+                    <option value="NL">Netherlands - amazon.nl</option>
+                    <option value="BE">Belgium - amazon.com.be</option>
+                    <option value="PL">Poland - amazon.pl</option>
+                    <option value="SE">Sweden - amazon.se</option>
+                  </select>
+                </label>
+                <label class="fileInput">
+                  <span data-i18n="field.ordersReport">Orders report</span>
+                  <input name="file" type="file" accept=".txt,.tsv,.csv" />
+                </label>
+                <button id="amazonOrdersPreviewButton" class="secondaryButton" type="button" data-i18n="action.preview">Preview</button>
+                <button type="submit" data-i18n="action.commitManualReport">Commit manual report</button>
+              </form>
+              <div class="tableWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="table.id">ID</th>
+                      <th data-i18n="field.marketplace">Marketplace</th>
+                      <th class="num" data-i18n="table.rows">Rows</th>
+                      <th class="num">FBA</th>
+                      <th class="num">FBM</th>
+                      <th data-i18n="table.period">Period</th>
+                      <th data-i18n="table.file">File</th>
+                    </tr>
+                  </thead>
+                  <tbody id="amazonOrderImports"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
           <section id="section-settings" class="pageSection">
             <div class="splitPanel">
-            <section class="panel">
+              <section class="panel">
                 <div class="sectionHeader">
                   <h2 data-i18n="section.oaCatalog">OA Catalog</h2>
                   <span id="catalogStatus" class="status" data-status-key="status.ready">Ready</span>
@@ -694,54 +770,8 @@
                     <strong id="catalogLastSync">-</strong>
                   </div>
                 </div>
-	                <button id="syncCatalogButton" type="button" data-i18n="action.syncOaCatalog">Sync OA catalog</button>
-	              </section>
-
-              <section class="panel">
-                <div class="sectionHeader">
-                  <h2 data-i18n="section.amazonConnector">Amazon SP-API</h2>
-                  <span id="amazonConnectorStatus" class="status" data-status-key="status.ready">Ready</span>
-                </div>
-                <div id="amazonConnectorTotals" class="kpis"></div>
-                <form id="amazonOrdersForm" class="formRow genericForm">
-                  <label>
-                    <span data-i18n="field.marketplace">Marketplace</span>
-                    <select name="marketplace" required>
-                      <option value="DE">Germany - amazon.de</option>
-                      <option value="FR">France - amazon.fr</option>
-                      <option value="IT">Italy - amazon.it</option>
-                      <option value="ES">Spain - amazon.es</option>
-                      <option value="NL">Netherlands - amazon.nl</option>
-                      <option value="BE">Belgium - amazon.com.be</option>
-                      <option value="PL">Poland - amazon.pl</option>
-                      <option value="SE">Sweden - amazon.se</option>
-                    </select>
-                  </label>
-                  <label class="fileInput">
-                    <span data-i18n="field.ordersReport">Orders report</span>
-                    <input name="file" type="file" accept=".txt,.tsv,.csv" required />
-                  </label>
-                  <button id="amazonOrdersPreviewButton" class="secondaryButton" type="button" data-i18n="action.preview">Preview</button>
-                  <button type="submit" data-i18n="action.commit">Commit</button>
-                </form>
-                <pre id="amazonOrdersPreview" class="previewBox" data-i18n="message.noPreview">No preview loaded.</pre>
-                <div class="tableWrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th data-i18n="table.id">ID</th>
-                        <th data-i18n="field.marketplace">Marketplace</th>
-                        <th class="num" data-i18n="table.rows">Rows</th>
-                        <th class="num">FBA</th>
-                        <th class="num">FBM</th>
-                        <th data-i18n="table.period">Period</th>
-                        <th data-i18n="table.file">File</th>
-                      </tr>
-                    </thead>
-                    <tbody id="amazonOrderImports"></tbody>
-                  </table>
-                </div>
-              </section>
+		                <button id="syncCatalogButton" type="button" data-i18n="action.syncOaCatalog">Sync OA catalog</button>
+		              </section>
 
               <section class="panel">
                 <div class="sectionHeader">
@@ -842,6 +872,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260607-02"></script>
+    <script src="/ui/app.js?v=20260607-03"></script>
   </body>
 </html>

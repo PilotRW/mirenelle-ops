@@ -137,6 +137,11 @@ Completed:
 - Added read-only Amazon SP-API Orders connector scaffold: status endpoint,
   manual All Orders report preview/commit, imports list, order import tables,
   and report parser for FBA/FBM quantities.
+- Added the first real read-only SP-API Orders download worker. The UI now has
+  a visible `Amazon Connector` page that can request
+  `GET_FLAT_FILE_ALL_ORDERS_DATA_BY_ORDER_DATE_GENERAL`, poll processing,
+  download the report document, and import it through the existing order parser.
+  Periods longer than 30 days are split into multiple report requests.
 
 Current verified inventory examples:
 
@@ -148,9 +153,8 @@ Current verified inventory examples:
 
 Next:
 
-1. Implement the real read-only SP-API report download worker:
-   `createReport` -> poll `getReport` -> `getReportDocument` -> download ->
-   import through the existing parser.
+1. Add real SP-API credentials to `.env` and test the live Orders download
+   worker against Seller Central.
 2. Use imported Amazon Orders as the source of truth for order quantity,
    fulfillment channel, SKU, and ASIN; keep Amazon Payments as the money/fees
    source and reconcile by order/SKU/period.
