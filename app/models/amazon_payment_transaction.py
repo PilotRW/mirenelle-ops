@@ -32,6 +32,7 @@ class AmazonPaymentTransaction(Base):
     external_transaction_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     sku: Mapped[str | None] = mapped_column(String(160), nullable=True, index=True)
     quantity: Mapped[Decimal | None] = mapped_column(Numeric(12, 3), nullable=True)
+    fulfillment_channel: Mapped[str] = mapped_column(String(16), nullable=False, default="UNKNOWN", index=True)
     product_details: Mapped[str | None] = mapped_column(Text, nullable=True)
     product_charges: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     promotional_rebates: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)

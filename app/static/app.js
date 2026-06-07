@@ -851,6 +851,7 @@ async function loadPaymentLines(importId) {
       <td>${text(row.transaction_type)}</td>
       <td>${text(row.sku)}</td>
       <td class="num">${text(row.quantity)}</td>
+      <td>${text(row.fulfillment_channel)}</td>
       <td>${text(row.product_details)}</td>
       <td class="num">${money(row.product_charges, row.currency)}</td>
       <td class="num">${money(row.promotional_rebates, row.currency)}</td>
@@ -1402,6 +1403,7 @@ async function loadAmazonPnl() {
     <tr>
       <td>${text(row.transaction_type)}</td>
       <td>${paymentCategoryLabel(row.category)}</td>
+      <td>${text(row.fulfillment_channel)}</td>
       <td class="num">${row.rows}</td>
       <td class="num">${row.units}</td>
       <td class="num">${money(row.product_charges_eur, "EUR")}</td>
@@ -1576,6 +1578,7 @@ async function loadProfitability() {
     <tr>
       <td>${text(row.product_details)}</td>
       <td>${renderIdentifiers(row)}</td>
+      <td>${text(row.fulfillment_channel)}</td>
       <td>${row.currency}</td>
       <td class="num">${row.fx_rate_to_eur}</td>
       <td class="num">${row.units_estimated}</td>

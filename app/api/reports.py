@@ -84,6 +84,7 @@ class ProductCostLatestResponse(BaseModel):
 class AmazonPnlCategoryRow(BaseModel):
     category: str
     transaction_type: str
+    fulfillment_channel: str
     rows: int
     units: float
     product_charges_eur: float
@@ -152,6 +153,7 @@ class ProductProfitabilityRow(BaseModel):
     asin: str | None
     sku: str | None
     ean: str | None
+    fulfillment_channel: str
     currency: str
     fx_rate_to_eur: float
     transaction_rows: int
@@ -433,6 +435,7 @@ async def amazon_pnl(
 ) -> AmazonPnlResponse:
     query = select(
         AmazonPaymentTransaction.transaction_type,
+        AmazonPaymentTransaction.fulfillment_channel,
         AmazonPaymentTransaction.currency,
         func.count().label("rows"),
         func.coalesce(func.sum(AmazonPaymentTransaction.quantity), 0).label("quantity"),
@@ -443,8 +446,13 @@ async def amazon_pnl(
         func.coalesce(func.sum(AmazonPaymentTransaction.total_amount), 0).label("total_amount"),
     )
     query = apply_date_filters(query, start_date, end_date)
-    query = query.group_by(AmazonPaymentTransaction.transaction_type, AmazonPaymentTransaction.currency).order_by(
+    query = query.group_by(
         AmazonPaymentTransaction.transaction_type,
+        AmazonPaymentTransaction.fulfillment_channel,
+        AmazonPaymentTransaction.currency,
+    ).order_by(
+        AmazonPaymentTransaction.transaction_type,
+        AmazonPaymentTransaction.fulfillment_channel,
         AmazonPaymentTransaction.currency,
     )
     result = await db.execute(query)
@@ -478,6 +486,7 @@ async def amazon_pnl(
             AmazonPnlCategoryRow(
                 category=category,
                 transaction_type=row.transaction_type,
+                fulfillment_channel=row.fulfillment_channel,
                 rows=int(row.rows),
                 units=quantity,
                 product_charges_eur=product_charges_eur,
@@ -659,6 +668,7 @@ async def product_profitability(
         select(
             AmazonPaymentTransaction.product_details,
             AmazonPaymentTransaction.sku,
+            AmazonPaymentTransaction.fulfillment_channel,
             AmazonPaymentTransaction.currency,
             AmazonPaymentTransaction.transaction_type,
             func.count().label("rows"),
@@ -672,6 +682,7 @@ async def product_profitability(
     transaction_query = transaction_query.group_by(
         AmazonPaymentTransaction.product_details,
         AmazonPaymentTransaction.sku,
+        AmazonPaymentTransaction.fulfillment_channel,
         AmazonPaymentTransaction.currency,
         AmazonPaymentTransaction.transaction_type,
     )
@@ -681,12 +692,13 @@ async def product_profitability(
     for row in transaction_rows:
         if not is_order_payment(row.transaction_type):
             continue
-        key = (row.sku or row.product_details, row.currency)
+        key = (row.sku or row.product_details, row.fulfillment_channel, row.currency)
         bucket = by_product.setdefault(
             key,
             {
                 "product_details": row.product_details,
                 "sku": row.sku,
+                "fulfillment_channel": row.fulfillment_channel,
                 "currency": row.currency,
                 "transaction_rows": 0,
                 "units_estimated": 0,
@@ -825,6 +837,7 @@ async def product_profitability(
                 asin=asin,
                 sku=sku,
                 ean=ean,
+                fulfillment_channel=str(bucket["fulfillment_channel"]),
                 currency=str(bucket["currency"]),
                 fx_rate_to_eur=money(get_rate_for_currency(rates, str(bucket["currency"]))),
                 transaction_rows=int(bucket["transaction_rows"]),

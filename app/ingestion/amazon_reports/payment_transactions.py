@@ -205,6 +205,42 @@ def parse_date(value: str | None) -> date:
     raise ValueError(f"Unsupported date value: {value}")
 
 
+def normalize_fulfillment_channel(value: str | None) -> str:
+    normalized = (value or "").strip().casefold()
+    if not normalized:
+        return "UNKNOWN"
+    if normalized in {
+        "amazon",
+        "fba",
+        "fulfillment by amazon",
+        "versand durch amazon",
+        "expédié par amazon",
+        "expedie par amazon",
+        "logística de amazon",
+        "logistica de amazon",
+        "logistica di amazon",
+        "verzonden door amazon",
+        "fraktas av amazon",
+    }:
+        return "FBA"
+    if normalized in {
+        "seller",
+        "merchant",
+        "fbm",
+        "verkäufer",
+        "verkaufer",
+        "vendedor",
+        "vendeur",
+        "venditore",
+        "sprzedawca",
+        "verkoper",
+        "säljare",
+        "saljare",
+    }:
+        return "FBM"
+    return "UNKNOWN"
+
+
 def normalize_localized_month(value: str) -> str:
     parts = value.split()
     if len(parts) < 3:
@@ -241,6 +277,7 @@ def parse_payment_transaction_row(
         "external_transaction_id": row.get(mapping["external_transaction_id"]),
         "sku": row.get(mapping["sku"]) if "sku" in mapping else None,
         "quantity": parse_decimal(row.get(mapping["quantity"])) if "quantity" in mapping else None,
+        "fulfillment_channel": normalize_fulfillment_channel(row.get(mapping["fulfillment_channel"])) if "fulfillment_channel" in mapping else "UNKNOWN",
         "product_details": row.get(mapping["product_details"]),
         "product_charges": parse_decimal(row.get(mapping["product_charges"])),
         "promotional_rebates": parse_decimal(row.get(mapping["promotional_rebates"])) if "promotional_rebates" in mapping else Decimal("0"),

@@ -77,6 +77,7 @@ class AmazonPaymentLineRow(BaseModel):
     external_transaction_id: str | None
     sku: str | None
     quantity: float | None
+    fulfillment_channel: str
     product_details: str | None
     product_charges: float
     promotional_rebates: float
@@ -200,6 +201,7 @@ async def list_amazon_payment_lines(
                 external_transaction_id=row.external_transaction_id,
                 sku=row.sku,
                 quantity=float(row.quantity) if row.quantity is not None else None,
+                fulfillment_channel=row.fulfillment_channel,
                 product_details=row.product_details,
                 product_charges=float(row.product_charges),
                 promotional_rebates=float(row.promotional_rebates),
