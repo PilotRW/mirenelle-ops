@@ -13,6 +13,7 @@ const translations = {
     "action.clear": "Clear",
     "action.edit": "Edit",
     "action.delete": "Delete",
+    "action.manualStockEntry": "Manual stock entry",
     "action.downloadOrders": "Download orders",
     "action.commitManualReport": "Commit manual report",
     "action.syncOaCatalog": "Sync OA catalog",
@@ -186,6 +187,8 @@ const translations = {
     "table.salesCurrency": "Sales currency",
     "table.sku": "SKU",
     "table.sold": "Sold",
+    "table.stockFlow": "Stock flow",
+    "table.stockAlerts": "Stock alerts",
     "table.status": "Status",
     "table.subtotal": "Subtotal",
     "table.total": "Total",
@@ -212,6 +215,7 @@ const translations = {
     "action.clear": "Leeren",
     "action.edit": "Bearbeiten",
     "action.delete": "Löschen",
+    "action.manualStockEntry": "Bestand manuell erfassen",
     "action.downloadOrders": "Bestellungen laden",
     "action.commitManualReport": "Manuellen Report speichern",
     "action.syncOaCatalog": "OA-Katalog synchronisieren",
@@ -385,6 +389,8 @@ const translations = {
     "table.salesCurrency": "Verkaufswährung",
     "table.sku": "SKU",
     "table.sold": "Verkauft",
+    "table.stockFlow": "Bestandsbewegung",
+    "table.stockAlerts": "Bestandssignale",
     "table.status": "Status",
     "table.subtotal": "Zwischensumme",
     "table.total": "Summe",
@@ -411,6 +417,7 @@ const translations = {
     "action.clear": "Очистити",
     "action.edit": "Редагувати",
     "action.delete": "Видалити",
+    "action.manualStockEntry": "Ручний запис залишків",
     "action.downloadOrders": "Завантажити замовлення",
     "action.commitManualReport": "Зберегти ручний звіт",
     "action.syncOaCatalog": "Синхронізувати OA каталог",
@@ -584,6 +591,8 @@ const translations = {
     "table.salesCurrency": "Валюта продажу",
     "table.sku": "SKU",
     "table.sold": "Продано",
+    "table.stockFlow": "Рух залишків",
+    "table.stockAlerts": "Сигнали залишків",
     "table.status": "Статус",
     "table.subtotal": "Сума без ПДВ",
     "table.total": "Разом",
@@ -824,7 +833,7 @@ function updatePageTitle() {
   if (title) title.textContent = t(sectionTitleKey[state.activeSection] || "nav.dashboard");
 }
 
-function showSection(sectionName) {
+function showSection(sectionName, resetScroll = false) {
   if (!document.getElementById(`section-${sectionName}`)) {
     sectionName = "dashboard";
   }
@@ -838,6 +847,9 @@ function showSection(sectionName) {
   });
   updatePageTitle();
   applySearchFilter();
+  if (resetScroll) {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }
 }
 
 function applySearchFilter() {
@@ -1166,32 +1178,58 @@ function inventoryStatusLabel(status) {
   return text(status);
 }
 
-function renderInventoryTotals(summary) {
+const integer = (value) => new Intl.NumberFormat(localeByLanguage[state.language] || "en-US").format(Number(value || 0));
+
+function renderInventoryTotals(summary, rows = []) {
+  const totalPurchased = rows.reduce((sum, row) => sum + Number(row.purchased_quantity || 0), 0);
+  const totalSold = rows.reduce((sum, row) => sum + Number(row.sold_quantity || 0), 0);
+  const totalReserved = rows.reduce((sum, row) => sum + Number(row.quantity_reserved || 0), 0);
+  const totalReorder = rows.reduce((sum, row) => sum + Number(row.reorder_point || 0), 0);
   document.getElementById("inventoryTotals").innerHTML = `
-    <div class="kpi">
-      <span data-i18n="table.product">${t("table.product")}</span>
-      <strong>${summary.products}</strong>
-    </div>
-    <div class="kpi">
-      <span data-i18n="table.onHand">${t("table.onHand")}</span>
-      <strong>${summary.total_on_hand}</strong>
-    </div>
-    <div class="kpi">
-      <span data-i18n="table.available">${t("table.available")}</span>
-      <strong>${summary.total_available}</strong>
-    </div>
-    <div class="kpi">
-      <span data-i18n="table.inbound">${t("table.inbound")}</span>
-      <strong>${summary.total_inbound}</strong>
-    </div>
-    <div class="kpi">
-      <span data-i18n="status.lowStock">${t("status.lowStock")}</span>
-      <strong>${summary.low_stock}</strong>
-    </div>
-    <div class="kpi">
-      <span data-i18n="status.outOfStock">${t("status.outOfStock")}</span>
-      <strong>${summary.out_of_stock}</strong>
-    </div>
+    <article class="metricTile">
+      <div class="metricHead">
+        <strong>${t("section.inventory")}</strong>
+        <span>${t("table.onHand")}</span>
+      </div>
+      <div class="metricBody">
+        <div class="wideMetric"><span>${t("table.onHand")}</span><strong>${integer(summary.total_on_hand)}</strong></div>
+        <div><span>${t("table.available")}</span><strong>${integer(summary.total_available)}</strong></div>
+        <div><span>${t("table.product")}</span><strong>${integer(summary.products)}</strong></div>
+      </div>
+    </article>
+    <article class="metricTile">
+      <div class="metricHead">
+        <strong>${t("table.stockFlow")}</strong>
+        <span>${t("table.purchased")} / ${t("table.sold")}</span>
+      </div>
+      <div class="metricBody">
+        <div class="wideMetric"><span>${t("table.purchased")}</span><strong>${integer(totalPurchased)}</strong></div>
+        <div><span>${t("table.sold")}</span><strong>${integer(totalSold)}</strong></div>
+        <div><span>${t("table.reserved")}</span><strong>${integer(totalReserved)}</strong></div>
+      </div>
+    </article>
+    <article class="metricTile">
+      <div class="metricHead">
+        <strong>${t("table.inbound")}</strong>
+        <span>${t("table.reorderPoint")}</span>
+      </div>
+      <div class="metricBody">
+        <div class="wideMetric"><span>${t("table.inbound")}</span><strong>${integer(summary.total_inbound)}</strong></div>
+        <div><span>${t("table.reorderPoint")}</span><strong>${integer(totalReorder)}</strong></div>
+        <div><span>${t("table.available")}</span><strong>${integer(summary.total_available)}</strong></div>
+      </div>
+    </article>
+    <article class="metricTile">
+      <div class="metricHead">
+        <strong>${t("table.stockAlerts")}</strong>
+        <span>${t("table.status")}</span>
+      </div>
+      <div class="metricBody">
+        <div class="wideMetric"><span>${t("status.lowStock")}</span><strong>${integer(summary.low_stock)}</strong></div>
+        <div><span>${t("status.outOfStock")}</span><strong>${integer(summary.out_of_stock)}</strong></div>
+        <div><span>${t("status.healthy")}</span><strong>${integer(Math.max(Number(summary.products || 0) - Number(summary.low_stock || 0) - Number(summary.out_of_stock || 0), 0))}</strong></div>
+      </div>
+    </article>
   `;
 }
 
@@ -1201,21 +1239,21 @@ async function loadInventory() {
     requestJson("/inventory/items"),
   ]);
   state.inventoryRows = items.rows;
-  renderInventoryTotals(summary);
+  renderInventoryTotals(summary, items.rows);
   renderRows("inventoryRows", items.rows, (row) => `
     <tr>
-      <td><span class="statusPill ${row.status}">${inventoryStatusLabel(row.status)}</span></td>
-      <td>${text(row.product_name)}</td>
+      <td class="productNameCell" title="${escapeHtml(text(row.product_name))}"><span>${text(row.product_name)}</span></td>
       <td>${renderIdentifiers(row)}</td>
       <td>${text(row.marketplace)}</td>
       <td>${text(row.fulfillment_channel)}</td>
-      <td class="num">${row.purchased_quantity}</td>
-      <td class="num">${row.sold_quantity}</td>
-      <td class="num">${row.quantity_on_hand}</td>
-      <td class="num">${row.quantity_available}</td>
-      <td class="num">${row.quantity_reserved}</td>
-      <td class="num">${row.quantity_inbound}</td>
-      <td class="num">${row.reorder_point}</td>
+      <td class="num">${integer(row.purchased_quantity)}</td>
+      <td class="num">${integer(row.sold_quantity)}</td>
+      <td class="num">${integer(row.quantity_on_hand)}</td>
+      <td class="num">${integer(row.quantity_available)}</td>
+      <td class="num">${integer(row.quantity_reserved)}</td>
+      <td class="num">${integer(row.quantity_inbound)}</td>
+      <td class="num">${integer(row.reorder_point)}</td>
+      <td><span class="statusPill ${row.status}">${inventoryStatusLabel(row.status)}</span></td>
       <td>${new Date(row.updated_at).toLocaleString(localeByLanguage[state.language] || "en-US")}</td>
       <td>
         <button type="button" class="compactButton" data-edit-inventory="${row.id}">${t("action.edit")}</button>
@@ -1920,6 +1958,15 @@ function clearInventoryForm() {
   document.getElementById("inventoryNotes").value = "";
 }
 
+function showInventoryForm() {
+  document.getElementById("inventoryForm").classList.remove("hidden");
+  document.getElementById("inventorySku").focus();
+}
+
+function hideInventoryForm() {
+  document.getElementById("inventoryForm").classList.add("hidden");
+}
+
 document.getElementById("inventoryForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const button = event.currentTarget.querySelector('button[type="submit"]');
@@ -1946,6 +1993,7 @@ document.getElementById("inventoryForm").addEventListener("submit", async (event
       body: JSON.stringify(payload),
     });
     clearInventoryForm();
+    hideInventoryForm();
     await loadInventory();
     setStatus("inventoryStatus", "status.saved", false, true);
   } catch (error) {
@@ -1955,7 +2003,15 @@ document.getElementById("inventoryForm").addEventListener("submit", async (event
   }
 });
 
-document.getElementById("clearInventoryButton").addEventListener("click", clearInventoryForm);
+document.getElementById("addInventoryButton").addEventListener("click", () => {
+  clearInventoryForm();
+  showInventoryForm();
+});
+
+document.getElementById("clearInventoryButton").addEventListener("click", () => {
+  clearInventoryForm();
+  hideInventoryForm();
+});
 
 document.getElementById("syncInventoryButton").addEventListener("click", async () => {
   const button = document.getElementById("syncInventoryButton");
@@ -1989,7 +2045,7 @@ document.getElementById("inventoryRows").addEventListener("click", async (event)
     document.getElementById("inventoryInbound").value = row.quantity_inbound;
     document.getElementById("inventoryReorderPoint").value = row.reorder_point;
     document.getElementById("inventoryNotes").value = row.notes || "";
-    document.getElementById("inventorySku").focus();
+    showInventoryForm();
     return;
   }
 
@@ -2469,7 +2525,7 @@ document.getElementById("refreshReportsButton")?.addEventListener("click", (even
 });
 
 document.querySelectorAll(".navItem").forEach((button) => {
-  button.addEventListener("click", () => showSection(button.dataset.sectionTarget));
+  button.addEventListener("click", () => showSection(button.dataset.sectionTarget, true));
 });
 
 document.getElementById("sidebarToggle").addEventListener("click", () => {
@@ -2534,5 +2590,5 @@ document.getElementById("languageSelect").value = state.language;
 syncPeriodControls();
 persistPeriod();
 applyTranslations();
-showSection(state.activeSection);
+showSection(state.activeSection, true);
 refreshAll().catch((error) => setStatus("cashflowStatus", error.message, true));

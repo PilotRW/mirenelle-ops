@@ -311,6 +311,10 @@ button:disabled {
   padding: 14px;
 }
 
+#section-inventory .panel {
+  padding: 14px;
+}
+
 .subPanel {
   margin-top: 18px;
   padding-top: 18px;
@@ -349,7 +353,7 @@ button:disabled {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 .splitPanel {
@@ -491,7 +495,7 @@ button:disabled {
   gap: 10px;
   align-items: center;
   justify-content: flex-start;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .paymentForm,
@@ -513,6 +517,9 @@ button:disabled {
 
 .inventoryForm {
   grid-template-columns: repeat(6, minmax(130px, 1fr)) auto auto;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: #fbfcfd;
 }
 
 .mappingEditForm {
@@ -586,8 +593,27 @@ select {
 }
 
 .inventoryTable {
-  max-height: min(640px, calc(100vh - 390px));
+  max-height: min(680px, calc(100vh - 330px));
   overflow: auto;
+}
+
+.inventoryMetricGrid {
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  margin-bottom: 10px;
+}
+
+.inventoryMetricGrid .metricTile {
+  min-height: 0;
+}
+
+.inventoryTable table {
+  min-width: 1280px;
+}
+
+#section-inventory .inventoryTable th,
+#section-inventory .inventoryTable td {
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 
 #manualInvoiceLines tr {

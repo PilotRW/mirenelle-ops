@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260611-02" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260611-03" />
   </head>
   <body>
     <div class="appShell">
@@ -590,11 +590,12 @@
                 <h2 data-i18n="section.inventory">Inventory</h2>
                 <span id="inventoryStatus" class="status" data-status-key="status.ready">Ready</span>
               </div>
-              <div id="inventoryTotals" class="kpis"></div>
+              <div id="inventoryTotals" class="metricGrid inventoryMetricGrid"></div>
               <div class="toolbarRow">
+                <button id="addInventoryButton" class="secondaryButton" type="button" data-i18n="action.manualStockEntry">Manual stock entry</button>
                 <button id="syncInventoryButton" type="button" data-i18n="action.syncInventory">Sync stock</button>
               </div>
-              <form id="inventoryForm" class="formRow inventoryForm">
+              <form id="inventoryForm" class="formRow inventoryForm hidden">
                 <input id="inventoryItemId" type="hidden" />
                 <label>
                   <span data-i18n="table.sku">SKU</span>
@@ -664,18 +665,18 @@
                 <table>
                   <thead>
                     <tr>
-                      <th data-i18n="table.status">Status</th>
                       <th data-i18n="table.product">Product</th>
                       <th data-i18n="table.identifiers">ASIN / SKU / EAN</th>
                       <th data-i18n="field.marketplace">Marketplace</th>
                       <th data-i18n="field.fulfillment">Fulfillment</th>
                       <th class="num" data-i18n="table.purchased">Purchased</th>
                       <th class="num" data-i18n="table.sold">Sold</th>
-                      <th data-i18n="table.onHand">On hand</th>
-                      <th data-i18n="table.available">Available</th>
-                      <th data-i18n="table.reserved">Reserved</th>
-                      <th data-i18n="table.inbound">Inbound</th>
-                      <th data-i18n="table.reorderPoint">Reorder point</th>
+                      <th class="num" data-i18n="table.onHand">On hand</th>
+                      <th class="num" data-i18n="table.available">Available</th>
+                      <th class="num" data-i18n="table.reserved">Reserved</th>
+                      <th class="num" data-i18n="table.inbound">Inbound</th>
+                      <th class="num" data-i18n="table.reorderPoint">Reorder point</th>
+                      <th data-i18n="table.status">Status</th>
                       <th data-i18n="table.lastSync">Last sync</th>
                       <th data-i18n="table.action">Action</th>
                     </tr>
@@ -883,6 +884,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260611-02"></script>
+    <script src="/ui/app.js?v=20260611-03"></script>
   </body>
 </html>
