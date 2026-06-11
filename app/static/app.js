@@ -1660,28 +1660,15 @@ function renderDashboardCards(data) {
         <strong>${t("section.productProfitability")}</strong>
         <span>${t("table.netProfit")}</span>
       </div>
-      <div class="metricBody">
+      <div class="metricBody metricBodyDense">
         <div class="wideMetric"><span>${t("table.netProfit")}</span><strong id="dashboardNetProfit">-</strong></div>
         <div><span>${t("table.grossProfit")}</span><strong id="dashboardGrossProfit">-</strong></div>
-        <div><span>${t("table.revenueEur")}</span><strong id="dashboardProfitRevenue">-</strong></div>
         <div><span>${t("table.refunds")}</span><strong id="dashboardRefunds">-</strong></div>
         <div><span>${t("table.amazonFees")}</span><strong id="dashboardAmazonFees">-</strong></div>
         <div><span>${t("table.netMargin")}</span><strong id="dashboardNetMargin">-</strong></div>
         <div><span>${t("table.netRoi")}</span><strong id="dashboardNetRoi">-</strong></div>
         <div><span>${t("table.costCoverage")}</span><strong id="dashboardCoverage">-</strong></div>
-      </div>
-    </article>
-    <article class="metricTile">
-      <div class="metricHead">
-        <strong>${t("section.productProfitability")}</strong>
-        <span>${t("table.status")}</span>
-      </div>
-      <div class="metricBody">
-        <div class="wideMetric"><span>${t("status.profitable")}</span><strong id="dashboardProfitableProducts">-</strong></div>
-        <div><span>${t("status.loss")}</span><strong id="dashboardLossProducts">-</strong></div>
-        <div><span>${t("status.breakeven")}</span><strong id="dashboardBreakevenProducts">-</strong></div>
-        <div><span>${t("table.unitsSold")}</span><strong id="dashboardUnitsSold">-</strong></div>
-        <div><span>${t("table.unitsRefunded")}</span><strong id="dashboardUnitsRefunded">-</strong></div>
+        <div><span>${t("status.profitable")}</span><strong id="dashboardProfitableProducts">-</strong></div>
       </div>
     </article>
   `;
@@ -1694,34 +1681,20 @@ function updateDashboardProfit() {
   if (!summary) return;
   const netProfit = document.getElementById("dashboardNetProfit");
   const grossProfit = document.getElementById("dashboardGrossProfit");
-  const revenue = document.getElementById("dashboardProfitRevenue");
   const refunds = document.getElementById("dashboardRefunds");
   const amazonFees = document.getElementById("dashboardAmazonFees");
-  const margin = document.getElementById("dashboardMargin");
-  const roi = document.getElementById("dashboardRoi");
   const netMargin = document.getElementById("dashboardNetMargin");
   const netRoi = document.getElementById("dashboardNetRoi");
   const coverage = document.getElementById("dashboardCoverage");
-  const unitsSold = document.getElementById("dashboardUnitsSold");
-  const unitsRefunded = document.getElementById("dashboardUnitsRefunded");
   const profitableProducts = document.getElementById("dashboardProfitableProducts");
-  const lossProducts = document.getElementById("dashboardLossProducts");
-  const breakevenProducts = document.getElementById("dashboardBreakevenProducts");
   if (netProfit) netProfit.textContent = money(summary.net_profit_eur, "EUR");
   if (grossProfit) grossProfit.textContent = money(summary.gross_profit_eur, "EUR");
-  if (revenue) revenue.textContent = money(summary.revenue_eur, "EUR");
   if (refunds) refunds.textContent = money(summary.refunds_eur, "EUR");
   if (amazonFees) amazonFees.textContent = money(summary.amazon_fees_eur + summary.other_amount_eur, "EUR");
-  if (margin) margin.textContent = summary.margin_percent === null ? "-" : `${summary.margin_percent}%`;
-  if (roi) roi.textContent = summary.roi_percent === null ? "-" : `${summary.roi_percent}%`;
   if (netMargin) netMargin.textContent = summary.net_margin_percent === null ? "-" : `${summary.net_margin_percent}%`;
   if (netRoi) netRoi.textContent = summary.net_roi_percent === null ? "-" : `${summary.net_roi_percent}%`;
   if (coverage) coverage.textContent = `${summary.matched_products}/${summary.products}`;
-  if (unitsSold) unitsSold.textContent = summary.units_estimated;
-  if (unitsRefunded) unitsRefunded.textContent = summary.units_refunded;
   if (profitableProducts) profitableProducts.textContent = summary.profitable_products;
-  if (lossProducts) lossProducts.textContent = summary.loss_products;
-  if (breakevenProducts) breakevenProducts.textContent = summary.breakeven_products;
 }
 
 async function loadProfitability() {
@@ -1785,7 +1758,7 @@ async function loadProfitability() {
   `;
   const renderProfitRow = (row) => `
     <tr>
-      <td>${text(row.product_details)}</td>
+      <td class="productNameCell" title="${escapeHtml(text(row.product_details))}"><span>${text(row.product_details)}</span></td>
       <td>${renderIdentifiers(row)}</td>
       <td>${text(row.fulfillment_channel)}</td>
       <td>${row.currency}</td>

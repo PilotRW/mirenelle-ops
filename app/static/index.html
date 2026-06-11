@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260605-03" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260611-02" />
   </head>
   <body>
     <div class="appShell">
@@ -91,6 +91,43 @@
         <main class="workspace">
           <section id="section-dashboard" class="pageSection active">
             <div id="dashboardCards" class="metricGrid"></div>
+            <div class="splitPanel">
+              <section class="panel">
+                <div class="sectionHeader">
+                  <h2 data-i18n="section.productProfitability">Product Profitability</h2>
+                  <span id="profitStatus" class="status" data-status-key="status.loaded">Loaded</span>
+                </div>
+                <div id="profitTotals" class="kpis"></div>
+                <div class="tableWrap profitabilityTable">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th data-i18n="table.product">Product</th>
+                        <th data-i18n="table.identifiers">ASIN / SKU / EAN</th>
+                        <th data-i18n="field.fulfillment">Fulfillment</th>
+                        <th data-i18n="table.salesCurrency">Sales currency</th>
+                        <th class="num" data-i18n="table.fxToEur">FX to EUR</th>
+                        <th class="num" data-i18n="table.units">Units</th>
+                        <th class="num" data-i18n="table.revenueEur">Revenue EUR</th>
+                        <th class="num" data-i18n="table.avgSellingPrice">Avg selling price</th>
+                        <th class="num" data-i18n="table.costEur">Cost EUR</th>
+                        <th class="num" data-i18n="table.cogsEur">COGS EUR</th>
+                        <th class="num" data-i18n="table.refunds">Refunds</th>
+                        <th class="num" data-i18n="table.amazonFees">Amazon fees</th>
+                        <th class="num" data-i18n="table.grossProfit">Gross Profit</th>
+                        <th class="num" data-i18n="table.margin">Margin</th>
+                        <th class="num" data-i18n="table.roi">ROI</th>
+                        <th class="num" data-i18n="table.netProfit">Net profit</th>
+                        <th class="num" data-i18n="table.netMargin">Net margin</th>
+                        <th class="num" data-i18n="table.netRoi">Net ROI</th>
+                        <th data-i18n="table.status">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="profitRows"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
             <div class="splitPanel dashboardOps">
               <section class="panel">
                 <div class="sectionHeader">
@@ -135,43 +172,6 @@
                       </tr>
                     </thead>
                     <tbody id="missingCostRows"></tbody>
-                  </table>
-                </div>
-              </section>
-            </div>
-            <div class="splitPanel">
-              <section class="panel">
-                <div class="sectionHeader">
-                  <h2 data-i18n="section.productProfitability">Product Profitability</h2>
-                  <span id="profitStatus" class="status" data-status-key="status.loaded">Loaded</span>
-                </div>
-                <div id="profitTotals" class="kpis"></div>
-                <div class="tableWrap profitabilityTable">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th data-i18n="table.product">Product</th>
-                        <th data-i18n="table.identifiers">ASIN / SKU / EAN</th>
-                        <th data-i18n="field.fulfillment">Fulfillment</th>
-                        <th data-i18n="table.salesCurrency">Sales currency</th>
-                        <th class="num" data-i18n="table.fxToEur">FX to EUR</th>
-                        <th class="num" data-i18n="table.units">Units</th>
-                        <th class="num" data-i18n="table.revenueEur">Revenue EUR</th>
-                        <th class="num" data-i18n="table.avgSellingPrice">Avg selling price</th>
-                        <th class="num" data-i18n="table.costEur">Cost EUR</th>
-                        <th class="num" data-i18n="table.cogsEur">COGS EUR</th>
-                        <th class="num" data-i18n="table.refunds">Refunds</th>
-                        <th class="num" data-i18n="table.amazonFees">Amazon fees</th>
-                        <th class="num" data-i18n="table.grossProfit">Gross Profit</th>
-                        <th class="num" data-i18n="table.margin">Margin</th>
-                        <th class="num" data-i18n="table.roi">ROI</th>
-                        <th class="num" data-i18n="table.netProfit">Net profit</th>
-                        <th class="num" data-i18n="table.netMargin">Net margin</th>
-                        <th class="num" data-i18n="table.netRoi">Net ROI</th>
-                        <th data-i18n="table.status">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody id="profitRows"></tbody>
                   </table>
                 </div>
               </section>
@@ -883,6 +883,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260611-01"></script>
+    <script src="/ui/app.js?v=20260611-02"></script>
   </body>
 </html>
