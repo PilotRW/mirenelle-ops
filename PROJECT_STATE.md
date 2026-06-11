@@ -149,6 +149,11 @@ Completed:
   `createReport` is spaced at least 65 seconds apart across the whole sync run,
   and retryable Amazon responses are retried with backoff and `Retry-After`
   support.
+- Dashboard and Product Profitability now include sellerboard-style operating
+  metrics from existing data: sales, orders/units, refunds, Amazon fees,
+  gross profit, net profit, margins, ROI, and product status counts. Ads, BSR,
+  and forecast remain future integrations because current inputs do not provide
+  those values.
 
 Current verified inventory examples:
 

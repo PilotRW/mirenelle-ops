@@ -303,3 +303,22 @@ This makes EU-wide sync intentionally slow but safer for API quotas.
 
 Manual All Orders report upload remains available on the same page as a
 fallback/debug path.
+
+## Dashboard Metrics
+
+The dashboard and product profitability report calculate sellerboard-style
+metrics from the currently available inputs:
+
+- sales;
+- orders / units;
+- refunds;
+- Amazon fees and other payment fees;
+- COGS from purchase invoices/product costs;
+- gross profit;
+- net profit;
+- margin and ROI;
+- profitable/loss/breakeven product counts.
+
+Ads, BSR, and forecast metrics are intentionally not mocked. They require PPC,
+Keepa/catalog, or forecasting inputs and should be added as separate data
+sources.

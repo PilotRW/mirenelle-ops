@@ -128,6 +128,7 @@ const translations = {
     "status.uploading": "Uploading",
     "table.action": "Action",
     "table.amazonProduct": "Amazon product",
+    "table.amazonFees": "Amazon fees",
     "table.avgSellingPrice": "Avg selling price",
     "table.amazonOperatingResult": "Amazon operating result",
     "table.cogsEur": "COGS EUR",
@@ -137,6 +138,7 @@ const translations = {
     "table.costEur": "Cost EUR",
     "table.date": "Date",
     "table.effective": "Effective",
+    "table.estPayout": "Est. payout",
     "table.expenseCategory": "Expense category",
     "table.fees": "Fees",
     "table.file": "File",
@@ -160,6 +162,9 @@ const translations = {
     "table.matchedRoi": "Matched ROI",
     "table.month": "Month",
     "table.name": "Name",
+    "table.netMargin": "Net margin",
+    "table.netProfit": "Net profit",
+    "table.netRoi": "Net ROI",
     "table.other": "Other",
     "table.onHand": "On hand",
     "table.paymentRows": "Payment rows",
@@ -176,6 +181,8 @@ const translations = {
     "table.revenue": "Revenue",
     "table.roi": "ROI",
     "table.rows": "Rows",
+    "table.ordersUnits": "Orders / Units",
+    "table.sales": "Sales",
     "table.salesCurrency": "Sales currency",
     "table.sku": "SKU",
     "table.sold": "Sold",
@@ -320,6 +327,7 @@ const translations = {
     "status.uploading": "Lädt hoch",
     "table.action": "Aktion",
     "table.amazonProduct": "Amazon-Produkt",
+    "table.amazonFees": "Amazon-Gebühren",
     "table.avgSellingPrice": "Ø Verkaufspreis",
     "table.amazonOperatingResult": "Amazon-Betriebsergebnis",
     "table.cogsEur": "Wareneinsatz EUR",
@@ -329,6 +337,7 @@ const translations = {
     "table.costEur": "Kosten EUR",
     "table.date": "Datum",
     "table.effective": "Gültig",
+    "table.estPayout": "Geschätzte Auszahlung",
     "table.expenseCategory": "Ausgabenkategorie",
     "table.fees": "Gebühren",
     "table.file": "Datei",
@@ -352,6 +361,9 @@ const translations = {
     "table.matchedRoi": "Zugeordneter ROI",
     "table.month": "Monat",
     "table.name": "Name",
+    "table.netMargin": "Nettomarge",
+    "table.netProfit": "Nettogewinn",
+    "table.netRoi": "Netto-ROI",
     "table.other": "Sonstiges",
     "table.onHand": "Auf Lager",
     "table.paymentRows": "Zahlungszeilen",
@@ -368,6 +380,8 @@ const translations = {
     "table.revenue": "Umsatz",
     "table.roi": "ROI",
     "table.rows": "Zeilen",
+    "table.ordersUnits": "Bestellungen / Einheiten",
+    "table.sales": "Umsatz",
     "table.salesCurrency": "Verkaufswährung",
     "table.sku": "SKU",
     "table.sold": "Verkauft",
@@ -512,6 +526,7 @@ const translations = {
     "status.uploading": "Завантаження",
     "table.action": "Дія",
     "table.amazonProduct": "Amazon товар",
+    "table.amazonFees": "Amazon комісії",
     "table.avgSellingPrice": "Сер. ціна продажу",
     "table.amazonOperatingResult": "Операційний результат Amazon",
     "table.cogsEur": "COGS EUR",
@@ -521,6 +536,7 @@ const translations = {
     "table.costEur": "Ціна EUR",
     "table.date": "Дата",
     "table.effective": "Діє з",
+    "table.estPayout": "Очік. виплата",
     "table.expenseCategory": "Категорія витрат",
     "table.fees": "Комісії",
     "table.file": "Файл",
@@ -544,6 +560,9 @@ const translations = {
     "table.matchedRoi": "ROI зіставлених",
     "table.month": "Місяць",
     "table.name": "Назва",
+    "table.netMargin": "Чиста маржа",
+    "table.netProfit": "Чистий прибуток",
+    "table.netRoi": "Чистий ROI",
     "table.other": "Інше",
     "table.onHand": "На складі",
     "table.paymentRows": "Рядки платежів",
@@ -560,6 +579,8 @@ const translations = {
     "table.revenue": "Дохід",
     "table.roi": "ROI",
     "table.rows": "Рядки",
+    "table.ordersUnits": "Замовлення / одиниці",
+    "table.sales": "Продажі",
     "table.salesCurrency": "Валюта продажу",
     "table.sku": "SKU",
     "table.sold": "Продано",
@@ -1483,6 +1504,7 @@ async function loadAmazonPnl() {
   const data = await requestJson(`/reports/amazon-pnl${reportQueryParams()}`);
   const summary = data.summary;
   state.amazonPnlSummary = summary;
+  updateDashboardPnl();
   const target = document.getElementById("amazonPnlTotals");
   if (target) {
     target.innerHTML = `
@@ -1525,6 +1547,19 @@ async function loadAmazonPnl() {
       <td class="num">${money(row.total_amount_eur, "EUR")}</td>
     </tr>
   `);
+}
+
+function updateDashboardPnl() {
+  const summary = state.amazonPnlSummary;
+  if (!summary) return;
+  const sales = document.getElementById("dashboardSales");
+  const ordersUnits = document.getElementById("dashboardOrdersUnits");
+  const refunds = document.getElementById("dashboardPnlRefunds");
+  const estimatedPayout = document.getElementById("dashboardEstimatedPayout");
+  if (sales) sales.textContent = money(summary.gross_sales_eur, "EUR");
+  if (ordersUnits) ordersUnits.textContent = `${summary.order_rows} / ${summary.units_sold}`;
+  if (refunds) refunds.textContent = `${summary.units_refunded} (${money(summary.refunds_eur, "EUR")})`;
+  if (estimatedPayout) estimatedPayout.textContent = money(summary.amazon_operating_result_eur, "EUR");
 }
 
 async function loadDataQuality() {
@@ -1576,13 +1611,15 @@ function renderDashboardCards(data) {
   cards.innerHTML = `
     <article class="metricTile">
       <div class="metricHead">
-        <strong>${t("section.generalCashflow")}</strong>
-        <span>${t("table.generalTotalEur")}</span>
+        <strong>${t("section.amazonPnl")}</strong>
+        <span>${t("table.sales")}</span>
       </div>
       <div class="metricBody">
-        <div class="wideMetric"><span>${t("table.totalEur")}</span><strong>${money(general.total_amount_eur, "EUR")}</strong></div>
-        <div><span>${t("table.rows")}</span><strong>${general.rows}</strong></div>
+        <div class="wideMetric"><span>${t("table.sales")}</span><strong id="dashboardSales">${money(totalProduct, "EUR")}</strong></div>
+        <div><span>${t("table.ordersUnits")}</span><strong id="dashboardOrdersUnits">${general.rows} / -</strong></div>
+        <div><span>${t("table.refunds")}</span><strong id="dashboardPnlRefunds">-</strong></div>
         <div><span>${t("table.fees")}</span><strong>${money(totalFees, "EUR")}</strong></div>
+        <div><span>${t("table.estPayout")}</span><strong id="dashboardEstimatedPayout">${money(general.total_amount_eur, "EUR")}</strong></div>
       </div>
     </article>
     <article class="metricTile">
@@ -1621,13 +1658,30 @@ function renderDashboardCards(data) {
     <article class="metricTile">
       <div class="metricHead">
         <strong>${t("section.productProfitability")}</strong>
-        <span>${t("table.matchedGrossProfit")}</span>
+        <span>${t("table.netProfit")}</span>
       </div>
       <div class="metricBody">
-        <div class="wideMetric"><span>${t("table.grossProfit")}</span><strong id="dashboardGrossProfit">-</strong></div>
-        <div><span>${t("table.margin")}</span><strong id="dashboardMargin">-</strong></div>
-        <div><span>${t("table.roi")}</span><strong id="dashboardRoi">-</strong></div>
+        <div class="wideMetric"><span>${t("table.netProfit")}</span><strong id="dashboardNetProfit">-</strong></div>
+        <div><span>${t("table.grossProfit")}</span><strong id="dashboardGrossProfit">-</strong></div>
+        <div><span>${t("table.revenueEur")}</span><strong id="dashboardProfitRevenue">-</strong></div>
+        <div><span>${t("table.refunds")}</span><strong id="dashboardRefunds">-</strong></div>
+        <div><span>${t("table.amazonFees")}</span><strong id="dashboardAmazonFees">-</strong></div>
+        <div><span>${t("table.netMargin")}</span><strong id="dashboardNetMargin">-</strong></div>
+        <div><span>${t("table.netRoi")}</span><strong id="dashboardNetRoi">-</strong></div>
         <div><span>${t("table.costCoverage")}</span><strong id="dashboardCoverage">-</strong></div>
+      </div>
+    </article>
+    <article class="metricTile">
+      <div class="metricHead">
+        <strong>${t("section.productProfitability")}</strong>
+        <span>${t("table.status")}</span>
+      </div>
+      <div class="metricBody">
+        <div class="wideMetric"><span>${t("status.profitable")}</span><strong id="dashboardProfitableProducts">-</strong></div>
+        <div><span>${t("status.loss")}</span><strong id="dashboardLossProducts">-</strong></div>
+        <div><span>${t("status.breakeven")}</span><strong id="dashboardBreakevenProducts">-</strong></div>
+        <div><span>${t("table.unitsSold")}</span><strong id="dashboardUnitsSold">-</strong></div>
+        <div><span>${t("table.unitsRefunded")}</span><strong id="dashboardUnitsRefunded">-</strong></div>
       </div>
     </article>
   `;
@@ -1638,14 +1692,36 @@ function renderDashboardCards(data) {
 function updateDashboardProfit() {
   const summary = state.profitSummary;
   if (!summary) return;
+  const netProfit = document.getElementById("dashboardNetProfit");
   const grossProfit = document.getElementById("dashboardGrossProfit");
+  const revenue = document.getElementById("dashboardProfitRevenue");
+  const refunds = document.getElementById("dashboardRefunds");
+  const amazonFees = document.getElementById("dashboardAmazonFees");
   const margin = document.getElementById("dashboardMargin");
   const roi = document.getElementById("dashboardRoi");
+  const netMargin = document.getElementById("dashboardNetMargin");
+  const netRoi = document.getElementById("dashboardNetRoi");
   const coverage = document.getElementById("dashboardCoverage");
+  const unitsSold = document.getElementById("dashboardUnitsSold");
+  const unitsRefunded = document.getElementById("dashboardUnitsRefunded");
+  const profitableProducts = document.getElementById("dashboardProfitableProducts");
+  const lossProducts = document.getElementById("dashboardLossProducts");
+  const breakevenProducts = document.getElementById("dashboardBreakevenProducts");
+  if (netProfit) netProfit.textContent = money(summary.net_profit_eur, "EUR");
   if (grossProfit) grossProfit.textContent = money(summary.gross_profit_eur, "EUR");
+  if (revenue) revenue.textContent = money(summary.revenue_eur, "EUR");
+  if (refunds) refunds.textContent = money(summary.refunds_eur, "EUR");
+  if (amazonFees) amazonFees.textContent = money(summary.amazon_fees_eur + summary.other_amount_eur, "EUR");
   if (margin) margin.textContent = summary.margin_percent === null ? "-" : `${summary.margin_percent}%`;
   if (roi) roi.textContent = summary.roi_percent === null ? "-" : `${summary.roi_percent}%`;
+  if (netMargin) netMargin.textContent = summary.net_margin_percent === null ? "-" : `${summary.net_margin_percent}%`;
+  if (netRoi) netRoi.textContent = summary.net_roi_percent === null ? "-" : `${summary.net_roi_percent}%`;
   if (coverage) coverage.textContent = `${summary.matched_products}/${summary.products}`;
+  if (unitsSold) unitsSold.textContent = summary.units_estimated;
+  if (unitsRefunded) unitsRefunded.textContent = summary.units_refunded;
+  if (profitableProducts) profitableProducts.textContent = summary.profitable_products;
+  if (lossProducts) lossProducts.textContent = summary.loss_products;
+  if (breakevenProducts) breakevenProducts.textContent = summary.breakeven_products;
 }
 
 async function loadProfitability() {
@@ -1655,8 +1731,20 @@ async function loadProfitability() {
   updateDashboardProfit();
   document.getElementById("profitTotals").innerHTML = `
     <div class="kpi">
+      <span>${t("table.netProfit")}</span>
+      <strong>${money(summary.net_profit_eur, "EUR")}</strong>
+    </div>
+    <div class="kpi">
       <span>${t("table.matchedGrossProfit")}</span>
       <strong>${money(summary.gross_profit_eur, "EUR")}</strong>
+    </div>
+    <div class="kpi">
+      <span>${t("table.refunds")}</span>
+      <strong>${money(summary.refunds_eur, "EUR")}</strong>
+    </div>
+    <div class="kpi">
+      <span>${t("table.amazonFees")}</span>
+      <strong>${money(summary.amazon_fees_eur + summary.other_amount_eur, "EUR")}</strong>
     </div>
     <div class="kpi">
       <span>${t("table.matchedCogs")}</span>
@@ -1669,6 +1757,14 @@ async function loadProfitability() {
     <div class="kpi">
       <span>${t("table.matchedRoi")}</span>
       <strong>${summary.roi_percent === null ? "-" : `${summary.roi_percent}%`}</strong>
+    </div>
+    <div class="kpi">
+      <span>${t("table.netMargin")}</span>
+      <strong>${summary.net_margin_percent === null ? "-" : `${summary.net_margin_percent}%`}</strong>
+    </div>
+    <div class="kpi">
+      <span>${t("table.netRoi")}</span>
+      <strong>${summary.net_roi_percent === null ? "-" : `${summary.net_roi_percent}%`}</strong>
     </div>
     <div class="kpi">
       <span>${t("table.costCoverage")}</span>
@@ -1699,9 +1795,14 @@ async function loadProfitability() {
       <td class="num">${row.average_selling_price_eur === null ? "-" : money(row.average_selling_price_eur, "EUR")}</td>
       <td class="num">${row.purchase_cost_eur === null ? "-" : money(row.purchase_cost_eur, "EUR")}</td>
       <td class="num">${row.cogs_eur === null ? "-" : money(row.cogs_eur, "EUR")}</td>
+      <td class="num">${money(row.refunds_eur, "EUR")}</td>
+      <td class="num">${money(row.amazon_fees_eur + row.other_amount_eur, "EUR")}</td>
       <td class="num">${row.gross_profit_eur === null ? "-" : money(row.gross_profit_eur, "EUR")}</td>
       <td class="num">${row.margin_percent === null ? "-" : `${row.margin_percent}%`}</td>
       <td class="num">${row.roi_percent === null ? "-" : `${row.roi_percent}%`}</td>
+      <td class="num">${row.net_profit_eur === null ? "-" : money(row.net_profit_eur, "EUR")}</td>
+      <td class="num">${row.net_margin_percent === null ? "-" : `${row.net_margin_percent}%`}</td>
+      <td class="num">${row.net_roi_percent === null ? "-" : `${row.net_roi_percent}%`}</td>
       <td>${row.cost_match_status === "matched" ? profitabilityStatusLabel(row.profitability_status) : costMatchStatusLabel(row.cost_match_status)}</td>
     </tr>
   `;

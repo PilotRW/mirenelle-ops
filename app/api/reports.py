@@ -158,14 +158,22 @@ class ProductProfitabilityRow(BaseModel):
     fx_rate_to_eur: float
     transaction_rows: int
     units_estimated: int
+    units_refunded: int
     revenue_original: float
     revenue_eur: float
+    refunds_eur: float
+    promotional_rebates_eur: float
+    amazon_fees_eur: float
+    other_amount_eur: float
     average_selling_price_eur: float | None
     purchase_cost_eur: float | None
     cogs_eur: float | None
     gross_profit_eur: float | None
+    net_profit_eur: float | None
     margin_percent: float | None
     roi_percent: float | None
+    net_margin_percent: float | None
+    net_roi_percent: float | None
     profitability_status: str
     cost_match_status: str
 
@@ -217,11 +225,19 @@ class ProductProfitabilitySummary(BaseModel):
     matched_products: int
     missing_cost_products: int
     units_estimated: int
+    units_refunded: int
     revenue_eur: float
+    refunds_eur: float
+    promotional_rebates_eur: float
+    amazon_fees_eur: float
+    other_amount_eur: float
     cogs_eur: float
     gross_profit_eur: float
+    net_profit_eur: float
     margin_percent: float | None
     roi_percent: float | None
+    net_margin_percent: float | None
+    net_roi_percent: float | None
     profitable_products: int
     loss_products: int
     breakeven_products: int
@@ -674,6 +690,9 @@ async def product_profitability(
             func.count().label("rows"),
             func.coalesce(func.sum(AmazonPaymentTransaction.quantity), 0).label("quantity"),
             func.coalesce(func.sum(AmazonPaymentTransaction.product_charges), 0).label("revenue_original"),
+            func.coalesce(func.sum(AmazonPaymentTransaction.promotional_rebates), 0).label("promotional_rebates"),
+            func.coalesce(func.sum(AmazonPaymentTransaction.amazon_fees), 0).label("amazon_fees"),
+            func.coalesce(func.sum(AmazonPaymentTransaction.other_amount), 0).label("other_amount"),
         )
         .where(AmazonPaymentTransaction.product_details.is_not(None))
         .where(AmazonPaymentTransaction.product_details != "")
@@ -690,8 +709,7 @@ async def product_profitability(
 
     by_product: dict[tuple[str, str], dict[str, float | int | str]] = {}
     for row in transaction_rows:
-        if not is_order_payment(row.transaction_type):
-            continue
+        category = classify_payment_type(row.transaction_type)
         key = (row.sku or row.product_details, row.fulfillment_channel, row.currency)
         bucket = by_product.setdefault(
             key,
@@ -702,8 +720,13 @@ async def product_profitability(
                 "currency": row.currency,
                 "transaction_rows": 0,
                 "units_estimated": 0,
+                "units_refunded": 0,
                 "revenue_original": 0.0,
                 "revenue_eur": 0.0,
+                "refunds_eur": 0.0,
+                "promotional_rebates_eur": 0.0,
+                "amazon_fees_eur": 0.0,
+                "other_amount_eur": 0.0,
                 "product_details_aliases": set(),
             },
         )
@@ -716,13 +739,32 @@ async def product_profitability(
             bucket["product_details"] = row.product_details
         rate_to_eur = get_rate_for_currency(rates, row.currency)
         bucket["transaction_rows"] = int(bucket["transaction_rows"]) + int(row.rows)
-        bucket["revenue_original"] = round(float(bucket["revenue_original"]) + money(row.revenue_original), 2)
-        bucket["revenue_eur"] = round(
-            float(bucket["revenue_eur"]) + eur(row.revenue_original, rate_to_eur),
+        quantity = money(row.quantity)
+        if category == "order" or is_order_payment(row.transaction_type):
+            bucket["revenue_original"] = round(float(bucket["revenue_original"]) + money(row.revenue_original), 2)
+            bucket["revenue_eur"] = round(
+                float(bucket["revenue_eur"]) + eur(row.revenue_original, rate_to_eur),
+                2,
+            )
+            bucket["units_estimated"] = int(bucket["units_estimated"]) + int(quantity if quantity else row.rows)
+        elif category == "refund":
+            bucket["refunds_eur"] = round(
+                float(bucket["refunds_eur"]) + eur(row.revenue_original, rate_to_eur),
+                2,
+            )
+            bucket["units_refunded"] = int(bucket["units_refunded"]) + int(abs(quantity) if quantity else row.rows)
+        bucket["promotional_rebates_eur"] = round(
+            float(bucket["promotional_rebates_eur"]) + eur(row.promotional_rebates, rate_to_eur),
             2,
         )
-        quantity = money(row.quantity)
-        bucket["units_estimated"] = int(bucket["units_estimated"]) + int(quantity if quantity else row.rows)
+        bucket["amazon_fees_eur"] = round(
+            float(bucket["amazon_fees_eur"]) + eur(row.amazon_fees, rate_to_eur),
+            2,
+        )
+        bucket["other_amount_eur"] = round(
+            float(bucket["other_amount_eur"]) + eur(row.other_amount, rate_to_eur),
+            2,
+        )
 
     latest_costs = await db.scalars(
         select(ProductCost).order_by(ProductCost.product_name, ProductCost.effective_date.desc(), ProductCost.id.desc())
@@ -808,7 +850,12 @@ async def product_profitability(
             asin = raw_lookup(cost.raw_row, "asin", "ASIN")
         purchase_cost_eur = money(cost.purchase_cost) if cost else None
         units_estimated = int(bucket["units_estimated"])
+        units_refunded = int(bucket["units_refunded"])
         revenue_eur = float(bucket["revenue_eur"])
+        refunds_eur = float(bucket["refunds_eur"])
+        promotional_rebates_eur = float(bucket["promotional_rebates_eur"])
+        amazon_fees_eur = float(bucket["amazon_fees_eur"])
+        other_amount_eur = float(bucket["other_amount_eur"])
         average_selling_price_eur = (
             round(revenue_eur / units_estimated, 2)
             if units_estimated
@@ -817,6 +864,19 @@ async def product_profitability(
         cogs_eur = round(units_estimated * purchase_cost_eur, 2) if purchase_cost_eur is not None else None
         gross_profit_eur = (
             round(revenue_eur - cogs_eur, 2)
+            if cogs_eur is not None
+            else None
+        )
+        net_profit_eur = (
+            round(
+                revenue_eur
+                + refunds_eur
+                + promotional_rebates_eur
+                + amazon_fees_eur
+                + other_amount_eur
+                - cogs_eur,
+                2,
+            )
             if cogs_eur is not None
             else None
         )
@@ -830,7 +890,17 @@ async def product_profitability(
             if cogs_eur and gross_profit_eur is not None
             else None
         )
-        status = profitability_status(gross_profit_eur)
+        net_margin_percent = (
+            round((net_profit_eur / revenue_eur) * 100, 2)
+            if revenue_eur and net_profit_eur is not None
+            else None
+        )
+        net_roi_percent = (
+            round((net_profit_eur / cogs_eur) * 100, 2)
+            if cogs_eur and net_profit_eur is not None
+            else None
+        )
+        status = profitability_status(net_profit_eur)
         rows.append(
             ProductProfitabilityRow(
                 product_details=product_details,
@@ -842,38 +912,61 @@ async def product_profitability(
                 fx_rate_to_eur=money(get_rate_for_currency(rates, str(bucket["currency"]))),
                 transaction_rows=int(bucket["transaction_rows"]),
                 units_estimated=units_estimated,
+                units_refunded=units_refunded,
                 revenue_original=float(bucket["revenue_original"]),
                 revenue_eur=revenue_eur,
+                refunds_eur=refunds_eur,
+                promotional_rebates_eur=promotional_rebates_eur,
+                amazon_fees_eur=amazon_fees_eur,
+                other_amount_eur=other_amount_eur,
                 average_selling_price_eur=average_selling_price_eur,
                 purchase_cost_eur=purchase_cost_eur,
                 cogs_eur=cogs_eur,
                 gross_profit_eur=gross_profit_eur,
+                net_profit_eur=net_profit_eur,
                 margin_percent=margin_percent,
                 roi_percent=roi_percent,
+                net_margin_percent=net_margin_percent,
+                net_roi_percent=net_roi_percent,
                 profitability_status=status,
                 cost_match_status="matched" if cost else "missing_cost",
             )
         )
 
-    rows.sort(key=lambda item: item.gross_profit_eur if item.gross_profit_eur is not None else -999999, reverse=True)
+    rows.sort(key=lambda item: item.net_profit_eur if item.net_profit_eur is not None else -999999, reverse=True)
     matched_rows = [row for row in rows if row.cost_match_status == "matched"]
     revenue_eur = round(sum(row.revenue_eur for row in rows), 2)
+    refunds_eur = round(sum(row.refunds_eur for row in rows), 2)
+    promotional_rebates_eur = round(sum(row.promotional_rebates_eur for row in rows), 2)
+    amazon_fees_eur = round(sum(row.amazon_fees_eur for row in rows), 2)
+    other_amount_eur = round(sum(row.other_amount_eur for row in rows), 2)
     cogs_eur = round(sum(row.cogs_eur or 0 for row in matched_rows), 2)
     gross_profit_eur = round(sum(row.gross_profit_eur or 0 for row in matched_rows), 2)
+    net_profit_eur = round(sum(row.net_profit_eur or 0 for row in matched_rows), 2)
     matched_revenue_eur = round(sum(row.revenue_eur for row in matched_rows), 2)
     margin_percent = round((gross_profit_eur / matched_revenue_eur) * 100, 2) if matched_revenue_eur else None
     roi_percent = round((gross_profit_eur / cogs_eur) * 100, 2) if cogs_eur else None
+    net_margin_percent = round((net_profit_eur / matched_revenue_eur) * 100, 2) if matched_revenue_eur else None
+    net_roi_percent = round((net_profit_eur / cogs_eur) * 100, 2) if cogs_eur else None
     return ProductProfitabilityResponse(
         summary=ProductProfitabilitySummary(
             products=len(rows),
             matched_products=len(matched_rows),
             missing_cost_products=len(rows) - len(matched_rows),
             units_estimated=sum(row.units_estimated for row in rows),
+            units_refunded=sum(row.units_refunded for row in rows),
             revenue_eur=revenue_eur,
+            refunds_eur=refunds_eur,
+            promotional_rebates_eur=promotional_rebates_eur,
+            amazon_fees_eur=amazon_fees_eur,
+            other_amount_eur=other_amount_eur,
             cogs_eur=cogs_eur,
             gross_profit_eur=gross_profit_eur,
+            net_profit_eur=net_profit_eur,
             margin_percent=margin_percent,
             roi_percent=roi_percent,
+            net_margin_percent=net_margin_percent,
+            net_roi_percent=net_roi_percent,
             profitable_products=sum(1 for row in matched_rows if row.profitability_status == "profitable"),
             loss_products=sum(1 for row in matched_rows if row.profitability_status == "loss"),
             breakeven_products=sum(1 for row in matched_rows if row.profitability_status == "breakeven"),
