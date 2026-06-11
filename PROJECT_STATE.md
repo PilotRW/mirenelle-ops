@@ -145,6 +145,10 @@ Completed:
 - Amazon Connector defaults to `All EU marketplaces` because the account can
   sell across Europe even when Germany is the primary marketplace. The current
   EU set is DE, FR, IT, ES, NL, BE, PL, and SE.
+- Amazon Connector has conservative Reports API rate-limit protection:
+  `createReport` is spaced at least 65 seconds apart across the whole sync run,
+  and retryable Amazon responses are retried with backoff and `Retry-After`
+  support.
 
 Current verified inventory examples:
 

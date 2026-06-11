@@ -1,6 +1,9 @@
+import asyncio
 import gzip
+import random
+import time
 from dataclasses import dataclass
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time as datetime_time, timezone
 from typing import Any
 
 import httpx
@@ -25,6 +28,13 @@ EU_MARKETPLACES: tuple[str, ...] = ("DE", "FR", "IT", "ES", "NL", "BE", "PL", "S
 
 DONE_REPORT_STATUSES = {"DONE"}
 FAILED_REPORT_STATUSES = {"CANCELLED", "FATAL"}
+DEFAULT_REPORTS_API_MIN_INTERVALS: dict[str, float] = {
+    "createReport": 65.0,
+    "getReport": 1.0,
+    "getReportDocument": 1.0,
+    "downloadReportDocument": 0.5,
+}
+RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
 
 class AmazonSpApiConfigError(RuntimeError):
@@ -33,6 +43,45 @@ class AmazonSpApiConfigError(RuntimeError):
 
 class AmazonSpApiError(RuntimeError):
     pass
+
+
+class AmazonSpApiRateLimiter:
+    def __init__(self, min_intervals: dict[str, float] | None = None) -> None:
+        self.min_intervals = dict(DEFAULT_REPORTS_API_MIN_INTERVALS)
+        if min_intervals:
+            self.min_intervals.update(min_intervals)
+        self._next_allowed_at: dict[str, float] = {}
+        self._lock = asyncio.Lock()
+
+    async def wait(self, operation: str) -> None:
+        async with self._lock:
+            now = time.monotonic()
+            next_allowed_at = self._next_allowed_at.get(operation, now)
+            if next_allowed_at > now:
+                await asyncio.sleep(next_allowed_at - now)
+                now = time.monotonic()
+            self._next_allowed_at[operation] = now + self.min_intervals.get(operation, 1.0)
+
+    def note_response(self, operation: str, response: httpx.Response) -> None:
+        rate_limit = response.headers.get("x-amzn-RateLimit-Limit")
+        if not rate_limit:
+            return
+        try:
+            requests_per_second = float(rate_limit)
+        except ValueError:
+            return
+        if requests_per_second <= 0:
+            return
+        self.min_intervals[operation] = max(
+            self.min_intervals.get(operation, 0),
+            1 / requests_per_second,
+        )
+
+    def backoff(self, operation: str, seconds: float) -> None:
+        self._next_allowed_at[operation] = max(
+            self._next_allowed_at.get(operation, 0),
+            time.monotonic() + seconds,
+        )
 
 
 @dataclass(frozen=True)
@@ -65,21 +114,22 @@ def marketplace_id_for(code: str) -> str:
 
 
 def utc_day_start(value: date) -> str:
-    return datetime.combine(value, time.min, tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.combine(value, datetime_time.min, tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def utc_next_day_start(value: date) -> str:
-    return datetime.combine(value, time.max, tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.combine(value, datetime_time.max, tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 class AmazonSpApiClient:
-    def __init__(self) -> None:
+    def __init__(self, rate_limiter: AmazonSpApiRateLimiter | None = None) -> None:
         missing = missing_connector_settings()
         if missing:
             raise AmazonSpApiConfigError(f"Amazon SP-API connector is missing settings: {', '.join(missing)}")
         self.endpoint = settings.AMAZON_SP_API_ENDPOINT.rstrip("/")
         self.region = settings.AMAZON_SP_API_REGION
         self._access_token: str | None = None
+        self.rate_limiter = rate_limiter or AmazonSpApiRateLimiter()
 
     async def _lwa_access_token(self, client: httpx.AsyncClient) -> str:
         if self._access_token:
@@ -119,8 +169,11 @@ class AmazonSpApiClient:
         end_date: date,
     ) -> str:
         marketplace_id = marketplace_id_for(marketplace)
-        response = await client.post(
-            f"{self.endpoint}/reports/2021-06-30/reports",
+        response = await self._request_with_retries(
+            client=client,
+            operation="createReport",
+            method="POST",
+            url=f"{self.endpoint}/reports/2021-06-30/reports",
             headers=await self._sp_api_headers(client),
             json={
                 "reportType": REPORT_TYPE_ALL_ORDERS_BY_ORDER_DATE,
@@ -129,34 +182,42 @@ class AmazonSpApiClient:
                 "dataEndTime": utc_next_day_start(end_date),
             },
         )
-        self._raise_for_status(response, "createReport")
         report_id = response.json().get("reportId")
         if not report_id:
             raise AmazonSpApiError("createReport response did not include reportId.")
         return str(report_id)
 
     async def get_report(self, client: httpx.AsyncClient, report_id: str) -> dict[str, Any]:
-        response = await client.get(
-            f"{self.endpoint}/reports/2021-06-30/reports/{report_id}",
+        response = await self._request_with_retries(
+            client=client,
+            operation="getReport",
+            method="GET",
+            url=f"{self.endpoint}/reports/2021-06-30/reports/{report_id}",
             headers=await self._sp_api_headers(client),
         )
-        self._raise_for_status(response, "getReport")
         return response.json()
 
     async def get_report_document(self, client: httpx.AsyncClient, report_document_id: str) -> dict[str, Any]:
-        response = await client.get(
-            f"{self.endpoint}/reports/2021-06-30/documents/{report_document_id}",
+        response = await self._request_with_retries(
+            client=client,
+            operation="getReportDocument",
+            method="GET",
+            url=f"{self.endpoint}/reports/2021-06-30/documents/{report_document_id}",
             headers=await self._sp_api_headers(client),
         )
-        self._raise_for_status(response, "getReportDocument")
         return response.json()
 
     async def download_document(self, client: httpx.AsyncClient, document: dict[str, Any]) -> bytes:
         url = document.get("url")
         if not url:
             raise AmazonSpApiError("getReportDocument response did not include a download URL.")
-        response = await client.get(str(url))
-        self._raise_for_status(response, "download report document")
+        response = await self._request_with_retries(
+            client=client,
+            operation="downloadReportDocument",
+            method="GET",
+            url=str(url),
+            use_sp_api_throttle=False,
+        )
         content = response.content
         compression_algorithm = str(document.get("compressionAlgorithm") or "").upper()
         if compression_algorithm == "GZIP":
@@ -164,6 +225,41 @@ class AmazonSpApiClient:
         if compression_algorithm:
             raise AmazonSpApiError(f"Unsupported report compression algorithm: {compression_algorithm}.")
         return content
+
+    async def _request_with_retries(
+        self,
+        client: httpx.AsyncClient,
+        operation: str,
+        method: str,
+        url: str,
+        max_attempts: int = 5,
+        use_sp_api_throttle: bool = True,
+        **kwargs,
+    ) -> httpx.Response:
+        for attempt in range(1, max_attempts + 1):
+            if use_sp_api_throttle:
+                await self.rate_limiter.wait(operation)
+            response = await client.request(method, url, **kwargs)
+            if use_sp_api_throttle:
+                self.rate_limiter.note_response(operation, response)
+            if response.status_code not in RETRYABLE_STATUS_CODES or attempt == max_attempts:
+                self._raise_for_status(response, operation)
+                return response
+            delay = self._retry_delay(response=response, attempt=attempt)
+            if use_sp_api_throttle:
+                self.rate_limiter.backoff(operation, delay)
+            await asyncio.sleep(delay)
+        raise AmazonSpApiError(f"{operation} failed after {max_attempts} attempts.")
+
+    @staticmethod
+    def _retry_delay(response: httpx.Response, attempt: int) -> float:
+        retry_after = response.headers.get("Retry-After")
+        if retry_after:
+            try:
+                return min(300.0, max(1.0, float(retry_after)))
+            except ValueError:
+                pass
+        return min(300.0, (2 ** attempt) + random.uniform(0, 1.5))
 
     @staticmethod
     def _raise_for_status(response: httpx.Response, operation: str) -> None:

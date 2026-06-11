@@ -43,51 +43,55 @@ async def sync_orders_report(
     wait_timeout_seconds: int = 300,
 ) -> AmazonOrderSyncResult:
     results: list[AmazonOrderSyncResult] = []
-    for marketplace_code in _marketplace_codes(marketplace):
-        for chunk_start, chunk_end in _date_chunks(start_date, end_date):
-            results.append(
-                await _sync_orders_report_chunk(
-                    db=db,
-                    marketplace=marketplace_code,
-                    start_date=chunk_start,
-                    end_date=chunk_end,
-                    poll_interval_seconds=poll_interval_seconds,
-                    wait_timeout_seconds=wait_timeout_seconds,
+    sp_api = AmazonSpApiClient()
+    timeout = httpx.Timeout(connect=30.0, read=120.0, write=30.0, pool=30.0)
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        for marketplace_code in _marketplace_codes(marketplace):
+            for chunk_start, chunk_end in _date_chunks(start_date, end_date):
+                results.append(
+                    await _sync_orders_report_chunk(
+                        db=db,
+                        sp_api=sp_api,
+                        client=client,
+                        marketplace=marketplace_code,
+                        start_date=chunk_start,
+                        end_date=chunk_end,
+                        poll_interval_seconds=poll_interval_seconds,
+                        wait_timeout_seconds=wait_timeout_seconds,
+                    )
                 )
-            )
     return _merge_results(results)
 
 
 async def _sync_orders_report_chunk(
     db: AsyncSession,
+    sp_api: AmazonSpApiClient,
+    client: httpx.AsyncClient,
     marketplace: str,
     start_date: date,
     end_date: date,
     poll_interval_seconds: int,
     wait_timeout_seconds: int,
 ) -> AmazonOrderSyncResult:
-    sp_api = AmazonSpApiClient()
-    timeout = httpx.Timeout(connect=30.0, read=120.0, write=30.0, pool=30.0)
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        report_id = await sp_api.create_orders_report(
-            client=client,
-            marketplace=marketplace,
-            start_date=start_date,
-            end_date=end_date,
-        )
-        report = await _wait_for_report(
-            sp_api=sp_api,
-            client=client,
-            report_id=report_id,
-            poll_interval_seconds=poll_interval_seconds,
-            wait_timeout_seconds=wait_timeout_seconds,
-        )
-        report_document_id = report.get("reportDocumentId")
-        if not report_document_id:
-            raise AmazonSpApiError(f"Report {report_id} finished without reportDocumentId.")
+    report_id = await sp_api.create_orders_report(
+        client=client,
+        marketplace=marketplace,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    report = await _wait_for_report(
+        sp_api=sp_api,
+        client=client,
+        report_id=report_id,
+        poll_interval_seconds=poll_interval_seconds,
+        wait_timeout_seconds=wait_timeout_seconds,
+    )
+    report_document_id = report.get("reportDocumentId")
+    if not report_document_id:
+        raise AmazonSpApiError(f"Report {report_id} finished without reportDocumentId.")
 
-        document = await sp_api.get_report_document(client, str(report_document_id))
-        content = await sp_api.download_document(client, document)
+    document = await sp_api.get_report_document(client, str(report_document_id))
+    content = await sp_api.download_document(client, document)
 
     filename = f"amazon-orders-{marketplace.upper()}-{start_date.isoformat()}-{end_date.isoformat()}-{report_id}.tsv"
     preview = build_order_report_preview(

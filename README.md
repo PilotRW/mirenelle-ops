@@ -295,5 +295,11 @@ Amazon limits this order-tracking report range to 30 days. The connector
 automatically splits longer UI periods into multiple report downloads and
 imports them as one sync action.
 
+The connector also uses a conservative Reports API throttle to avoid exceeding
+Amazon limits. `createReport` is spaced at least 65 seconds apart across the
+whole sync run, including `All EU marketplaces`; retryable Amazon responses
+such as `429` and `503` are retried with backoff and `Retry-After` support.
+This makes EU-wide sync intentionally slow but safer for API quotas.
+
 Manual All Orders report upload remains available on the same page as a
 fallback/debug path.
