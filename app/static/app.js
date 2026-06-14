@@ -10,6 +10,7 @@ const translations = {
     "action.refreshReports": "Refresh reports",
     "action.search": "Search",
     "action.save": "Save",
+    "action.cancel": "Cancel",
     "action.clear": "Clear",
     "action.edit": "Edit",
     "action.delete": "Delete",
@@ -212,6 +213,7 @@ const translations = {
     "action.refreshReports": "Reports aktualisieren",
     "action.search": "Suchen",
     "action.save": "Speichern",
+    "action.cancel": "Abbrechen",
     "action.clear": "Leeren",
     "action.edit": "Bearbeiten",
     "action.delete": "Löschen",
@@ -414,6 +416,7 @@ const translations = {
     "action.refreshReports": "Оновити звіти",
     "action.search": "Пошук",
     "action.save": "Зберегти",
+    "action.cancel": "Скасувати",
     "action.clear": "Очистити",
     "action.edit": "Редагувати",
     "action.delete": "Видалити",
@@ -1941,7 +1944,7 @@ document.getElementById("invoiceProductEditForm").addEventListener("submit", asy
   }
 });
 
-document.getElementById("clearInvoiceProductEditButton").addEventListener("click", clearInvoiceProductEditForm);
+document.getElementById("cancelInvoiceProductEditButton").addEventListener("click", clearInvoiceProductEditForm);
 
 function clearInventoryForm() {
   document.getElementById("inventoryItemId").value = "";
