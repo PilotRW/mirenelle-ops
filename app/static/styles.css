@@ -563,7 +563,19 @@ select {
 }
 
 .profitabilityTable {
+  max-height: min(820px, calc(100vh - 155px));
+}
+
+#section-dashboard .profitabilityTable {
   max-height: min(560px, calc(100vh - 315px));
+}
+
+#section-profitability .panel {
+  padding: 14px;
+}
+
+#section-profitability .profitabilityTable {
+  height: min(820px, calc(100vh - 155px));
 }
 
 #section-dashboard #profitTotals {
