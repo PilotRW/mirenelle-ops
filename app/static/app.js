@@ -183,11 +183,14 @@ const translations = {
     "table.reserved": "Reserved",
     "table.quantity": "Quantity",
     "table.revenueEur": "Revenue EUR",
+    "table.revenueGrossEur": "Revenue gross EUR",
+    "table.revenueNetEur": "Revenue net EUR",
     "table.revenue": "Revenue",
     "table.roi": "ROI",
     "table.rows": "Rows",
     "table.ordersUnits": "Orders / Units",
     "table.sales": "Sales",
+    "table.salesVat": "Sales VAT",
     "table.salesCurrency": "Sales currency",
     "table.sku": "SKU",
     "table.sold": "Sold",
@@ -393,11 +396,14 @@ const translations = {
     "table.reserved": "Reserviert",
     "table.quantity": "Menge",
     "table.revenueEur": "Umsatz EUR",
+    "table.revenueGrossEur": "Bruttoumsatz EUR",
+    "table.revenueNetEur": "Nettoumsatz EUR",
     "table.revenue": "Umsatz",
     "table.roi": "ROI",
     "table.rows": "Zeilen",
     "table.ordersUnits": "Bestellungen / Einheiten",
     "table.sales": "Umsatz",
+    "table.salesVat": "Umsatzsteuer",
     "table.salesCurrency": "Verkaufswährung",
     "table.sku": "SKU",
     "table.sold": "Verkauft",
@@ -603,11 +609,14 @@ const translations = {
     "table.reserved": "Зарезервовано",
     "table.quantity": "Кількість",
     "table.revenueEur": "Дохід EUR",
+    "table.revenueGrossEur": "Дохід з ПДВ EUR",
+    "table.revenueNetEur": "Дохід без ПДВ EUR",
     "table.revenue": "Дохід",
     "table.roi": "ROI",
     "table.rows": "Рядки",
     "table.ordersUnits": "Замовлення / одиниці",
     "table.sales": "Продажі",
+    "table.salesVat": "ПДВ продажів",
     "table.salesCurrency": "Валюта продажу",
     "table.sku": "SKU",
     "table.sold": "Продано",
@@ -1797,6 +1806,10 @@ async function loadProfitability() {
       <strong>${money(summary.refunds_eur, "EUR")}</strong>
     </div>
     <div class="kpi">
+      <span>${t("table.salesVat")}</span>
+      <strong>${money(summary.sales_vat_eur, "EUR")}</strong>
+    </div>
+    <div class="kpi">
       <span>${t("table.amazonFees")}</span>
       <strong>${money(summary.amazon_fees_eur + summary.other_amount_eur, "EUR")}</strong>
     </div>
@@ -1845,6 +1858,8 @@ async function loadProfitability() {
       <td>${row.currency}</td>
       <td class="num">${row.fx_rate_to_eur}</td>
       <td class="num">${row.units_estimated}</td>
+      <td class="num">${money(row.revenue_gross_eur, "EUR")}</td>
+      <td class="num">${money(row.sales_vat_eur, "EUR")}</td>
       <td class="num">${money(row.revenue_eur, "EUR")}</td>
       <td class="num">${row.average_selling_price_eur === null ? "-" : money(row.average_selling_price_eur, "EUR")}</td>
       <td class="num">${row.purchase_cost_eur === null ? "-" : money(row.purchase_cost_eur, "EUR")}</td>

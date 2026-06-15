@@ -8,6 +8,7 @@ from sqlalchemy import Select, case, func, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
+from app.models.amazon_order_item import AmazonOrderItem
 from app.models.amazon_payment_transaction import AmazonPaymentTransaction
 from app.models.product_cost import ProductCost
 from app.models.product_mapping import ProductMapping
@@ -160,6 +161,8 @@ class ProductProfitabilityRow(BaseModel):
     units_estimated: int
     units_refunded: int
     revenue_original: float
+    revenue_gross_eur: float
+    sales_vat_eur: float
     revenue_eur: float
     refunds_eur: float
     promotional_rebates_eur: float
@@ -226,6 +229,8 @@ class ProductProfitabilitySummary(BaseModel):
     missing_cost_products: int
     units_estimated: int
     units_refunded: int
+    revenue_gross_eur: float
+    sales_vat_eur: float
     revenue_eur: float
     refunds_eur: float
     promotional_rebates_eur: float
@@ -766,6 +771,34 @@ async def product_profitability(
             2,
         )
 
+    order_tax_query = (
+        select(
+            AmazonOrderItem.sku,
+            AmazonOrderItem.fulfillment_channel,
+            AmazonOrderItem.currency,
+            func.coalesce(func.sum(AmazonOrderItem.item_tax + AmazonOrderItem.shipping_tax), 0).label("sales_vat"),
+        )
+        .where(AmazonOrderItem.sku.is_not(None))
+        .where(AmazonOrderItem.sku != "")
+    )
+    if start_date:
+        order_tax_query = order_tax_query.where(func.date(AmazonOrderItem.purchase_date) >= start_date)
+    if end_date:
+        order_tax_query = order_tax_query.where(func.date(AmazonOrderItem.purchase_date) <= end_date)
+    order_tax_query = order_tax_query.group_by(
+        AmazonOrderItem.sku,
+        AmazonOrderItem.fulfillment_channel,
+        AmazonOrderItem.currency,
+    )
+    order_tax_rows = await db.execute(order_tax_query)
+    sales_vat_by_key: dict[tuple[str, str, str], float] = {}
+    for row in order_tax_rows:
+        currency = row.currency or "EUR"
+        rate_to_eur = get_rate_for_currency(rates, currency)
+        sales_vat_by_key[
+            (str(row.sku), str(row.fulfillment_channel), str(currency))
+        ] = eur(row.sales_vat, rate_to_eur)
+
     latest_costs = await db.scalars(
         select(ProductCost).order_by(ProductCost.product_name, ProductCost.effective_date.desc(), ProductCost.id.desc())
     )
@@ -851,7 +884,19 @@ async def product_profitability(
         purchase_cost_eur = money(cost.purchase_cost) if cost else None
         units_estimated = int(bucket["units_estimated"])
         units_refunded = int(bucket["units_refunded"])
-        revenue_eur = float(bucket["revenue_eur"])
+        revenue_gross_eur = float(bucket["revenue_eur"])
+        sales_vat_eur = round(
+            sales_vat_by_key.get(
+                (
+                    str(sku or ""),
+                    str(bucket["fulfillment_channel"]),
+                    str(bucket["currency"] or "EUR"),
+                ),
+                0.0,
+            ),
+            2,
+        )
+        revenue_eur = round(revenue_gross_eur - sales_vat_eur, 2)
         refunds_eur = float(bucket["refunds_eur"])
         promotional_rebates_eur = float(bucket["promotional_rebates_eur"])
         amazon_fees_eur = float(bucket["amazon_fees_eur"])
@@ -914,6 +959,8 @@ async def product_profitability(
                 units_estimated=units_estimated,
                 units_refunded=units_refunded,
                 revenue_original=float(bucket["revenue_original"]),
+                revenue_gross_eur=revenue_gross_eur,
+                sales_vat_eur=sales_vat_eur,
                 revenue_eur=revenue_eur,
                 refunds_eur=refunds_eur,
                 promotional_rebates_eur=promotional_rebates_eur,
@@ -935,6 +982,8 @@ async def product_profitability(
 
     rows.sort(key=lambda item: item.net_profit_eur if item.net_profit_eur is not None else -999999, reverse=True)
     matched_rows = [row for row in rows if row.cost_match_status == "matched"]
+    revenue_gross_eur = round(sum(row.revenue_gross_eur for row in rows), 2)
+    sales_vat_eur = round(sum(row.sales_vat_eur for row in rows), 2)
     revenue_eur = round(sum(row.revenue_eur for row in rows), 2)
     refunds_eur = round(sum(row.refunds_eur for row in rows), 2)
     promotional_rebates_eur = round(sum(row.promotional_rebates_eur for row in rows), 2)
@@ -955,6 +1004,8 @@ async def product_profitability(
             missing_cost_products=len(rows) - len(matched_rows),
             units_estimated=sum(row.units_estimated for row in rows),
             units_refunded=sum(row.units_refunded for row in rows),
+            revenue_gross_eur=revenue_gross_eur,
+            sales_vat_eur=sales_vat_eur,
             revenue_eur=revenue_eur,
             refunds_eur=refunds_eur,
             promotional_rebates_eur=promotional_rebates_eur,
