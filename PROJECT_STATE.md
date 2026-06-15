@@ -1,6 +1,6 @@
 # Mirenelle Ops - Project State
 
-Last updated: 2026-06-07
+Last updated: 2026-06-15
 
 ## Product Direction
 
@@ -28,6 +28,12 @@ Create a separate service for ecommerce operations and accounting:
 - Amazon API integration must not push/write data to Amazon.
 - Supplier invoice inbound shipping is treated as landed cost. Default
   allocation is by purchased unit quantity, with an alternative by line value.
+- Purchase invoice product costs are net of input VAT. Invoice VAT is stored
+  separately for cash/accounting visibility and must not inflate COGS.
+- Product profitability treats Amazon payment product charges as gross sales
+  when order-tax data exists. Sales VAT from imported Amazon Orders is
+  subtracted to produce net revenue, and profit/margin/ROI are calculated from
+  net revenue.
 - Product sets/bundles are deferred because current sold sets are represented
   as single sellable products, not assembled from component inventory.
 
@@ -154,6 +160,19 @@ Completed:
   gross profit, net profit, margins, ROI, and product status counts. Ads, BSR,
   and forecast remain future integrations because current inputs do not provide
   those values.
+- Purchase Invoices now show VAT status/amounts so operators can distinguish
+  invoices with VAT from invoices without VAT.
+- Product Profitability now exposes gross revenue, sales VAT, and net revenue.
+  The API fields are `revenue_gross_eur`, `sales_vat_eur`, and `revenue_eur`;
+  the UI shows them as separate columns. Net revenue is used for gross profit,
+  net profit, margin, and ROI.
+
+Current VAT caveat:
+
+- The current local database has no imported `amazon_order_items` tax rows, so
+  `sales_vat_eur` is currently `0.00`. The calculation is ready, but it will
+  only affect profit once All Orders/SP-API order rows with `item_tax` and/or
+  `shipping_tax` are imported.
 
 Current verified inventory examples:
 
@@ -163,18 +182,24 @@ Current verified inventory examples:
 - `Dr.Beckmann`: purchased 24, sold 13, on hand 11.
 - `Cif`: purchased 32, sold 4, on hand 28.
 
-Next:
+Next Plan:
 
 1. Add real SP-API credentials to `.env` and test the live Orders download
-   worker against Seller Central.
+   worker against Seller Central after Amazon approves the developer profile.
 2. Use imported Amazon Orders as the source of truth for order quantity,
    fulfillment channel, SKU, and ASIN; keep Amazon Payments as the money/fees
-   source and reconcile by order/SKU/period.
+   source and reconcile by order/SKU/period. This is also the source that will
+   make sales VAT subtraction active.
 3. Add Fulfillment-Box / prep-center tariff settings for storage, prep,
    labels, packing, and outbound handling.
-4. Add read-only FBA inventory connector after SP-API credentials are available.
-5. Add Customer Returns import after seeing the real file headers.
-6. Add Reimbursements import after seeing the real file headers.
-7. Add Service Fees import if the separate report has richer fields than
+4. Split profitability and inventory planning by FBA/FBM logic:
+   FBA uses Amazon fulfillment/inventory data; FBM needs own/prep-center stock
+   and external handling tariffs.
+5. Add read-only FBA inventory connector after SP-API credentials are available.
+6. Add Customer Returns import after seeing the real file headers.
+7. Add Reimbursements import after seeing the real file headers.
+8. Add Service Fees import if the separate report has richer fields than
    Transaction View.
-8. Add OCR/repair fallback for image-based or malformed PDFs.
+9. Add OCR/repair fallback for image-based or malformed PDFs.
+10. Later: add landed-cost model refinements for freight, prep-center costs,
+    marketplace service fees, and optional allocation methods per cost type.
