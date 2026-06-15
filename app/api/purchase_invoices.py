@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
@@ -20,6 +21,58 @@ from app.services.supplier_catalog_service import enrich_invoice_rows_from_catal
 
 router = APIRouter(prefix="/imports/purchase-invoices", tags=["purchase-invoices"])
 
+VAT_INCLUDED = "vat_included"
+NO_VAT = "no_vat"
+VAT_UNKNOWN = "vat_unknown"
+
+
+def decimal_or_zero(value) -> Decimal:
+    if value is None:
+        return Decimal("0")
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value))
+
+
+def preview_vat_status(preview) -> str:
+    rows = preview.parsed_rows or []
+    has_vat_signal = bool(
+        {"vat_rate_percent", "vat_amount", "line_gross_amount"} & set(preview.mapping)
+    ) or any(
+        row.get("vat_rate_percent") is not None
+        or row.get("vat_amount") is not None
+        or row.get("line_gross_amount") is not None
+        for row in rows
+    )
+    vat_amount = decimal_or_zero(preview.totals.get("vat_amount"))
+    if vat_amount > 0:
+        return VAT_INCLUDED
+    if has_vat_signal:
+        return NO_VAT
+    return VAT_UNKNOWN
+
+
+def invoice_vat_status(invoice: PurchaseInvoice) -> str:
+    vat_amount = decimal_or_zero(invoice.vat_amount)
+    if vat_amount > 0:
+        return VAT_INCLUDED
+    has_vat_signal = bool(
+        {"vat_rate_percent", "vat_amount", "line_gross_amount"} & set(invoice.header_mapping or {})
+    )
+    if has_vat_signal:
+        return NO_VAT
+    return VAT_UNKNOWN
+
+
+def line_vat_status(line: PurchaseInvoiceLine) -> str:
+    vat_rate = decimal_or_zero(line.vat_rate_percent)
+    vat_amount = decimal_or_zero(line.vat_amount)
+    if vat_rate > 0 or vat_amount > 0:
+        return VAT_INCLUDED
+    if line.vat_rate_percent is not None or line.vat_amount is not None or line.line_gross_amount is not None:
+        return NO_VAT
+    return VAT_UNKNOWN
+
 
 class PurchaseInvoicePreviewResponse(BaseModel):
     filename: str
@@ -28,6 +81,7 @@ class PurchaseInvoicePreviewResponse(BaseModel):
     invoice_date: str | None
     due_date: str | None
     currency: str
+    vat_status: str
     row_count: int
     parsed_row_count: int
     can_commit: bool
@@ -62,7 +116,10 @@ class PurchaseInvoiceRow(BaseModel):
     invoice_date: str | None
     currency: str
     row_count: int
+    subtotal_amount: float | None
+    vat_amount: float | None
     total_amount: float | None
+    vat_status: str
     created_at: str
 
 
@@ -78,6 +135,10 @@ class PurchaseInvoiceLineRow(BaseModel):
     quantity: float
     unit_cost: float
     line_net_amount: float | None
+    vat_rate_percent: float | None
+    vat_amount: float | None
+    line_gross_amount: float | None
+    vat_status: str
     currency: str
 
 
@@ -109,6 +170,7 @@ def preview_response(preview) -> PurchaseInvoicePreviewResponse:
         invoice_date=preview.invoice_date.isoformat() if preview.invoice_date else None,
         due_date=preview.due_date.isoformat() if preview.due_date else None,
         currency=preview.currency,
+        vat_status=preview_vat_status(preview),
         row_count=preview.row_count,
         parsed_row_count=len(preview.parsed_rows),
         can_commit=preview.can_commit,
@@ -239,7 +301,10 @@ async def list_purchase_invoices(
                 invoice_date=row.invoice_date.isoformat() if row.invoice_date else None,
                 currency=row.currency,
                 row_count=row.row_count,
+                subtotal_amount=float(row.subtotal_amount) if row.subtotal_amount is not None else None,
+                vat_amount=float(row.vat_amount) if row.vat_amount is not None else None,
                 total_amount=float(row.total_amount) if row.total_amount is not None else None,
+                vat_status=invoice_vat_status(row),
                 created_at=row.created_at.isoformat(),
             )
             for row in result
@@ -271,6 +336,10 @@ async def list_purchase_invoice_lines(
                 quantity=float(row.quantity),
                 unit_cost=float(row.unit_cost),
                 line_net_amount=float(row.line_net_amount) if row.line_net_amount is not None else None,
+                vat_rate_percent=float(row.vat_rate_percent) if row.vat_rate_percent is not None else None,
+                vat_amount=float(row.vat_amount) if row.vat_amount is not None else None,
+                line_gross_amount=float(row.line_gross_amount) if row.line_gross_amount is not None else None,
+                vat_status=line_vat_status(row),
                 currency=row.currency,
             )
             for row in result
@@ -356,6 +425,10 @@ async def update_purchase_invoice_line(
         quantity=float(line.quantity),
         unit_cost=float(line.unit_cost),
         line_net_amount=float(line.line_net_amount) if line.line_net_amount is not None else None,
+        vat_rate_percent=float(line.vat_rate_percent) if line.vat_rate_percent is not None else None,
+        vat_amount=float(line.vat_amount) if line.vat_amount is not None else None,
+        line_gross_amount=float(line.line_gross_amount) if line.line_gross_amount is not None else None,
+        vat_status=line_vat_status(line),
         currency=line.currency,
     )
 

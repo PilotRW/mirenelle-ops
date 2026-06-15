@@ -128,6 +128,9 @@ const translations = {
     "status.saved": "Saved",
     "status.saving": "Saving",
     "status.uploading": "Uploading",
+    "vat.included": "VAT included",
+    "vat.none": "No VAT",
+    "vat.unknown": "VAT unknown",
     "table.action": "Action",
     "table.amazonProduct": "Amazon product",
     "table.amazonFees": "Amazon fees",
@@ -194,6 +197,10 @@ const translations = {
     "table.subtotal": "Subtotal",
     "table.total": "Total",
     "table.totalEur": "Total EUR",
+    "table.vat": "VAT",
+    "table.vatAmount": "VAT amount",
+    "table.vatRate": "VAT rate",
+    "table.vatStatus": "VAT",
     "table.notes": "Notes",
     "table.transfers": "Transfers",
     "table.type": "Type",
@@ -331,6 +338,9 @@ const translations = {
     "status.saved": "Gespeichert",
     "status.saving": "Speichert",
     "status.uploading": "Lädt hoch",
+    "vat.included": "mit MwSt.",
+    "vat.none": "ohne MwSt.",
+    "vat.unknown": "MwSt. unbekannt",
     "table.action": "Aktion",
     "table.amazonProduct": "Amazon-Produkt",
     "table.amazonFees": "Amazon-Gebühren",
@@ -397,6 +407,10 @@ const translations = {
     "table.subtotal": "Zwischensumme",
     "table.total": "Summe",
     "table.totalEur": "Summe EUR",
+    "table.vat": "MwSt.",
+    "table.vatAmount": "MwSt.-Betrag",
+    "table.vatRate": "MwSt.-Satz",
+    "table.vatStatus": "MwSt.",
     "table.notes": "Notizen",
     "table.transfers": "Überträge",
     "table.type": "Typ",
@@ -534,6 +548,9 @@ const translations = {
     "status.saved": "Збережено",
     "status.saving": "Збереження",
     "status.uploading": "Завантаження",
+    "vat.included": "з ПДВ",
+    "vat.none": "без ПДВ",
+    "vat.unknown": "ПДВ невідомо",
     "table.action": "Дія",
     "table.amazonProduct": "Amazon товар",
     "table.amazonFees": "Amazon комісії",
@@ -600,6 +617,10 @@ const translations = {
     "table.subtotal": "Сума без ПДВ",
     "table.total": "Разом",
     "table.totalEur": "Разом EUR",
+    "table.vat": "ПДВ",
+    "table.vatAmount": "Сума ПДВ",
+    "table.vatRate": "Ставка ПДВ",
+    "table.vatStatus": "ПДВ",
     "table.notes": "Нотатки",
     "table.transfers": "Перекази",
     "table.type": "Тип",
@@ -985,6 +1006,8 @@ async function loadInvoices() {
       <td>${text(row.invoice_number)}</td>
       <td>${text(row.invoice_date)}</td>
       <td class="num">${row.row_count}</td>
+      <td>${vatStatusLabel(row.vat_status)}</td>
+      <td class="num">${row.vat_amount === null ? "-" : money(row.vat_amount, row.currency)}</td>
       <td class="num">${row.total_amount === null ? "-" : money(row.total_amount, row.currency)}</td>
       <td class="actionsCell">
         <button type="button" class="compactButton" data-invoice-lines="${row.invoice_id}">${t("action.viewLines")}</button>
@@ -1029,6 +1052,9 @@ async function loadInvoiceLines(invoiceId) {
       <div><span>${t("field.supplier")}</span><strong>${escapeHtml(selected.supplier_name)}</strong></div>
       <div><span>${t("field.invoiceNumber")}</span><strong>${escapeHtml(selected.invoice_number)}</strong></div>
       <div><span>${t("field.invoiceDate")}</span><strong>${escapeHtml(selected.invoice_date)}</strong></div>
+      <div><span>${t("table.vatStatus")}</span><strong>${vatStatusLabel(selected.vat_status)}</strong></div>
+      <div><span>${t("table.subtotal")}</span><strong>${selected.subtotal_amount === null ? "-" : money(selected.subtotal_amount, selected.currency)}</strong></div>
+      <div><span>${t("table.vatAmount")}</span><strong>${selected.vat_amount === null ? "-" : money(selected.vat_amount, selected.currency)}</strong></div>
       <div><span>${t("table.total")}</span><strong>${selected.total_amount === null ? "-" : money(selected.total_amount, selected.currency)}</strong></div>
     `
     : "";
@@ -1042,6 +1068,9 @@ async function loadInvoiceLines(invoiceId) {
       <td class="num">${row.quantity}</td>
       <td class="num">${money(row.unit_cost, row.currency)}</td>
       <td class="num">${row.line_net_amount === null ? "-" : money(row.line_net_amount, row.currency)}</td>
+      <td class="num">${row.vat_rate_percent === null ? "-" : `${row.vat_rate_percent}%`}</td>
+      <td class="num">${row.vat_amount === null ? "-" : money(row.vat_amount, row.currency)}</td>
+      <td class="num">${row.line_gross_amount === null ? "-" : money(row.line_gross_amount, row.currency)}</td>
       <td>${text(row.expense_category)}</td>
     </tr>
   `);
@@ -1384,6 +1413,15 @@ function paymentCategoryLabel(category) {
   return keys[category] ? t(keys[category]) : category;
 }
 
+function vatStatusLabel(status) {
+  const keys = {
+    vat_included: "vat.included",
+    no_vat: "vat.none",
+    vat_unknown: "vat.unknown",
+  };
+  return keys[status] ? t(keys[status]) : text(status);
+}
+
 function renderInvoicePreview(preview) {
   const target = document.getElementById("invoicePreview");
   const errors = preview.validation_errors || [];
@@ -1404,10 +1442,12 @@ function renderInvoicePreview(preview) {
       <div><span>${t("preview.invoice")}</span><strong>${escapeHtml(preview.invoice_number)}</strong></div>
       <div><span>${t("field.invoiceDate")}</span><strong>${escapeHtml(preview.invoice_date)}</strong></div>
       <div><span>${t("field.currency")}</span><strong>${escapeHtml(preview.currency)}</strong></div>
+      <div><span>${t("table.vatStatus")}</span><strong>${vatStatusLabel(preview.vat_status)}</strong></div>
       <div><span>${t("preview.lines")}</span><strong>${preview.parsed_row_count}/${preview.row_count}</strong></div>
       <div><span>${t("preview.quantity")}</span><strong>${preview.totals.quantity}</strong></div>
       <div><span>${t("preview.products")}</span><strong>${money(preview.totals.product_subtotal_amount, preview.currency)}</strong></div>
       <div><span>${t("preview.expenses")}</span><strong>${money(preview.totals.expense_subtotal_amount, preview.currency)}</strong></div>
+      <div><span>${t("table.vatAmount")}</span><strong>${money(preview.totals.vat_amount, preview.currency)}</strong></div>
       <div><span>${t("preview.total")}</span><strong>${money(preview.totals.total_amount, preview.currency)}</strong></div>
     </div>
     <div class="previewTableWrap">
@@ -1421,7 +1461,7 @@ function renderInvoicePreview(preview) {
             <th>${t("table.quantity")}</th>
             <th>${t("table.cost")}</th>
             <th>${t("table.subtotal")}</th>
-            <th>VAT</th>
+            <th>${t("table.vat")}</th>
             <th>${t("table.total")}</th>
           </tr>
         </thead>
