@@ -1,6 +1,6 @@
 # Mirenelle Ops - Project State
 
-Last updated: 2026-06-15
+Last updated: 2026-06-16
 
 ## Product Direction
 
@@ -34,6 +34,10 @@ Create a separate service for ecommerce operations and accounting:
   when order-tax data exists. Sales VAT from imported Amazon Orders is
   subtracted to produce net revenue, and profit/margin/ROI are calculated from
   net revenue.
+- SP-API production access requires an approved Amazon Developer Profile. The
+  project now has `SECURITY_INCIDENT_RESPONSE.md` to document the required
+  incident response roles, 6-month review cycle, 24-hour notification process,
+  and Amazon notification at `security@amazon.com`.
 - Product sets/bundles are deferred because current sold sets are represented
   as single sellable products, not assembled from component inventory.
 
@@ -166,6 +170,8 @@ Completed:
   The API fields are `revenue_gross_eur`, `sales_vat_eur`, and `revenue_eur`;
   the UI shows them as separate columns. Net revenue is used for gross profit,
   net profit, margin, and ROI.
+- Added `SECURITY_INCIDENT_RESPONSE.md` to support corrected Amazon Developer
+  Profile responses for incident response requirements.
 
 Current VAT caveat:
 
@@ -186,20 +192,22 @@ Next Plan:
 
 1. Add real SP-API credentials to `.env` and test the live Orders download
    worker against Seller Central after Amazon approves the developer profile.
-2. Use imported Amazon Orders as the source of truth for order quantity,
+2. Submit a new Amazon Developer Profile/support case with the corrected
+   incident response answers and reference the internal incident response plan.
+3. Use imported Amazon Orders as the source of truth for order quantity,
    fulfillment channel, SKU, and ASIN; keep Amazon Payments as the money/fees
    source and reconcile by order/SKU/period. This is also the source that will
    make sales VAT subtraction active.
-3. Add Fulfillment-Box / prep-center tariff settings for storage, prep,
+4. Add Fulfillment-Box / prep-center tariff settings for storage, prep,
    labels, packing, and outbound handling.
-4. Split profitability and inventory planning by FBA/FBM logic:
+5. Split profitability and inventory planning by FBA/FBM logic:
    FBA uses Amazon fulfillment/inventory data; FBM needs own/prep-center stock
    and external handling tariffs.
-5. Add read-only FBA inventory connector after SP-API credentials are available.
-6. Add Customer Returns import after seeing the real file headers.
-7. Add Reimbursements import after seeing the real file headers.
-8. Add Service Fees import if the separate report has richer fields than
+6. Add read-only FBA inventory connector after SP-API credentials are available.
+7. Add Customer Returns import after seeing the real file headers.
+8. Add Reimbursements import after seeing the real file headers.
+9. Add Service Fees import if the separate report has richer fields than
    Transaction View.
-9. Add OCR/repair fallback for image-based or malformed PDFs.
-10. Later: add landed-cost model refinements for freight, prep-center costs,
+10. Add OCR/repair fallback for image-based or malformed PDFs.
+11. Later: add landed-cost model refinements for freight, prep-center costs,
     marketplace service fees, and optional allocation methods per cost type.
