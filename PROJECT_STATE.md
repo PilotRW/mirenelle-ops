@@ -172,6 +172,11 @@ Completed:
   net profit, margin, and ROI.
 - Added `SECURITY_INCIDENT_RESPONSE.md` to support corrected Amazon Developer
   Profile responses for incident response requirements.
+- Submitted an Amazon Solution Provider Portal support case under Access
+  issues to request Developer Profile resubmission/reassessment after adopting
+  the incident response plan. Amazon states responses may take up to two
+  business days. Production SP-API app creation remains blocked until Developer
+  Profile approval.
 
 Current VAT caveat:
 
@@ -190,10 +195,11 @@ Current verified inventory examples:
 
 Next Plan:
 
-1. Add real SP-API credentials to `.env` and test the live Orders download
+1. Wait for Amazon Developer Support response on the new support case. If they
+   reopen or enable the Developer Profile flow, resubmit with corrected
+   incident response answers.
+2. Add real SP-API credentials to `.env` and test the live Orders download
    worker against Seller Central after Amazon approves the developer profile.
-2. Submit a new Amazon Developer Profile/support case with the corrected
-   incident response answers and reference the internal incident response plan.
 3. Use imported Amazon Orders as the source of truth for order quantity,
    fulfillment channel, SKU, and ASIN; keep Amazon Payments as the money/fees
    source and reconcile by order/SKU/period. This is also the source that will
