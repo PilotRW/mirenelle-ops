@@ -174,9 +174,16 @@ Completed:
   Profile responses for incident response requirements.
 - Submitted an Amazon Solution Provider Portal support case under Access
   issues to request Developer Profile resubmission/reassessment after adopting
-  the incident response plan. Amazon states responses may take up to two
-  business days. Production SP-API app creation remains blocked until Developer
-  Profile approval.
+  the incident response plan. Amazon reopened the registration flow, and the
+  corrected Developer Profile was subsequently approved.
+- Amazon approved the SP-API Developer Profile and granted global marketplace
+  access for the requested roles.
+- Registered and self-authorized the private production `Mirenelle Ops`
+  application for the seller account. LWA Client ID, Client Secret, and refresh
+  token are stored only in the ignored local `.env`.
+- Verified the production connector without exposing credentials: LWA token
+  exchange returned `AUTH_OK`, and the read-only Reports API `getReports`
+  request for the All Orders report type returned `REPORTS_API_OK`.
 
 Current VAT caveat:
 
@@ -195,25 +202,23 @@ Current verified inventory examples:
 
 Next Plan:
 
-1. Wait for Amazon Developer Support response on the new support case. If they
-   reopen or enable the Developer Profile flow, resubmit with corrected
-   incident response answers.
-2. Add real SP-API credentials to `.env` and test the live Orders download
-   worker against Seller Central after Amazon approves the developer profile.
-3. Use imported Amazon Orders as the source of truth for order quantity,
+1. Run the first controlled All Orders report download for a short date range,
+   inspect the preview/import result, and verify FBA/FBM, SKU, ASIN, quantity,
+   price, and tax fields before expanding the period.
+2. Use imported Amazon Orders as the source of truth for order quantity,
    fulfillment channel, SKU, and ASIN; keep Amazon Payments as the money/fees
    source and reconcile by order/SKU/period. This is also the source that will
    make sales VAT subtraction active.
-4. Add Fulfillment-Box / prep-center tariff settings for storage, prep,
+3. Add Fulfillment-Box / prep-center tariff settings for storage, prep,
    labels, packing, and outbound handling.
-5. Split profitability and inventory planning by FBA/FBM logic:
+4. Split profitability and inventory planning by FBA/FBM logic:
    FBA uses Amazon fulfillment/inventory data; FBM needs own/prep-center stock
    and external handling tariffs.
-6. Add read-only FBA inventory connector after SP-API credentials are available.
-7. Add Customer Returns import after seeing the real file headers.
-8. Add Reimbursements import after seeing the real file headers.
-9. Add Service Fees import if the separate report has richer fields than
+5. Add read-only FBA inventory connector.
+6. Add Customer Returns import after seeing the real file headers.
+7. Add Reimbursements import after seeing the real file headers.
+8. Add Service Fees import if the separate report has richer fields than
    Transaction View.
-10. Add OCR/repair fallback for image-based or malformed PDFs.
-11. Later: add landed-cost model refinements for freight, prep-center costs,
+9. Add OCR/repair fallback for image-based or malformed PDFs.
+10. Later: add landed-cost model refinements for freight, prep-center costs,
     marketplace service fees, and optional allocation methods per cost type.
