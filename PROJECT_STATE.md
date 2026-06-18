@@ -30,10 +30,11 @@ Create a separate service for ecommerce operations and accounting:
   allocation is by purchased unit quantity, with an alternative by line value.
 - Purchase invoice product costs are net of input VAT. Invoice VAT is stored
   separately for cash/accounting visibility and must not inflate COGS.
-- Product profitability treats Amazon payment product charges as gross sales
-  when order-tax data exists. Sales VAT from imported Amazon Orders is
-  subtracted to produce net revenue, and profit/margin/ROI are calculated from
-  net revenue.
+- Amazon Payments `product_charges` are treated as net sales excluding VAT.
+  Live order/payment reconciliation showed that Orders item price minus item
+  tax closely matches Payments product charges. Product profitability therefore
+  uses Payments charges as net revenue, Orders tax as sales VAT, and net plus
+  VAT as gross revenue. Profit/margin/ROI are calculated from net revenue.
 - SP-API production access requires an approved Amazon Developer Profile. The
   project now has `SECURITY_INCIDENT_RESPONSE.md` to document the required
   incident response roles, 6-month review cycle, 24-hour notification process,
@@ -186,10 +187,12 @@ Completed:
   request for the All Orders report type returned `REPORTS_API_OK`.
 - Ran the first live All Orders downloads:
   - DE, 2026-05-01 through 2026-05-03: report completed successfully with zero
-    rows and was stored as order import `1`.
+    rows.
   - DE, 2026-05-15: report completed successfully and was stored as order
-    import `2`, with 7 rows, 7 orders, 6 shipped FBA units, 1 cancelled
-    zero-quantity row, SKU/ASIN coverage on all rows, and real item tax values.
+    import with 7 rows, 7 orders, 6 shipped FBA units, 1 cancelled zero-quantity
+    row, SKU/ASIN coverage on all rows, and real item tax values.
+  - These two test import records were later superseded by the full EU snapshot
+    and removed after their rows were safely upserted.
 - The 2026-05-15 report included both `Amazon.de` EUR rows and one `Amazon.se`
   SEK row even though the report request used the DE marketplace ID. This
   proved that marketplace must be derived per row from `sales-channel`.
@@ -201,30 +204,41 @@ Completed:
 - Fixed sales VAT aggregation so a cancelled order row with a null currency
   cannot overwrite non-zero VAT for the same SKU/fulfillment/currency key.
 - Verified VAT-aware profitability for 2026-05-15:
-  gross revenue EUR 92.40, sales VAT EUR 8.26, net revenue EUR 84.14, and net
-  profit EUR 9.82 for the matched product.
+  Payments product charges match Orders item price less item tax, proving that
+  Payments charges are already net and VAT must not be subtracted again.
+- Added overlap-safe order upserts with a global unique key on Amazon Order ID,
+  SKU, and ASIN. Re-importing an overlapping period updates the existing item
+  instead of duplicating it.
+- Downloaded the full EU All Orders report for 2026-05-01 through 2026-05-30:
+  99 unique rows, 97 orders, and 105 units. The overlap with the previous
+  one-day test remained 99 unique rows, confirming dedupe works.
+- Exact Payments-to-Orders reconciliation by Amazon Order ID + SKU matched
+  78 of 78 order/SKU groups, with 84 Payments units equal to 84 Orders units.
+- Added Amazon Ireland (`Amazon.ie`, marketplace ID `A28R8C7NBKEWEA`) to the
+  EU connector. `Non-Amazon` fulfillment rows are classified separately as
+  `NON_AMAZON` and must not be counted as marketplace sales.
 
 ## Current Resume Point
 
-The SP-API production connector is operational and test order data is now in the
-local database. Continue from this point:
+The SP-API production connector, overlap-safe imports, and exact order/SKU
+reconciliation are operational. Continue from this point:
 
-1. Resolve reconciliation between Amazon Payments and Amazon Orders.
-   Payments use `transaction_date`, while All Orders uses `purchase_date`.
-   For 2026-05-15, Payments show 11 units for `MISSHA-SuperAqua-02`, but Orders
-   purchased that day show 6 shipped units. Do not reconcile only by calendar
-   date.
-2. Inspect whether `amazon_payment_transactions.external_transaction_id`
-   contains the Amazon Order ID and can join to
-   `amazon_order_items.amazon_order_id`. If it does, implement order/SKU-based
-   reconciliation. If not, define a settlement-aware matching strategy.
-3. Make Amazon Orders the source of truth for order quantity, ASIN, SKU,
-   marketplace, fulfillment channel, and sales VAT. Keep Amazon Payments as the
-   source of truth for product charges, refunds, promotions, Amazon fees, and
-   cash/settlement dates.
-4. Before a full-history sync, verify duplicate protection across overlapping
-   report periods and confirm cancelled orders are excluded from sold units and
-   profitability.
+1. Exact Orders metadata is now applied inside Product Profitability:
+   quantity, ASIN, fulfillment channel, marketplace, and sales VAT come from
+   the matched order; product charges, refunds, promotions, Amazon fees, and
+   settlement dates come from Payments.
+2. Corrected VAT output is verified for May 2026:
+   `revenue_eur` EUR 1,456.87 is net Payments charges,
+   `sales_vat_eur` EUR 286.60 is Orders tax, and
+   `revenue_gross_eur` EUR 1,743.47 is net plus VAT.
+3. Add an explicit reconciliation/data-quality report showing matched and
+   unmatched order/SKU groups. Current order transactions match 78/78; unmatched
+   payment rows are refunds and return-fee rows, which require separate refund
+   reconciliation.
+4. Exclude `NON_AMAZON` fulfillment rows and cancelled zero-quantity rows from
+   sold-unit analytics. Preserve them in raw/order operational views.
+5. After validation, run the connector for later periods and make Orders the
+   source of truth for inventory sold quantities.
 
 Operational notes:
 
@@ -249,10 +263,9 @@ Current verified inventory examples:
 
 Next Plan:
 
-1. Implement reliable Payments-to-Orders reconciliation using order ID + SKU
-   where available, with an explicit fallback when an order ID is unavailable.
-2. Recalculate profitability using Orders for quantity/ASIN/fulfillment/VAT and
-   Payments for financial ledger amounts.
+1. Add reconciliation coverage and unmatched-row diagnostics to Data Quality.
+2. Implement separate refund/return-fee reconciliation; these rows do not
+   currently match the sales order ID directly.
 3. Add Fulfillment-Box / prep-center tariff settings for storage, prep,
    labels, packing, and outbound handling.
 4. Split profitability and inventory planning by FBA/FBM logic:

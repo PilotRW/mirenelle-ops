@@ -689,6 +689,8 @@ async def product_profitability(
         select(
             AmazonPaymentTransaction.product_details,
             AmazonPaymentTransaction.sku,
+            AmazonPaymentTransaction.external_transaction_id,
+            AmazonPaymentTransaction.marketplace,
             AmazonPaymentTransaction.fulfillment_channel,
             AmazonPaymentTransaction.currency,
             AmazonPaymentTransaction.transaction_type,
@@ -706,28 +708,56 @@ async def product_profitability(
     transaction_query = transaction_query.group_by(
         AmazonPaymentTransaction.product_details,
         AmazonPaymentTransaction.sku,
+        AmazonPaymentTransaction.external_transaction_id,
+        AmazonPaymentTransaction.marketplace,
         AmazonPaymentTransaction.fulfillment_channel,
         AmazonPaymentTransaction.currency,
         AmazonPaymentTransaction.transaction_type,
     )
     transaction_rows = await db.execute(transaction_query)
 
-    by_product: dict[tuple[str, str], dict[str, float | int | str]] = {}
+    order_items = await db.scalars(select(AmazonOrderItem))
+    order_by_payment_key = {
+        (item.amazon_order_id, item.sku): item
+        for item in order_items
+    }
+
+    by_product: dict[tuple[str, str, str], dict[str, object]] = {}
     for row in transaction_rows:
         category = classify_payment_type(row.transaction_type)
-        key = (row.sku or row.product_details, row.fulfillment_channel, row.currency)
+        matched_order = order_by_payment_key.get(
+            (str(row.external_transaction_id or ""), str(row.sku or ""))
+        )
+        fulfillment_channel = (
+            matched_order.fulfillment_channel
+            if matched_order and category == "order"
+            else row.fulfillment_channel
+        )
+        currency = (
+            matched_order.currency
+            if matched_order and matched_order.currency and category == "order"
+            else row.currency
+        )
+        key = (row.sku or row.product_details, fulfillment_channel, currency)
         bucket = by_product.setdefault(
             key,
             {
-                "product_details": row.product_details,
+                "product_details": (
+                    matched_order.product_name
+                    if matched_order and matched_order.product_name
+                    else row.product_details
+                ),
                 "sku": row.sku,
-                "fulfillment_channel": row.fulfillment_channel,
-                "currency": row.currency,
+                "asin": matched_order.asin if matched_order else None,
+                "marketplace": matched_order.marketplace if matched_order else row.marketplace,
+                "fulfillment_channel": fulfillment_channel,
+                "currency": currency,
                 "transaction_rows": 0,
                 "units_estimated": 0,
                 "units_refunded": 0,
                 "revenue_original": 0.0,
                 "revenue_eur": 0.0,
+                "sales_vat_eur": 0.0,
                 "refunds_eur": 0.0,
                 "promotional_rebates_eur": 0.0,
                 "amazon_fees_eur": 0.0,
@@ -737,6 +767,10 @@ async def product_profitability(
         )
         if row.product_details:
             bucket["product_details_aliases"].add(str(row.product_details))
+        if matched_order and matched_order.product_name:
+            bucket["product_details_aliases"].add(str(matched_order.product_name))
+        if matched_order and matched_order.asin:
+            bucket["asin"] = matched_order.asin
         if row.product_details and (
             not bucket.get("product_details")
             or len(str(row.product_details)) > len(str(bucket.get("product_details") or ""))
@@ -751,7 +785,18 @@ async def product_profitability(
                 float(bucket["revenue_eur"]) + eur(row.revenue_original, rate_to_eur),
                 2,
             )
-            bucket["units_estimated"] = int(bucket["units_estimated"]) + int(quantity if quantity else row.rows)
+            order_quantity = money(matched_order.quantity) if matched_order else 0.0
+            bucket["units_estimated"] = int(bucket["units_estimated"]) + int(
+                order_quantity if matched_order else (quantity if quantity else row.rows)
+            )
+            if matched_order:
+                order_currency = matched_order.currency or row.currency or "EUR"
+                order_rate_to_eur = get_rate_for_currency(rates, order_currency)
+                bucket["sales_vat_eur"] = round(
+                    float(bucket["sales_vat_eur"])
+                    + eur(matched_order.item_tax + matched_order.shipping_tax, order_rate_to_eur),
+                    2,
+                )
         elif category == "refund":
             bucket["refunds_eur"] = round(
                 float(bucket["refunds_eur"]) + eur(row.revenue_original, rate_to_eur),
@@ -768,36 +813,6 @@ async def product_profitability(
         )
         bucket["other_amount_eur"] = round(
             float(bucket["other_amount_eur"]) + eur(row.other_amount, rate_to_eur),
-            2,
-        )
-
-    order_tax_query = (
-        select(
-            AmazonOrderItem.sku,
-            AmazonOrderItem.fulfillment_channel,
-            AmazonOrderItem.currency,
-            func.coalesce(func.sum(AmazonOrderItem.item_tax + AmazonOrderItem.shipping_tax), 0).label("sales_vat"),
-        )
-        .where(AmazonOrderItem.sku.is_not(None))
-        .where(AmazonOrderItem.sku != "")
-    )
-    if start_date:
-        order_tax_query = order_tax_query.where(func.date(AmazonOrderItem.purchase_date) >= start_date)
-    if end_date:
-        order_tax_query = order_tax_query.where(func.date(AmazonOrderItem.purchase_date) <= end_date)
-    order_tax_query = order_tax_query.group_by(
-        AmazonOrderItem.sku,
-        AmazonOrderItem.fulfillment_channel,
-        AmazonOrderItem.currency,
-    )
-    order_tax_rows = await db.execute(order_tax_query)
-    sales_vat_by_key: dict[tuple[str, str, str], float] = {}
-    for row in order_tax_rows:
-        currency = row.currency or "EUR"
-        rate_to_eur = get_rate_for_currency(rates, currency)
-        key = (str(row.sku), str(row.fulfillment_channel), str(currency))
-        sales_vat_by_key[key] = round(
-            sales_vat_by_key.get(key, 0.0) + eur(row.sales_vat, rate_to_eur),
             2,
         )
 
@@ -872,33 +887,23 @@ async def product_profitability(
             or (invoice_line.sku or invoice_line.supplier_sku if isinstance(invoice_line, PurchaseInvoiceLine) else None)
             or (cost.sku if cost else None)
         )
-        asin = None
+        asin = str(bucket.get("asin") or "") or None
         ean = (
             ean_by_mapping.get(product_details)
             or (mapping.ean if isinstance(mapping, ProductMapping) else None)
             or (invoice_line.ean if isinstance(invoice_line, PurchaseInvoiceLine) else None)
         )
         if ean is None and cost:
-            asin = raw_lookup(cost.raw_row, "asin", "ASIN")
+            asin = asin or raw_lookup(cost.raw_row, "asin", "ASIN")
             ean = raw_lookup(cost.raw_row, "ean", "EAN") or raw_lookup(cost.raw_row.get("raw_row"), "ean", "EAN")
         elif cost:
-            asin = raw_lookup(cost.raw_row, "asin", "ASIN")
+            asin = asin or raw_lookup(cost.raw_row, "asin", "ASIN")
         purchase_cost_eur = money(cost.purchase_cost) if cost else None
         units_estimated = int(bucket["units_estimated"])
         units_refunded = int(bucket["units_refunded"])
-        revenue_gross_eur = float(bucket["revenue_eur"])
-        sales_vat_eur = round(
-            sales_vat_by_key.get(
-                (
-                    str(sku or ""),
-                    str(bucket["fulfillment_channel"]),
-                    str(bucket["currency"] or "EUR"),
-                ),
-                0.0,
-            ),
-            2,
-        )
-        revenue_eur = round(revenue_gross_eur - sales_vat_eur, 2)
+        revenue_eur = float(bucket["revenue_eur"])
+        sales_vat_eur = round(float(bucket["sales_vat_eur"]), 2)
+        revenue_gross_eur = round(revenue_eur + sales_vat_eur, 2)
         refunds_eur = float(bucket["refunds_eur"])
         promotional_rebates_eur = float(bucket["promotional_rebates_eur"])
         amazon_fees_eur = float(bucket["amazon_fees_eur"])

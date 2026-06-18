@@ -48,7 +48,9 @@ SALES_CHANNEL_MARKETPLACES = {
     "amazon.com.be": "BE",
     "amazon.pl": "PL",
     "amazon.se": "SE",
+    "amazon.ie": "IE",
     "amazon.co.uk": "UK",
+    "non-amazon": "NON_AMAZON",
 }
 
 

@@ -15,8 +15,7 @@ class AmazonOrderItem(Base):
             "amazon_order_id",
             "sku",
             "asin",
-            "import_id",
-            name="uq_amazon_order_items_order_sku_asin_import",
+            name="uq_amazon_order_items_order_sku_asin",
         ),
     )
 
