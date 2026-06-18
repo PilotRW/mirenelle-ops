@@ -795,9 +795,11 @@ async def product_profitability(
     for row in order_tax_rows:
         currency = row.currency or "EUR"
         rate_to_eur = get_rate_for_currency(rates, currency)
-        sales_vat_by_key[
-            (str(row.sku), str(row.fulfillment_channel), str(currency))
-        ] = eur(row.sales_vat, rate_to_eur)
+        key = (str(row.sku), str(row.fulfillment_channel), str(currency))
+        sales_vat_by_key[key] = round(
+            sales_vat_by_key.get(key, 0.0) + eur(row.sales_vat, rate_to_eur),
+            2,
+        )
 
     latest_costs = await db.scalars(
         select(ProductCost).order_by(ProductCost.product_name, ProductCost.effective_date.desc(), ProductCost.id.desc())

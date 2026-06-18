@@ -113,6 +113,13 @@ def marketplace_id_for(code: str) -> str:
     return marketplace_id
 
 
+def marketplace_ids_for(code: str) -> list[str]:
+    normalized = code.upper()
+    if normalized == "EU":
+        return [marketplace_id_for(marketplace) for marketplace in EU_MARKETPLACES]
+    return [marketplace_id_for(normalized)]
+
+
 def utc_day_start(value: date) -> str:
     return datetime.combine(value, datetime_time.min, tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
 
@@ -168,7 +175,7 @@ class AmazonSpApiClient:
         start_date: date,
         end_date: date,
     ) -> str:
-        marketplace_id = marketplace_id_for(marketplace)
+        marketplace_ids = marketplace_ids_for(marketplace)
         response = await self._request_with_retries(
             client=client,
             operation="createReport",
@@ -177,7 +184,7 @@ class AmazonSpApiClient:
             headers=await self._sp_api_headers(client),
             json={
                 "reportType": REPORT_TYPE_ALL_ORDERS_BY_ORDER_DATE,
-                "marketplaceIds": [marketplace_id],
+                "marketplaceIds": marketplace_ids,
                 "dataStartTime": utc_day_start(start_date),
                 "dataEndTime": utc_next_day_start(end_date),
             },

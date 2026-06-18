@@ -1,6 +1,6 @@
 # Mirenelle Ops - Project State
 
-Last updated: 2026-06-16
+Last updated: 2026-06-18
 
 ## Product Direction
 
@@ -184,13 +184,60 @@ Completed:
 - Verified the production connector without exposing credentials: LWA token
   exchange returned `AUTH_OK`, and the read-only Reports API `getReports`
   request for the All Orders report type returned `REPORTS_API_OK`.
+- Ran the first live All Orders downloads:
+  - DE, 2026-05-01 through 2026-05-03: report completed successfully with zero
+    rows and was stored as order import `1`.
+  - DE, 2026-05-15: report completed successfully and was stored as order
+    import `2`, with 7 rows, 7 orders, 6 shipped FBA units, 1 cancelled
+    zero-quantity row, SKU/ASIN coverage on all rows, and real item tax values.
+- The 2026-05-15 report included both `Amazon.de` EUR rows and one `Amazon.se`
+  SEK row even though the report request used the DE marketplace ID. This
+  proved that marketplace must be derived per row from `sales-channel`.
+- Updated the order parser to map `Amazon.de`, `Amazon.se`, and the other
+  supported EU sales channels to the correct marketplace code.
+- Updated All EU sync to create one report request containing all eight EU
+  marketplace IDs instead of making eight report requests that could return
+  overlapping order data.
+- Fixed sales VAT aggregation so a cancelled order row with a null currency
+  cannot overwrite non-zero VAT for the same SKU/fulfillment/currency key.
+- Verified VAT-aware profitability for 2026-05-15:
+  gross revenue EUR 92.40, sales VAT EUR 8.26, net revenue EUR 84.14, and net
+  profit EUR 9.82 for the matched product.
 
-Current VAT caveat:
+## Current Resume Point
 
-- The current local database has no imported `amazon_order_items` tax rows, so
-  `sales_vat_eur` is currently `0.00`. The calculation is ready, but it will
-  only affect profit once All Orders/SP-API order rows with `item_tax` and/or
-  `shipping_tax` are imported.
+The SP-API production connector is operational and test order data is now in the
+local database. Continue from this point:
+
+1. Resolve reconciliation between Amazon Payments and Amazon Orders.
+   Payments use `transaction_date`, while All Orders uses `purchase_date`.
+   For 2026-05-15, Payments show 11 units for `MISSHA-SuperAqua-02`, but Orders
+   purchased that day show 6 shipped units. Do not reconcile only by calendar
+   date.
+2. Inspect whether `amazon_payment_transactions.external_transaction_id`
+   contains the Amazon Order ID and can join to
+   `amazon_order_items.amazon_order_id`. If it does, implement order/SKU-based
+   reconciliation. If not, define a settlement-aware matching strategy.
+3. Make Amazon Orders the source of truth for order quantity, ASIN, SKU,
+   marketplace, fulfillment channel, and sales VAT. Keep Amazon Payments as the
+   source of truth for product charges, refunds, promotions, Amazon fees, and
+   cash/settlement dates.
+4. Before a full-history sync, verify duplicate protection across overlapping
+   report periods and confirm cancelled orders are excluded from sold units and
+   profitability.
+
+Operational notes:
+
+- `.env` contains production credentials locally and is ignored by Git. Never
+  print, commit, paste, or screenshot its values.
+- `getMarketplaceParticipations` returned HTTP 403 because the app does not
+  have a Sellers API role. This is not a connector failure; the required
+  Reports API is authorized and works.
+- The live app is available at `http://localhost:8010/ui/`.
+- The current order imports endpoint is
+  `GET /integrations/amazon-sp-api/orders/imports`.
+- The live sync endpoint is
+  `POST /integrations/amazon-sp-api/orders/sync`.
 
 Current verified inventory examples:
 
@@ -202,13 +249,10 @@ Current verified inventory examples:
 
 Next Plan:
 
-1. Run the first controlled All Orders report download for a short date range,
-   inspect the preview/import result, and verify FBA/FBM, SKU, ASIN, quantity,
-   price, and tax fields before expanding the period.
-2. Use imported Amazon Orders as the source of truth for order quantity,
-   fulfillment channel, SKU, and ASIN; keep Amazon Payments as the money/fees
-   source and reconcile by order/SKU/period. This is also the source that will
-   make sales VAT subtraction active.
+1. Implement reliable Payments-to-Orders reconciliation using order ID + SKU
+   where available, with an explicit fallback when an order ID is unavailable.
+2. Recalculate profitability using Orders for quantity/ASIN/fulfillment/VAT and
+   Payments for financial ledger amounts.
 3. Add Fulfillment-Box / prep-center tariff settings for storage, prep,
    labels, packing, and outbound handling.
 4. Split profitability and inventory planning by FBA/FBM logic:

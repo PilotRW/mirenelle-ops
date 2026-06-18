@@ -39,6 +39,18 @@ REQUIRED_ORDER_FIELDS = {
     "quantity",
 }
 
+SALES_CHANNEL_MARKETPLACES = {
+    "amazon.de": "DE",
+    "amazon.fr": "FR",
+    "amazon.it": "IT",
+    "amazon.es": "ES",
+    "amazon.nl": "NL",
+    "amazon.com.be": "BE",
+    "amazon.pl": "PL",
+    "amazon.se": "SE",
+    "amazon.co.uk": "UK",
+}
+
 
 @dataclass(frozen=True)
 class OrderReportPreview:
@@ -143,9 +155,15 @@ def normalize_fulfillment_channel(value: str | None) -> str:
     return "UNKNOWN"
 
 
+def marketplace_from_sales_channel(value: str | None, fallback: str) -> str:
+    normalized = (value or "").strip().casefold()
+    return SALES_CHANNEL_MARKETPLACES.get(normalized, fallback.upper())
+
+
 def parse_order_row(row: dict[str, str], mapping: dict[str, str], marketplace: str) -> dict:
+    sales_channel = (row.get(mapping["sales_channel"]) or "").strip() or None if "sales_channel" in mapping else None
     return {
-        "marketplace": marketplace,
+        "marketplace": marketplace_from_sales_channel(sales_channel, marketplace),
         "amazon_order_id": (row.get(mapping["amazon_order_id"]) or "").strip(),
         "merchant_order_id": (row.get(mapping["merchant_order_id"]) or "").strip() or None if "merchant_order_id" in mapping else None,
         "purchase_date": parse_datetime(row.get(mapping["purchase_date"])),
@@ -153,7 +171,7 @@ def parse_order_row(row: dict[str, str], mapping: dict[str, str], marketplace: s
         "order_status": (row.get(mapping["order_status"]) or "").strip() or None if "order_status" in mapping else None,
         "item_status": (row.get(mapping["item_status"]) or "").strip() or None if "item_status" in mapping else None,
         "fulfillment_channel": normalize_fulfillment_channel(row.get(mapping["fulfillment_channel"])),
-        "sales_channel": (row.get(mapping["sales_channel"]) or "").strip() or None if "sales_channel" in mapping else None,
+        "sales_channel": sales_channel,
         "ship_service_level": (row.get(mapping["ship_service_level"]) or "").strip() or None if "ship_service_level" in mapping else None,
         "sku": (row.get(mapping["sku"]) or "").strip(),
         "asin": (row.get(mapping["asin"]) or "").strip() or None if "asin" in mapping else None,

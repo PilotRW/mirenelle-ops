@@ -11,7 +11,6 @@ from app.services.amazon_order_import_service import commit_order_report_import
 from app.services.amazon_payment_import_service import DuplicateImportError
 from app.services.amazon_sp_api_client import (
     DONE_REPORT_STATUSES,
-    EU_MARKETPLACES,
     FAILED_REPORT_STATUSES,
     AmazonSpApiClient,
     AmazonSpApiError,
@@ -172,7 +171,7 @@ def _date_chunks(start_date: date, end_date: date) -> list[tuple[date, date]]:
 def _marketplace_codes(marketplace: str) -> tuple[str, ...]:
     normalized = marketplace.upper()
     if normalized == "EU":
-        return EU_MARKETPLACES
+        return ("EU",)
     return (normalized,)
 
 
