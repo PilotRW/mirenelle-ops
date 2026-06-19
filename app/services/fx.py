@@ -1,3 +1,5 @@
+from bisect import bisect_right
+from datetime import date
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -38,9 +40,45 @@ async def get_latest_fx_rates(db: AsyncSession) -> dict[str, Decimal]:
     return rates
 
 
+async def get_fx_rate_history(
+    db: AsyncSession,
+) -> dict[str, list[tuple[date, Decimal]]]:
+    result = await db.scalars(
+        select(FxRate).order_by(
+            FxRate.currency,
+            FxRate.effective_date,
+            FxRate.id,
+        )
+    )
+    history: dict[str, list[tuple[date, Decimal]]] = {
+        "EUR": [(date.min, Decimal("1"))],
+    }
+    for row in result:
+        history.setdefault(row.currency.upper(), []).append(
+            (row.effective_date, row.rate_to_eur)
+        )
+    return history
+
+
+def get_rate_on_date(
+    history: dict[str, list[tuple[date, Decimal]]],
+    currency: str,
+    effective_date: date,
+) -> Decimal:
+    code = currency.upper()
+    if code == "EUR":
+        return Decimal("1")
+    rows = history.get(code, [])
+    position = bisect_right([row_date for row_date, _ in rows], effective_date) - 1
+    if position < 0:
+        raise ValueError(
+            f"Missing FX rate to EUR for {code} on or before {effective_date.isoformat()}"
+        )
+    return rows[position][1]
+
+
 def get_rate_for_currency(rates: dict[str, Decimal], currency: str) -> Decimal:
     rate_to_eur = rates.get(currency.upper())
     if rate_to_eur is None:
         raise ValueError(f"Missing FX rate to EUR for {currency}")
     return rate_to_eur
-

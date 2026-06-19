@@ -1,15 +1,19 @@
 from collections import defaultdict
+from datetime import date
 from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
+from app.models.amazon_order_item import AmazonOrderItem
 from app.models.amazon_payment_transaction import AmazonPaymentTransaction
+from app.models.bundle_component import BundleComponent
 from app.models.inventory_item import InventoryItem
+from app.models.inventory_lot import InventoryLot
 from app.models.product_mapping import ProductMapping
 from app.models.purchase_invoice_line import PurchaseInvoiceLine
 from app.services.product_mapping_service import product_similarity
@@ -79,8 +83,108 @@ class SyncInventoryResponse(BaseModel):
     sales_unmatched: float
 
 
+class OpeningLotRequest(BaseModel):
+    sku: str = Field(min_length=1, max_length=160)
+    ean: str | None = Field(default=None, max_length=64)
+    product_name: str = Field(min_length=1)
+    purchase_date: date
+    quantity_received: float = Field(gt=0)
+    unit_cost: float = Field(gt=0)
+    currency: str = Field(default="EUR", min_length=3, max_length=8)
+    notes: str | None = None
+
+
+class OpeningLotRow(BaseModel):
+    id: int
+    sku: str | None
+    ean: str | None
+    product_name: str
+    purchase_date: str
+    quantity_received: float
+    unit_cost: float
+    currency: str
+    notes: str | None
+
+
+class OpeningLotListResponse(BaseModel):
+    rows: list[OpeningLotRow]
+
+
+class BundleComponentRequest(BaseModel):
+    bundle_sku: str = Field(min_length=1, max_length=160)
+    bundle_name: str | None = Field(default=None, max_length=500)
+    component_sku: str = Field(min_length=1, max_length=160)
+    component_quantity: float = Field(gt=0)
+
+
+class BundleComponentRow(BaseModel):
+    id: int
+    bundle_sku: str
+    bundle_name: str | None
+    component_sku: str
+    component_quantity: float
+
+
+class BundleComponentListResponse(BaseModel):
+    rows: list[BundleComponentRow]
+
+
+class BundleRecipeComponentRequest(BaseModel):
+    component_sku: str = Field(min_length=1, max_length=160)
+    component_quantity: float = Field(gt=0)
+
+
+class BundleRecipeRequest(BaseModel):
+    bundle_sku: str = Field(min_length=1, max_length=160)
+    bundle_name: str | None = Field(default=None, max_length=500)
+    original_bundle_sku: str | None = Field(default=None, max_length=160)
+    components: list[BundleRecipeComponentRequest] = Field(min_length=1)
+
+
+class BundleCandidateRow(BaseModel):
+    sku: str
+    product_name: str | None
+
+
+class ComponentCandidateRow(BaseModel):
+    sku: str
+    product_name: str
+    available_quantity: float
+    latest_unit_cost: float
+    currency: str
+
+
+class BundleCandidateResponse(BaseModel):
+    bundles: list[BundleCandidateRow]
+    components: list[ComponentCandidateRow]
+
+
 def clean_text(value: str | None) -> str | None:
     return (value or "").strip() or None
+
+
+def opening_lot_row(lot: InventoryLot) -> OpeningLotRow:
+    return OpeningLotRow(
+        id=lot.id,
+        sku=lot.sku,
+        ean=lot.ean,
+        product_name=lot.product_name,
+        purchase_date=lot.purchase_date.isoformat(),
+        quantity_received=float(lot.quantity_received),
+        unit_cost=float(lot.unit_cost),
+        currency=lot.currency,
+        notes=lot.notes,
+    )
+
+
+def bundle_component_row(component: BundleComponent) -> BundleComponentRow:
+    return BundleComponentRow(
+        id=component.id,
+        bundle_sku=component.bundle_sku,
+        bundle_name=component.bundle_name,
+        component_sku=component.component_sku,
+        component_quantity=float(component.component_quantity),
+    )
 
 
 def inventory_status(item: InventoryItem) -> str:
@@ -177,6 +281,25 @@ async def calculate_inventory_quantities(
             purchased[sku]["ean"] = line.ean
         if line.product_name:
             purchased[sku]["product_name"] = line.product_name
+
+    opening_lots = await db.scalars(
+        select(InventoryLot).where(InventoryLot.source == "manual_opening")
+    )
+    for lot in opening_lots:
+        sku = (lot.sku or lot.ean or "").strip()
+        if not sku:
+            continue
+        if sku not in purchased:
+            purchased[sku] = {
+                "sku": sku,
+                "ean": lot.ean,
+                "product_name": lot.product_name,
+                "quantity": Decimal("0"),
+            }
+        purchased[sku]["quantity"] += lot.quantity_received or Decimal("0")
+        if lot.ean:
+            purchased[sku]["ean"] = lot.ean
+        purchased[sku]["product_name"] = lot.product_name
 
     for sku, values in purchased.items():
         product_name = values.get("product_name")
@@ -299,6 +422,206 @@ async def inventory_summary(
         low_stock=low_stock,
         out_of_stock=out_of_stock,
     )
+
+
+@router.get("/opening-lots", response_model=OpeningLotListResponse)
+async def list_opening_lots(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> OpeningLotListResponse:
+    lots = await db.scalars(
+        select(InventoryLot)
+        .where(InventoryLot.source == "manual_opening")
+        .order_by(InventoryLot.purchase_date, InventoryLot.id)
+    )
+    return OpeningLotListResponse(rows=[opening_lot_row(lot) for lot in lots])
+
+
+@router.post("/opening-lots", response_model=OpeningLotRow)
+async def create_opening_lot(
+    payload: OpeningLotRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> OpeningLotRow:
+    lot = InventoryLot(
+        source="manual_opening",
+        purchase_date=payload.purchase_date,
+        sku=payload.sku.strip(),
+        ean=clean_text(payload.ean),
+        product_name=payload.product_name.strip(),
+        quantity_received=Decimal(str(payload.quantity_received)),
+        unit_cost=Decimal(str(payload.unit_cost)),
+        currency=payload.currency.strip().upper(),
+        notes=clean_text(payload.notes),
+    )
+    db.add(lot)
+    await db.commit()
+    await db.refresh(lot)
+    return opening_lot_row(lot)
+
+
+@router.delete("/opening-lots/{lot_id}")
+async def delete_opening_lot(
+    lot_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, int | bool]:
+    lot = await db.get(InventoryLot, lot_id)
+    if lot is None or lot.source != "manual_opening":
+        raise HTTPException(status_code=404, detail="Opening inventory lot was not found.")
+    await db.delete(lot)
+    await db.commit()
+    return {"lot_id": lot_id, "deleted": True}
+
+
+@router.get("/bundle-components", response_model=BundleComponentListResponse)
+async def list_bundle_components(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> BundleComponentListResponse:
+    components = await db.scalars(
+        select(BundleComponent).order_by(
+            BundleComponent.bundle_sku,
+            BundleComponent.component_sku,
+        )
+    )
+    return BundleComponentListResponse(
+        rows=[bundle_component_row(component) for component in components]
+    )
+
+
+@router.get("/bundle-candidates", response_model=BundleCandidateResponse)
+async def list_bundle_candidates(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> BundleCandidateResponse:
+    order_rows = await db.execute(
+        select(
+            AmazonOrderItem.sku,
+            AmazonOrderItem.product_name,
+        )
+        .where(AmazonOrderItem.sku != "")
+        .where(AmazonOrderItem.quantity > 0)
+        .order_by(AmazonOrderItem.sku, AmazonOrderItem.purchase_date.desc())
+    )
+    bundles_by_sku: dict[str, str | None] = {}
+    for sku, product_name in order_rows:
+        bundles_by_sku.setdefault(str(sku), product_name)
+
+    lots = list(
+        await db.scalars(
+            select(InventoryLot).order_by(
+                InventoryLot.purchase_date,
+                InventoryLot.id,
+            )
+        )
+    )
+    components_by_sku: dict[str, dict[str, object]] = {}
+    for lot in lots:
+        sku = (lot.sku or lot.supplier_sku or lot.ean or "").strip()
+        if not sku:
+            continue
+        bucket = components_by_sku.setdefault(
+            sku,
+            {
+                "sku": sku,
+                "product_name": lot.product_name,
+                "available_quantity": 0.0,
+                "latest_unit_cost": float(lot.unit_cost),
+                "currency": lot.currency,
+            },
+        )
+        bucket["available_quantity"] = (
+            float(bucket["available_quantity"]) + float(lot.quantity_received)
+        )
+        bucket["product_name"] = lot.product_name
+        bucket["latest_unit_cost"] = float(lot.unit_cost)
+        bucket["currency"] = lot.currency
+
+    return BundleCandidateResponse(
+        bundles=[
+            BundleCandidateRow(sku=sku, product_name=product_name)
+            for sku, product_name in sorted(bundles_by_sku.items())
+        ],
+        components=[
+            ComponentCandidateRow(**values)
+            for values in components_by_sku.values()
+        ],
+    )
+
+
+@router.post("/bundle-components", response_model=BundleComponentRow)
+async def create_bundle_component(
+    payload: BundleComponentRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> BundleComponentRow:
+    bundle_sku = payload.bundle_sku.strip()
+    component_sku = payload.component_sku.strip()
+    existing = await db.scalar(
+        select(BundleComponent).where(
+            BundleComponent.bundle_sku == bundle_sku,
+            BundleComponent.component_sku == component_sku,
+        )
+    )
+    if existing:
+        existing.component_quantity = Decimal(str(payload.component_quantity))
+        existing.bundle_name = clean_text(payload.bundle_name)
+        component = existing
+    else:
+        component = BundleComponent(
+            bundle_sku=bundle_sku,
+            bundle_name=clean_text(payload.bundle_name),
+            component_sku=component_sku,
+            component_quantity=Decimal(str(payload.component_quantity)),
+        )
+        db.add(component)
+    await db.commit()
+    await db.refresh(component)
+    return bundle_component_row(component)
+
+
+@router.post("/bundle-recipes", response_model=BundleComponentListResponse)
+async def save_bundle_recipe(
+    payload: BundleRecipeRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> BundleComponentListResponse:
+    bundle_sku = payload.bundle_sku.strip()
+    original_bundle_sku = clean_text(payload.original_bundle_sku)
+    component_skus = [component.component_sku.strip() for component in payload.components]
+    if len(component_skus) != len(set(component_skus)):
+        raise HTTPException(status_code=422, detail="A component can appear only once in a bundle recipe.")
+
+    skus_to_replace = {bundle_sku}
+    if original_bundle_sku:
+        skus_to_replace.add(original_bundle_sku)
+    await db.execute(
+        delete(BundleComponent).where(BundleComponent.bundle_sku.in_(skus_to_replace))
+    )
+
+    components = [
+        BundleComponent(
+            bundle_sku=bundle_sku,
+            bundle_name=clean_text(payload.bundle_name),
+            component_sku=component_sku,
+            component_quantity=Decimal(str(component.component_quantity)),
+        )
+        for component, component_sku in zip(payload.components, component_skus, strict=True)
+    ]
+    db.add_all(components)
+    await db.commit()
+    for component in components:
+        await db.refresh(component)
+    return BundleComponentListResponse(
+        rows=[bundle_component_row(component) for component in components]
+    )
+
+
+@router.delete("/bundle-components/{component_id}")
+async def delete_bundle_component(
+    component_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, int | bool]:
+    component = await db.get(BundleComponent, component_id)
+    if component is None:
+        raise HTTPException(status_code=404, detail="Bundle component was not found.")
+    await db.delete(component)
+    await db.commit()
+    return {"component_id": component_id, "deleted": True}
 
 
 @router.post("/items", response_model=InventoryItemRow)

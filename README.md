@@ -155,6 +155,79 @@ GET /reports/product-profitability
 GET /reports/purchase-summary
 ```
 
+Fulfillment cost settings:
+
+```text
+GET /settings/fulfillment-costs
+PUT /settings/fulfillment-costs
+```
+
+These settings hold EUR-per-sold-unit rates for FBA prep/storage and FBM
+prep, packaging, outbound logistics, and storage. They are shown separately
+from COGS and Amazon fees in Product Profitability and reduce net profit.
+Storage is currently an estimated allocation per sold unit; warehouse-day
+storage will replace it after inventory snapshots are available.
+
+Product COGS uses FIFO inventory lots created from purchase invoice product
+lines. Each lot preserves its invoice date, received quantity, and landed unit
+cost. Profitability consumes all historical sales chronologically through the
+report end date, so older stock carries into later months and is exhausted
+before newer, differently priced stock. Products without enough dated lots are
+shown as missing cost rather than being assigned a future/latest invoice price.
+
+The Product Costs page is a FIFO lot registry rather than a latest-price list.
+It shows every acquisition lot, including repeated purchases of the same SKU,
+with purchase date, received quantity, base unit cost, allocated inbound
+shipping per unit, landed unit cost, currency, source, supplier, and invoice.
+
+Opening stock that predates imported invoices can be entered from the Inventory
+page or through:
+
+```text
+GET    /inventory/opening-lots
+POST   /inventory/opening-lots
+DELETE /inventory/opening-lots/{lot_id}
+```
+
+An opening lot requires the Amazon SKU, stock date, quantity, landed unit cost,
+and currency. It participates in FIFO immediately and is included in purchased
+inventory quantities.
+
+Bundle recipes can also be configured on the Inventory page:
+
+```text
+GET    /inventory/bundle-components
+POST   /inventory/bundle-components
+POST   /inventory/bundle-recipes
+DELETE /inventory/bundle-components/{component_id}
+```
+
+Each recipe maps a sold Amazon bundle SKU to one or more component SKU/EAN
+values and quantities per sold bundle. FIFO consumes all recipe components
+atomically. If any component is unavailable, the bundle remains missing cost
+instead of receiving partial COGS.
+
+The UI uses a draft workflow. Choose or type the sold Amazon bundle SKU, add
+each component and quantity with `Add component`, then persist the complete
+recipe with `Save bundle`. `Add component` does not write to the database.
+`POST /inventory/bundle-recipes` replaces the complete recipe atomically, so
+editing an existing bundle cannot leave a partially saved component list.
+Bundle SKU suggestions come from positive-quantity Amazon Orders rows and are
+filtered only after the operator types at least two characters.
+
+Example complete-recipe payload:
+
+```json
+{
+  "bundle_sku": "AMAZON-BUNDLE-SKU",
+  "bundle_name": "Confirmed bundle name",
+  "components": [
+    {"component_sku": "COMPONENT-1", "component_quantity": 1},
+    {"component_sku": "COMPONENT-2", "component_quantity": 2}
+  ]
+}
+```
+
 Analytics reports accept optional date filters:
 
 ```text
@@ -171,7 +244,15 @@ EUR reporting. FX rates are operator-configurable through:
 ```text
 GET  /settings/fx-rates
 POST /settings/fx-rates
+POST /settings/fx-rates/sync-ecb
 ```
+
+ECB sync imports official daily reference rates from the ECB Data API. ECB
+publishes `1 EUR = X foreign currency`; the importer stores the inverse as
+`rate_to_eur`. Payments, refunds, fees, and order VAT use the rate effective on
+their transaction date. Weekends and holidays fall back to the most recent
+previous ECB business-day rate. Monthly reports aggregate only after each
+transaction has been converted.
 
 Generic report preview for shaping upcoming importers:
 

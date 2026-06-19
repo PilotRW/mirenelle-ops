@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260614-03" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260619-10" />
   </head>
   <body>
     <div class="appShell">
@@ -116,6 +116,7 @@
                         <th class="num" data-i18n="table.cogsEur">COGS EUR</th>
                         <th class="num" data-i18n="table.refunds">Refunds</th>
                         <th class="num" data-i18n="table.amazonFees">Amazon fees</th>
+                        <th class="num" data-i18n="table.operationalCosts">Operational costs</th>
                         <th class="num" data-i18n="table.grossProfit">Gross Profit</th>
                         <th class="num" data-i18n="table.margin">Margin</th>
                         <th class="num" data-i18n="table.roi">ROI</th>
@@ -162,6 +163,24 @@
                   <span class="status" data-status-key="status.loaded">Loaded</span>
                 </div>
                 <div id="dataQualityTotals" class="kpis"></div>
+                <h3 data-i18n="section.reconciliation">Payments / Orders reconciliation</h3>
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th data-i18n="table.status">Status</th>
+                        <th data-i18n="table.type">Type</th>
+                        <th data-i18n="table.orderId">Order ID</th>
+                        <th data-i18n="table.sku">SKU</th>
+                        <th class="num" data-i18n="table.paymentUnits">Payment units</th>
+                        <th class="num" data-i18n="table.orderUnits">Order units</th>
+                        <th class="num" data-i18n="table.totalEur">Total EUR</th>
+                      </tr>
+                    </thead>
+                    <tbody id="reconciliationRows"></tbody>
+                  </table>
+                </div>
+                <h3 data-i18n="section.missingCosts">Missing product costs</h3>
                 <div class="tableWrap">
                   <table>
                     <thead>
@@ -398,31 +417,26 @@
                 <button type="submit" data-i18n="action.save">Save</button>
                 <button id="clearManualCostButton" class="secondaryButton" type="button" data-i18n="action.clear">Clear</button>
               </form>
-              <div class="tableWrap twoTables">
+              <div class="tableWrap">
                 <table>
                   <thead>
                     <tr>
-                      <th data-i18n="table.id">ID</th>
-                      <th class="num" data-i18n="table.rows">Rows</th>
-                      <th data-i18n="table.effective">Effective</th>
-                      <th data-i18n="table.file">File</th>
-                      <th data-i18n="table.action">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody id="costImports"></tbody>
-                </table>
-                <table>
-                  <thead>
-                    <tr>
+                      <th data-i18n="table.date">Date</th>
                       <th data-i18n="table.sku">SKU</th>
                       <th>EAN</th>
-                      <th data-i18n="table.name">Name</th>
-                      <th class="num" data-i18n="table.cost">Cost</th>
-                      <th data-i18n="table.effective">Effective</th>
+                      <th data-i18n="table.product">Product</th>
+                      <th class="num" data-i18n="table.quantity">Quantity</th>
+                      <th class="num" data-i18n="table.baseCost">Base cost</th>
+                      <th class="num" data-i18n="table.inboundPerUnit">Inbound / unit</th>
+                      <th class="num" data-i18n="table.landedCost">Landed cost</th>
+                      <th data-i18n="field.currency">Currency</th>
+                      <th data-i18n="table.source">Source</th>
+                      <th data-i18n="field.supplier">Supplier</th>
+                      <th data-i18n="field.invoiceNumber">Invoice</th>
                       <th data-i18n="table.action">Action</th>
                     </tr>
                   </thead>
-                  <tbody id="latestCosts"></tbody>
+                  <tbody id="costLots"></tbody>
                 </table>
               </div>
             </section>
@@ -483,6 +497,7 @@
                       <th class="num" data-i18n="table.cogsEur">COGS EUR</th>
                       <th class="num" data-i18n="table.refunds">Refunds</th>
                       <th class="num" data-i18n="table.amazonFees">Amazon fees</th>
+                      <th class="num" data-i18n="table.operationalCosts">Operational costs</th>
                       <th class="num" data-i18n="table.grossProfit">Gross Profit</th>
                       <th class="num" data-i18n="table.margin">Margin</th>
                       <th class="num" data-i18n="table.roi">ROI</th>
@@ -671,6 +686,114 @@
                 <button type="submit" data-i18n="action.save">Save</button>
                 <button id="clearInventoryButton" class="secondaryButton" type="button" data-i18n="action.clear">Clear</button>
               </form>
+              <section class="subPanel">
+                <div class="sectionHeader">
+                  <h3 data-i18n="section.openingInventoryLots">Opening Inventory Lots</h3>
+                </div>
+                <form id="openingLotForm" class="formRow">
+                  <label>
+                    <span data-i18n="table.sku">Amazon SKU</span>
+                    <input name="sku" required />
+                  </label>
+                  <label>
+                    <span>EAN</span>
+                    <input name="ean" />
+                  </label>
+                  <label>
+                    <span data-i18n="field.productName">Product name</span>
+                    <input name="product_name" required />
+                  </label>
+                  <label>
+                    <span data-i18n="table.date">Stock date</span>
+                    <input name="purchase_date" type="date" required />
+                  </label>
+                  <label>
+                    <span data-i18n="table.quantity">Quantity</span>
+                    <input name="quantity_received" type="number" min="0.001" step="0.001" required />
+                  </label>
+                  <label>
+                    <span data-i18n="table.costEur">Landed unit cost</span>
+                    <input name="unit_cost" type="number" min="0.0001" step="0.0001" required />
+                  </label>
+                  <label>
+                    <span data-i18n="field.currency">Currency</span>
+                    <select name="currency" required>
+                      <option value="EUR">EUR</option>
+                      <option value="GBP">GBP</option>
+                      <option value="PLN">PLN</option>
+                      <option value="SEK">SEK</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span data-i18n="table.notes">Notes</span>
+                    <input name="notes" />
+                  </label>
+                  <button type="submit" data-i18n="action.addOpeningLot">Add opening lot</button>
+                </form>
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th data-i18n="table.date">Date</th>
+                        <th data-i18n="table.sku">SKU</th>
+                        <th data-i18n="table.product">Product</th>
+                        <th class="num" data-i18n="table.quantity">Quantity</th>
+                        <th class="num" data-i18n="table.costEur">Unit cost</th>
+                        <th data-i18n="table.notes">Notes</th>
+                        <th data-i18n="table.action">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="openingLotRows"></tbody>
+                  </table>
+                </div>
+              </section>
+              <section class="subPanel">
+                <div class="sectionHeader">
+                  <h3 data-i18n="section.bundleRecipes">Bundle Recipes</h3>
+                </div>
+                <div class="recipeBuilder">
+                  <aside class="recipeListPane">
+                    <div class="recipePaneHeader">
+                      <strong data-i18n="section.bundleRecipes">Bundle Recipes</strong>
+                      <span id="recipeCount" class="recipeCount">0</span>
+                    </div>
+                    <div id="bundleRecipeCards" class="recipeCards"></div>
+                  </aside>
+                  <div class="recipeEditorPane">
+                    <form id="bundleComponentForm" class="recipeEditorForm">
+                      <div class="recipeBundleFields">
+                        <label>
+                          <span data-i18n="field.bundleSku">Bundle Amazon SKU</span>
+                          <input name="bundle_sku" autocomplete="off" required />
+                          <div id="bundleSkuSuggestions" class="recipeSuggestions"></div>
+                        </label>
+                        <label>
+                          <span data-i18n="field.bundleName">Bundle name</span>
+                          <input name="bundle_name" />
+                        </label>
+                      </div>
+                      <div class="recipeComponentPicker">
+                        <label>
+                          <span data-i18n="field.componentSku">Component SKU / EAN</span>
+                          <input name="component_sku" list="componentSkuOptions" required />
+                          <datalist id="componentSkuOptions"></datalist>
+                        </label>
+                        <label class="recipeQuantityField">
+                          <span data-i18n="field.componentQuantity">Qty / bundle</span>
+                          <input name="component_quantity" type="number" min="0.001" step="0.001" value="1" required />
+                        </label>
+                        <button type="submit" data-i18n="action.addComponent">Add component</button>
+                      </div>
+                    </form>
+                    <div id="activeRecipeSummary" class="activeRecipeSummary"></div>
+                    <div id="activeRecipeComponents" class="componentCards"></div>
+                    <div class="recipeSaveBar">
+                      <span id="bundleDraftStatus" class="recipeDraftStatus"></span>
+                      <button id="saveBundleRecipeButton" type="button" data-i18n="action.saveBundle">Save bundle</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
               <div class="tableWrap inventoryTable">
                 <table>
                   <thead>
@@ -815,6 +938,41 @@
 
               <section class="panel">
                 <div class="sectionHeader">
+                  <h2 data-i18n="section.fulfillmentCosts">Fulfillment Costs</h2>
+                  <span id="fulfillmentCostStatus" class="status" data-status-key="status.ready">Ready</span>
+                </div>
+                <form id="fulfillmentCostForm" class="formRow">
+                  <label>
+                    <span data-i18n="field.fbaPrepPerUnit">FBA prep / unit EUR</span>
+                    <input name="fba_prep_per_unit" type="number" min="0" step="0.01" required />
+                  </label>
+                  <label>
+                    <span data-i18n="field.fbaStoragePerUnit">FBA storage / sold unit EUR</span>
+                    <input name="fba_storage_per_unit" type="number" min="0" step="0.01" required />
+                  </label>
+                  <label>
+                    <span data-i18n="field.fbmPrepPerUnit">FBM prep / unit EUR</span>
+                    <input name="fbm_prep_per_unit" type="number" min="0" step="0.01" required />
+                  </label>
+                  <label>
+                    <span data-i18n="field.fbmPackagingPerUnit">FBM packaging / unit EUR</span>
+                    <input name="fbm_packaging_per_unit" type="number" min="0" step="0.01" required />
+                  </label>
+                  <label>
+                    <span data-i18n="field.fbmOutboundPerUnit">FBM outbound / unit EUR</span>
+                    <input name="fbm_outbound_per_unit" type="number" min="0" step="0.01" required />
+                  </label>
+                  <label>
+                    <span data-i18n="field.fbmStoragePerUnit">FBM storage / sold unit EUR</span>
+                    <input name="fbm_storage_per_unit" type="number" min="0" step="0.01" required />
+                  </label>
+                  <button type="submit" data-i18n="action.save">Save</button>
+                </form>
+                <p class="muted" data-i18n="message.storageAllocationNote">Storage is currently an estimated cost per sold unit until warehouse-day inventory snapshots are available.</p>
+              </section>
+
+              <section class="panel">
+                <div class="sectionHeader">
                   <h2 data-i18n="section.fxRates">FX Rates</h2>
                   <span id="fxStatus" class="status" data-status-key="status.ready">Ready</span>
                 </div>
@@ -837,6 +995,17 @@
                     <input name="effective_date" type="date" required />
                   </label>
                   <button type="submit" data-i18n="action.add">Add</button>
+                </form>
+                <form id="ecbSyncForm" class="formRow fxForm">
+                  <label>
+                    <span data-i18n="field.startDate">Start date</span>
+                    <input name="start_date" type="date" required />
+                  </label>
+                  <label>
+                    <span data-i18n="field.endDate">End date</span>
+                    <input name="end_date" type="date" required />
+                  </label>
+                  <button type="submit" data-i18n="action.syncEcbRates">Sync ECB rates</button>
                 </form>
                 <div class="tableWrap">
                   <table>
@@ -895,6 +1064,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260615-02"></script>
+    <script src="/ui/app.js?v=20260619-10"></script>
   </body>
 </html>

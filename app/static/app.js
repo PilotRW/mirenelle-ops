@@ -2,6 +2,9 @@ const translations = {
   en: {
     "app.tagline": "Amazon accounting imports, product costs, and monthly cashflow.",
     "action.add": "Add",
+    "action.addOpeningLot": "Add opening lot",
+    "action.addComponent": "Add component",
+    "action.saveBundle": "Save bundle",
     "action.commit": "Commit",
     "action.commitRaw": "Commit raw",
     "action.mockCosts": "Mock Costs",
@@ -19,6 +22,7 @@ const translations = {
     "action.commitManualReport": "Commit manual report",
     "action.syncOaCatalog": "Sync OA catalog",
     "action.syncInventory": "Sync stock",
+    "action.syncEcbRates": "Sync ECB rates",
     "action.useMatch": "Use",
     "action.viewLines": "Lines",
     "allocation.byLineValue": "By line value",
@@ -30,6 +34,7 @@ const translations = {
     "field.effectiveDate": "Effective date",
     "field.endDate": "End date",
     "field.invoiceDate": "Invoice date",
+    "field.invoiceNumber": "Invoice",
     "field.invoiceFile": "Invoice CSV/XLSX/PDF",
     "field.invoiceNumber": "Invoice number",
     "field.marketplace": "Marketplace",
@@ -42,6 +47,16 @@ const translations = {
     "field.supplierSku": "Supplier SKU",
     "field.productName": "Product name",
     "field.fulfillment": "Fulfillment",
+    "field.bundleSku": "Bundle Amazon SKU",
+    "field.bundleName": "Bundle name",
+    "field.componentSku": "Component SKU / EAN",
+    "field.componentQuantity": "Component quantity",
+    "field.fbaPrepPerUnit": "FBA prep / unit EUR",
+    "field.fbaStoragePerUnit": "FBA storage / sold unit EUR",
+    "field.fbmPrepPerUnit": "FBM prep / unit EUR",
+    "field.fbmPackagingPerUnit": "FBM packaging / unit EUR",
+    "field.fbmOutboundPerUnit": "FBM outbound / unit EUR",
+    "field.fbmStoragePerUnit": "FBM storage / sold unit EUR",
     "field.amazonProductSearch": "Amazon product search",
     "field.invoiceProductSearch": "Invoice product search",
     "field.invoiceProductsSearch": "Invoice product search",
@@ -54,7 +69,18 @@ const translations = {
     "message.confirmDeleteCostImport": "Delete this product cost import? Its product costs will be removed from analytics.",
     "message.confirmDeleteGenericReport": "Delete this raw report import?",
     "message.confirmDeleteInventory": "Delete this inventory item?",
+    "message.confirmDeleteOpeningLot": "Delete this opening inventory lot?",
+    "message.confirmDeleteComponent": "Delete this bundle component?",
+    "recipe.chooseBundle": "Choose a bundle or start a new recipe",
+    "recipe.componentLines": "Components",
+    "recipe.totalUnits": "Units per bundle",
+    "recipe.estimatedCost": "Estimated recipe cost",
+    "recipe.empty": "No components yet. Add the first product above.",
+    "recipe.purchased": "Purchased in FIFO lots",
+    "recipe.latestCost": "Latest lot cost",
+    "recipe.unsaved": "Unsaved changes",
     "message.selectInvoiceLine": "Select an invoice product first.",
+    "message.storageAllocationNote": "Storage is currently estimated per sold unit until warehouse-day inventory snapshots are available.",
     "marketplace.eu": "All EU marketplaces",
     "metric.withEan": "With EAN",
     "preview.detectedFields": "Detected fields",
@@ -95,14 +121,19 @@ const translations = {
     "section.fxRates": "FX Rates",
     "section.generalCashflow": "General Cashflow",
     "section.inventory": "Inventory",
+    "section.openingInventoryLots": "Opening Inventory Lots",
+    "section.bundleRecipes": "Bundle Recipes",
     "section.invoiceLines": "Invoice Lines",
     "section.landedCost": "Landed Cost",
+    "section.fulfillmentCosts": "Fulfillment Costs",
     "section.paymentLines": "Payment Lines",
     "section.productCosts": "Product Costs",
     "section.productMappings": "Product Mappings",
     "section.oaCatalog": "OA Catalog",
     "section.amazonPnl": "Amazon P&L",
     "section.dataQuality": "Data Quality",
+    "section.reconciliation": "Payments / Orders reconciliation",
+    "section.missingCosts": "Missing product costs",
     "section.productProfitability": "Product Profitability",
     "section.purchaseSummary": "Purchase Summary",
     "section.purchaseInvoices": "Purchase Invoices",
@@ -121,6 +152,10 @@ const translations = {
     "status.breakeven": "breakeven",
     "status.unknown": "unknown",
     "status.unmapped": "unmapped",
+    "status.unmatched": "unmatched",
+    "status.quantityMismatch": "quantity mismatch",
+    "status.refundPending": "refund: separate reconciliation",
+    "status.returnFeePending": "return fee: separate reconciliation",
     "status.healthy": "healthy",
     "status.lowStock": "low stock",
     "status.outOfStock": "out of stock",
@@ -136,6 +171,7 @@ const translations = {
     "table.amazonFees": "Amazon fees",
     "table.avgSellingPrice": "Avg selling price",
     "table.amazonOperatingResult": "Amazon operating result",
+    "table.baseCost": "Base cost",
     "table.cogsEur": "COGS EUR",
     "table.confidence": "Confidence",
     "table.cost": "Cost",
@@ -155,6 +191,8 @@ const translations = {
     "table.identifiers": "ASIN / SKU / EAN",
     "table.invoiceProduct": "Invoice product",
     "table.inboundShipping": "Inbound shipping",
+    "table.inboundPerUnit": "Inbound / unit",
+    "table.landedCost": "Landed cost",
     "table.available": "Available",
     "table.inbound": "Inbound",
     "table.lineType": "Line type",
@@ -171,6 +209,7 @@ const translations = {
     "table.netProfit": "Net profit",
     "table.netRoi": "Net ROI",
     "table.other": "Other",
+    "table.operationalCosts": "Operational costs",
     "table.onHand": "On hand",
     "table.paymentRows": "Payment rows",
     "table.period": "Period",
@@ -189,11 +228,17 @@ const translations = {
     "table.roi": "ROI",
     "table.rows": "Rows",
     "table.ordersUnits": "Orders / Units",
+    "table.orderId": "Order ID",
+    "table.orderMatch": "Order match",
+    "table.orderUnits": "Order units",
+    "table.paymentUnits": "Payment units",
+    "table.refundGroups": "Refund groups",
     "table.sales": "Sales",
     "table.salesVat": "Sales VAT",
     "table.salesCurrency": "Sales currency",
     "table.sku": "SKU",
     "table.sold": "Sold",
+    "table.source": "Source",
     "table.stockFlow": "Stock flow",
     "table.stockAlerts": "Stock alerts",
     "table.status": "Status",
@@ -215,6 +260,9 @@ const translations = {
   de: {
     "app.tagline": "Amazon-Buchhaltungsimporte, Einkaufspreise und monatlicher Cashflow.",
     "action.add": "Hinzufügen",
+    "action.addOpeningLot": "Anfangsbestand hinzufügen",
+    "action.addComponent": "Komponente hinzufügen",
+    "action.saveBundle": "Bundle speichern",
     "action.commit": "Speichern",
     "action.commitRaw": "Rohdaten speichern",
     "action.mockCosts": "Preise mocken",
@@ -232,6 +280,7 @@ const translations = {
     "action.commitManualReport": "Manuellen Report speichern",
     "action.syncOaCatalog": "OA-Katalog synchronisieren",
     "action.syncInventory": "Bestand synchronisieren",
+    "action.syncEcbRates": "ECB-Kurse synchronisieren",
     "action.useMatch": "Nutzen",
     "action.viewLines": "Zeilen",
     "allocation.byLineValue": "Nach Zeilenwert",
@@ -243,6 +292,7 @@ const translations = {
     "field.effectiveDate": "Gültig ab",
     "field.endDate": "Enddatum",
     "field.invoiceDate": "Rechnungsdatum",
+    "field.invoiceNumber": "Rechnung",
     "field.invoiceFile": "Rechnung CSV/XLSX/PDF",
     "field.invoiceNumber": "Rechnungsnummer",
     "field.marketplace": "Marketplace",
@@ -255,6 +305,16 @@ const translations = {
     "field.supplierSku": "Lieferanten-SKU",
     "field.productName": "Produktname",
     "field.fulfillment": "Fulfillment",
+    "field.bundleSku": "Bundle Amazon SKU",
+    "field.bundleName": "Bundle-Name",
+    "field.componentSku": "Komponenten-SKU / EAN",
+    "field.componentQuantity": "Komponentenmenge",
+    "field.fbaPrepPerUnit": "FBA Vorbereitung / Einheit EUR",
+    "field.fbaStoragePerUnit": "FBA Lager / verkaufte Einheit EUR",
+    "field.fbmPrepPerUnit": "FBM Vorbereitung / Einheit EUR",
+    "field.fbmPackagingPerUnit": "FBM Verpackung / Einheit EUR",
+    "field.fbmOutboundPerUnit": "FBM Versand / Einheit EUR",
+    "field.fbmStoragePerUnit": "FBM Lager / verkaufte Einheit EUR",
     "field.amazonProductSearch": "Amazon-Produkt suchen",
     "field.invoiceProductSearch": "Rechnungsprodukt suchen",
     "field.invoiceProductsSearch": "Rechnungsprodukt suchen",
@@ -267,7 +327,18 @@ const translations = {
     "message.confirmDeleteCostImport": "Diesen Produktkosten-Import löschen? Die Produktkosten werden aus der Analyse entfernt.",
     "message.confirmDeleteGenericReport": "Diesen Rohreport-Import löschen?",
     "message.confirmDeleteInventory": "Diesen Bestandseintrag löschen?",
+    "message.confirmDeleteOpeningLot": "Diese Anfangsbestands-Charge löschen?",
+    "message.confirmDeleteComponent": "Diese Bundle-Komponente löschen?",
+    "recipe.chooseBundle": "Bundle wählen oder ein neues Rezept anlegen",
+    "recipe.componentLines": "Komponenten",
+    "recipe.totalUnits": "Einheiten pro Bundle",
+    "recipe.estimatedCost": "Geschätzte Rezeptkosten",
+    "recipe.empty": "Noch keine Komponenten. Fügen Sie oben das erste Produkt hinzu.",
+    "recipe.purchased": "In FIFO-Losen eingekauft",
+    "recipe.latestCost": "Letzter Lospreis",
+    "recipe.unsaved": "Nicht gespeicherte Änderungen",
     "message.selectInvoiceLine": "Wähle zuerst ein Rechnungsprodukt.",
+    "message.storageAllocationNote": "Lagerkosten werden vorerst pro verkaufter Einheit geschätzt, bis tägliche Bestands-Snapshots verfügbar sind.",
     "marketplace.eu": "Alle EU-Marketplaces",
     "metric.withEan": "Mit EAN",
     "preview.detectedFields": "Erkannte Felder",
@@ -308,14 +379,19 @@ const translations = {
     "section.fxRates": "Wechselkurse",
     "section.generalCashflow": "Gesamt-Cashflow",
     "section.inventory": "Bestand",
+    "section.openingInventoryLots": "Anfangsbestands-Chargen",
+    "section.bundleRecipes": "Bundle-Rezepte",
     "section.invoiceLines": "Rechnungszeilen",
     "section.landedCost": "Landed Cost",
+    "section.fulfillmentCosts": "Fulfillment-Kosten",
     "section.paymentLines": "Zahlungszeilen",
     "section.productCosts": "Einkaufspreise",
     "section.productMappings": "Produktzuordnung",
     "section.oaCatalog": "OA-Katalog",
     "section.amazonPnl": "Amazon P&L",
     "section.dataQuality": "Datenqualität",
+    "section.reconciliation": "Abgleich Zahlungen / Bestellungen",
+    "section.missingCosts": "Fehlende Produktkosten",
     "section.productProfitability": "Produktprofitabilität",
     "section.purchaseSummary": "Einkaufsübersicht",
     "section.purchaseInvoices": "Einkaufsrechnungen",
@@ -334,6 +410,10 @@ const translations = {
     "status.breakeven": "Null",
     "status.unknown": "unbekannt",
     "status.unmapped": "nicht zugeordnet",
+    "status.unmatched": "nicht zugeordnet",
+    "status.quantityMismatch": "Mengenabweichung",
+    "status.refundPending": "Erstattung: separater Abgleich",
+    "status.returnFeePending": "Rücksendegebühr: separater Abgleich",
     "status.healthy": "gesund",
     "status.lowStock": "niedriger Bestand",
     "status.outOfStock": "ausverkauft",
@@ -349,6 +429,7 @@ const translations = {
     "table.amazonFees": "Amazon-Gebühren",
     "table.avgSellingPrice": "Ø Verkaufspreis",
     "table.amazonOperatingResult": "Amazon-Betriebsergebnis",
+    "table.baseCost": "Basispreis",
     "table.cogsEur": "Wareneinsatz EUR",
     "table.confidence": "Konfidenz",
     "table.cost": "Kosten",
@@ -370,6 +451,8 @@ const translations = {
     "table.available": "Verfügbar",
     "table.inbound": "Inbound",
     "table.inboundShipping": "Transport",
+    "table.inboundPerUnit": "Transport / Einheit",
+    "table.landedCost": "Landed Cost",
     "table.lineType": "Zeilentyp",
     "table.lastSync": "Letzte Synchronisierung",
     "table.market": "Markt",
@@ -384,6 +467,7 @@ const translations = {
     "table.netProfit": "Nettogewinn",
     "table.netRoi": "Netto-ROI",
     "table.other": "Sonstiges",
+    "table.operationalCosts": "Operative Kosten",
     "table.onHand": "Auf Lager",
     "table.paymentRows": "Zahlungszeilen",
     "table.period": "Zeitraum",
@@ -402,11 +486,17 @@ const translations = {
     "table.roi": "ROI",
     "table.rows": "Zeilen",
     "table.ordersUnits": "Bestellungen / Einheiten",
+    "table.orderId": "Bestell-ID",
+    "table.orderMatch": "Bestellabgleich",
+    "table.orderUnits": "Bestelleinheiten",
+    "table.paymentUnits": "Zahlungseinheiten",
+    "table.refundGroups": "Erstattungsgruppen",
     "table.sales": "Umsatz",
     "table.salesVat": "Umsatzsteuer",
     "table.salesCurrency": "Verkaufswährung",
     "table.sku": "SKU",
     "table.sold": "Verkauft",
+    "table.source": "Quelle",
     "table.stockFlow": "Bestandsbewegung",
     "table.stockAlerts": "Bestandssignale",
     "table.status": "Status",
@@ -428,6 +518,9 @@ const translations = {
   uk: {
     "app.tagline": "Імпорт Amazon-обліку, закупівельні ціни та місячний cashflow.",
     "action.add": "Додати",
+    "action.addOpeningLot": "Додати початкову партію",
+    "action.addComponent": "Додати компонент",
+    "action.saveBundle": "Зберегти бандл",
     "action.commit": "Зберегти",
     "action.commitRaw": "Зберегти raw",
     "action.mockCosts": "Mock цін",
@@ -445,6 +538,7 @@ const translations = {
     "action.commitManualReport": "Зберегти ручний звіт",
     "action.syncOaCatalog": "Синхронізувати OA каталог",
     "action.syncInventory": "Синхронізувати залишки",
+    "action.syncEcbRates": "Синхронізувати курси ECB",
     "action.useMatch": "Застосувати",
     "action.viewLines": "Позиції",
     "allocation.byLineValue": "За вартістю рядка",
@@ -456,6 +550,7 @@ const translations = {
     "field.effectiveDate": "Дата дії",
     "field.endDate": "Дата завершення",
     "field.invoiceDate": "Дата інвойсу",
+    "field.invoiceNumber": "Інвойс",
     "field.invoiceFile": "Інвойс CSV/XLSX/PDF",
     "field.invoiceNumber": "Номер інвойсу",
     "field.marketplace": "Маркетплейс",
@@ -468,6 +563,16 @@ const translations = {
     "field.supplierSku": "SKU постачальника",
     "field.productName": "Назва товару",
     "field.fulfillment": "Фулфілмент",
+    "field.bundleSku": "Amazon SKU набору",
+    "field.bundleName": "Назва набору",
+    "field.componentSku": "SKU / EAN компонента",
+    "field.componentQuantity": "Кількість компонента",
+    "field.fbaPrepPerUnit": "FBA prep / одиницю EUR",
+    "field.fbaStoragePerUnit": "FBA зберігання / продану одиницю EUR",
+    "field.fbmPrepPerUnit": "FBM prep / одиницю EUR",
+    "field.fbmPackagingPerUnit": "FBM пакування / одиницю EUR",
+    "field.fbmOutboundPerUnit": "FBM відправлення / одиницю EUR",
+    "field.fbmStoragePerUnit": "FBM зберігання / продану одиницю EUR",
     "field.amazonProductSearch": "Пошук Amazon товару",
     "field.invoiceProductSearch": "Пошук товару з інвойсу",
     "field.invoiceProductsSearch": "Пошук товару з інвойсу",
@@ -480,7 +585,18 @@ const translations = {
     "message.confirmDeleteCostImport": "Видалити цей імпорт закупівельних цін? Його ціни зникнуть з аналітики.",
     "message.confirmDeleteGenericReport": "Видалити цей raw-імпорт звіту?",
     "message.confirmDeleteInventory": "Видалити цей запис залишків?",
+    "message.confirmDeleteOpeningLot": "Видалити цю початкову партію?",
+    "message.confirmDeleteComponent": "Видалити цей компонент набору?",
+    "recipe.chooseBundle": "Оберіть набір або створіть новий рецепт",
+    "recipe.componentLines": "Компоненти",
+    "recipe.totalUnits": "Одиниць у наборі",
+    "recipe.estimatedCost": "Орієнтовна собівартість",
+    "recipe.empty": "Компонентів ще немає. Додайте перший товар вище.",
+    "recipe.purchased": "Закуплено у FIFO-партіях",
+    "recipe.latestCost": "Ціна останньої партії",
+    "recipe.unsaved": "Незбережені зміни",
     "message.selectInvoiceLine": "Спочатку обери товар з інвойсу.",
+    "message.storageAllocationNote": "Поки немає щоденних snapshot залишків, зберігання оцінюється ставкою на продану одиницю.",
     "marketplace.eu": "Усі EU маркетплейси",
     "metric.withEan": "З EAN",
     "preview.detectedFields": "Розпізнані поля",
@@ -521,14 +637,19 @@ const translations = {
     "section.fxRates": "Курси валют",
     "section.generalCashflow": "Загальний cashflow",
     "section.inventory": "Товарні залишки",
+    "section.openingInventoryLots": "Початкові партії залишків",
+    "section.bundleRecipes": "Рецепти наборів",
     "section.invoiceLines": "Позиції інвойсу",
     "section.landedCost": "Landed Cost",
+    "section.fulfillmentCosts": "Витрати фулфілменту",
     "section.paymentLines": "Рядки платежу",
     "section.productCosts": "Закупівельні ціни",
     "section.productMappings": "Мапінг товарів",
     "section.oaCatalog": "OA каталог",
     "section.amazonPnl": "Amazon P&L",
     "section.dataQuality": "Якість даних",
+    "section.reconciliation": "Звірка Payments / Orders",
+    "section.missingCosts": "Відсутні собівартості",
     "section.productProfitability": "Прибутковість товарів",
     "section.purchaseSummary": "Підсумок закупівель",
     "section.purchaseInvoices": "Інвойси закупівель",
@@ -547,6 +668,10 @@ const translations = {
     "status.breakeven": "в нуль",
     "status.unknown": "невідомо",
     "status.unmapped": "не зіставлено",
+    "status.unmatched": "не зіставлено",
+    "status.quantityMismatch": "не збігається кількість",
+    "status.refundPending": "refund: окрема звірка",
+    "status.returnFeePending": "return fee: окрема звірка",
     "status.healthy": "норма",
     "status.lowStock": "низький залишок",
     "status.outOfStock": "немає в наявності",
@@ -562,6 +687,7 @@ const translations = {
     "table.amazonFees": "Amazon комісії",
     "table.avgSellingPrice": "Сер. ціна продажу",
     "table.amazonOperatingResult": "Операційний результат Amazon",
+    "table.baseCost": "Базова ціна",
     "table.cogsEur": "COGS EUR",
     "table.confidence": "Впевненість",
     "table.cost": "Ціна",
@@ -581,6 +707,8 @@ const translations = {
     "table.identifiers": "ASIN / SKU / EAN",
     "table.invoiceProduct": "Товар з інвойсу",
     "table.inboundShipping": "Транспорт",
+    "table.inboundPerUnit": "Доставка / одиницю",
+    "table.landedCost": "Landed cost",
     "table.available": "Доступно",
     "table.inbound": "В дорозі",
     "table.lineType": "Тип рядка",
@@ -597,6 +725,7 @@ const translations = {
     "table.netProfit": "Чистий прибуток",
     "table.netRoi": "Чистий ROI",
     "table.other": "Інше",
+    "table.operationalCosts": "Операційні витрати",
     "table.onHand": "На складі",
     "table.paymentRows": "Рядки платежів",
     "table.period": "Період",
@@ -615,11 +744,17 @@ const translations = {
     "table.roi": "ROI",
     "table.rows": "Рядки",
     "table.ordersUnits": "Замовлення / одиниці",
+    "table.orderId": "Order ID",
+    "table.orderMatch": "Зіставлення Orders",
+    "table.orderUnits": "Одиниці Orders",
+    "table.paymentUnits": "Одиниці Payments",
+    "table.refundGroups": "Групи refund",
     "table.sales": "Продажі",
     "table.salesVat": "ПДВ продажів",
     "table.salesCurrency": "Валюта продажу",
     "table.sku": "SKU",
     "table.sold": "Продано",
+    "table.source": "Джерело",
     "table.stockFlow": "Рух залишків",
     "table.stockAlerts": "Сигнали залишків",
     "table.status": "Статус",
@@ -651,6 +786,12 @@ const state = {
   dataQualitySummary: null,
   profitSummary: null,
   inventoryRows: [],
+  bundleComponents: [],
+  bundleCandidates: { bundles: [], components: [] },
+  activeBundleSku: null,
+  bundleDraft: [],
+  bundleDraftOriginalSku: null,
+  bundleDraftDirty: false,
   paymentRows: [],
   selectedPaymentId: null,
   invoiceRows: [],
@@ -861,6 +1002,189 @@ function renderRows(targetId, rows, render) {
   applySearchFilter();
 }
 
+function bundleRecipeGroups() {
+  const groups = new Map();
+  state.bundleComponents.forEach((component) => {
+    if (!groups.has(component.bundle_sku)) {
+      groups.set(component.bundle_sku, {
+        sku: component.bundle_sku,
+        name: component.bundle_name,
+        components: [],
+      });
+    }
+    const group = groups.get(component.bundle_sku);
+    if (!group.name && component.bundle_name) group.name = component.bundle_name;
+    group.components.push(component);
+  });
+  return [...groups.values()];
+}
+
+function componentCandidate(sku) {
+  return state.bundleCandidates.components.find((row) => row.sku === sku);
+}
+
+function recipeEstimatedCosts(components) {
+  const totals = new Map();
+  components.forEach((component) => {
+    const candidate = componentCandidate(component.component_sku);
+    if (!candidate) return;
+    const currency = candidate.currency || "EUR";
+    const value = Number(component.component_quantity || 0) * Number(candidate.latest_unit_cost || 0);
+    totals.set(currency, (totals.get(currency) || 0) + value);
+  });
+  return [...totals.entries()].map(([currency, value]) => money(value, currency)).join(" + ") || "-";
+}
+
+function loadBundleDraft(group = null) {
+  state.bundleDraft = group
+    ? group.components.map((component) => ({
+      component_sku: component.component_sku,
+      component_quantity: Number(component.component_quantity),
+    }))
+    : [];
+  state.bundleDraftOriginalSku = group?.sku || null;
+  state.bundleDraftDirty = false;
+}
+
+function renderBundleRecipes() {
+  const groups = bundleRecipeGroups();
+  const recipeCount = document.getElementById("recipeCount");
+  const cards = document.getElementById("bundleRecipeCards");
+  const summary = document.getElementById("activeRecipeSummary");
+  const componentCards = document.getElementById("activeRecipeComponents");
+  const form = document.getElementById("bundleComponentForm");
+  if (!recipeCount || !cards || !summary || !componentCards || !form) return;
+
+  if (state.activeBundleSku && !groups.some((group) => group.sku === state.activeBundleSku)) {
+    state.activeBundleSku = null;
+  }
+  if (!state.activeBundleSku && groups.length) state.activeBundleSku = groups[0].sku;
+
+  recipeCount.textContent = String(groups.length);
+  cards.innerHTML = groups.length
+    ? groups.map((group) => {
+      const totalUnits = group.components.reduce(
+        (sum, component) => sum + Number(component.component_quantity || 0),
+        0,
+      );
+      return `
+        <button type="button" class="recipeCard ${group.sku === state.activeBundleSku ? "active" : ""}" data-select-bundle="${escapeHtml(group.sku)}">
+          <span class="recipeCardTop"><strong>${escapeHtml(group.name || group.sku)}</strong><small>${group.components.length}</small></span>
+          <span class="recipeCardSku">${escapeHtml(group.sku)}</span>
+          <span class="recipeCardMeta">${integer(totalUnits)} · ${t("recipe.totalUnits")}</span>
+        </button>
+      `;
+    }).join("")
+    : `
+      <button type="button" class="recipeEmptyAction" data-start-bundle-recipe>
+        <span>＋</span>
+        <strong>${t("recipe.chooseBundle")}</strong>
+      </button>
+    `;
+
+  const active = groups.find((group) => group.sku === state.activeBundleSku);
+  if (active && state.bundleDraftOriginalSku !== active.sku) {
+    loadBundleDraft(active);
+    form.elements.namedItem("bundle_sku").value = active.sku;
+    form.elements.namedItem("bundle_name").value = active.name || "";
+  }
+
+  const draft = state.bundleDraft;
+  const saveButton = document.getElementById("saveBundleRecipeButton");
+  const draftStatus = document.getElementById("bundleDraftStatus");
+  if (saveButton) saveButton.disabled = draft.length === 0;
+  if (draftStatus) draftStatus.textContent = state.bundleDraftDirty ? t("recipe.unsaved") : "";
+
+  if (!draft.length) {
+    summary.innerHTML = "";
+    summary.classList.add("hidden");
+    componentCards.innerHTML = `<div class="recipeEmptyState">${t("recipe.empty")}</div>`;
+    return;
+  }
+
+  summary.classList.remove("hidden");
+  const bundleSku = form.elements.namedItem("bundle_sku").value.trim();
+  const bundleName = form.elements.namedItem("bundle_name").value.trim();
+  const totalUnits = draft.reduce(
+    (sum, component) => sum + Number(component.component_quantity || 0),
+    0,
+  );
+  summary.innerHTML = `
+    <div class="recipeTitle">
+      <span>${escapeHtml(bundleSku)}</span>
+      <strong>${escapeHtml(bundleName || bundleSku)}</strong>
+    </div>
+    <div class="recipeMetric"><span>${t("recipe.componentLines")}</span><strong>${draft.length}</strong></div>
+    <div class="recipeMetric"><span>${t("recipe.totalUnits")}</span><strong>${integer(totalUnits)}</strong></div>
+    <div class="recipeMetric"><span>${t("recipe.estimatedCost")}</span><strong>${recipeEstimatedCosts(draft)}</strong></div>
+  `;
+  componentCards.innerHTML = draft.length
+    ? draft.map((component, index) => {
+      const candidate = componentCandidate(component.component_sku);
+      return `
+        <article class="componentCard">
+          <div class="componentIdentity">
+            <span class="componentSku">${escapeHtml(component.component_sku)}</span>
+            <strong>${escapeHtml(candidate?.product_name || component.component_sku)}</strong>
+            <div class="componentMeta">
+              <span>${t("recipe.purchased")}: ${candidate ? integer(candidate.available_quantity) : "-"}</span>
+              <span>${t("recipe.latestCost")}: ${candidate ? money(candidate.latest_unit_cost, candidate.currency) : "-"}</span>
+            </div>
+          </div>
+          <div class="componentQuantity"><span>×</span><strong>${integer(component.component_quantity)}</strong></div>
+          <button type="button" class="compactButton dangerButton" data-remove-draft-component="${index}">${t("action.delete")}</button>
+        </article>
+      `;
+    }).join("")
+    : `<div class="recipeEmptyState">${t("recipe.empty")}</div>`;
+}
+
+function renderBundleCandidateOptions() {
+  const componentOptions = document.getElementById("componentSkuOptions");
+  if (!componentOptions) return;
+  componentOptions.innerHTML = state.bundleCandidates.components.map((row) => (
+    `<option value="${escapeHtml(row.sku)}">${escapeHtml(row.product_name)} · ${integer(row.available_quantity)} · ${money(row.latest_unit_cost, row.currency)}</option>`
+  )).join("");
+}
+
+function renderBundleSkuSuggestions(query = "") {
+  const target = document.getElementById("bundleSkuSuggestions");
+  if (!target) return;
+  const normalized = query.trim().toLocaleLowerCase();
+  if (normalized.length < 2) {
+    target.innerHTML = "";
+    target.classList.remove("open");
+    return;
+  }
+  const matches = state.bundleCandidates.bundles.filter((row) => (
+    row.sku.toLocaleLowerCase().includes(normalized)
+      || (row.product_name || "").toLocaleLowerCase().includes(normalized)
+  )).slice(0, 8);
+  target.innerHTML = matches.length
+    ? matches.map((row) => `
+      <button type="button" data-bundle-suggestion="${escapeHtml(row.sku)}">
+        <strong>${escapeHtml(row.sku)}</strong>
+        <span>${escapeHtml(row.product_name || row.sku)}</span>
+      </button>
+    `).join("")
+    : `<div class="recipeSuggestionEmpty">${t("message.noData")}</div>`;
+  target.classList.add("open");
+}
+
+function startBundleRecipe() {
+  state.activeBundleSku = null;
+  loadBundleDraft();
+  const form = document.getElementById("bundleComponentForm");
+  const bundleSku = form?.elements.namedItem("bundle_sku");
+  const bundleName = form?.elements.namedItem("bundle_name");
+  if (!bundleSku) return;
+  bundleSku.value = "";
+  if (bundleName) bundleName.value = "";
+  renderBundleSkuSuggestions("");
+  renderBundleRecipes();
+  bundleSku.focus();
+}
+
 function updatePageTitle() {
   const title = document.getElementById("pageTitle");
   if (title) title.textContent = t(sectionTitleKey[state.activeSection] || "nav.dashboard");
@@ -971,35 +1295,24 @@ function hidePaymentLines() {
 }
 
 async function loadCosts() {
-  const imports = await requestJson(`/imports/product-costs${reportQueryParams()}`);
-  renderRows("costImports", imports.rows, (row) => `
+  const lots = await requestJson("/imports/product-costs/lots?limit=5000");
+  state.productCostRows = lots.rows;
+  renderRows("costLots", lots.rows, (row) => `
     <tr>
-      <td>${row.import_id}</td>
-      <td class="num">${row.row_count}</td>
-      <td>${row.effective_date}</td>
-      <td>${row.filename}</td>
-      <td>
-        <button
-          type="button"
-          class="compactButton dangerButton"
-          data-delete-cost-import="${row.import_id}"
-          data-delete-cost-import-name="${escapeHtml(row.filename)}"
-        >${t("action.delete")}</button>
-      </td>
-    </tr>
-  `);
-
-  const latest = await requestJson("/reports/product-costs/latest");
-  state.productCostRows = latest.rows;
-  renderRows("latestCosts", latest.rows, (row) => `
-    <tr>
-      <td>${row.sku}</td>
+      <td>${row.purchase_date}</td>
+      <td>${text(row.sku)}</td>
       <td>${text(row.ean)}</td>
       <td>${text(row.product_name)}</td>
-      <td class="num">${money(row.purchase_cost, row.currency)}</td>
-      <td>${row.effective_date}</td>
+      <td class="num">${row.quantity_received}</td>
+      <td class="num">${row.base_unit_cost === null ? "-" : money(row.base_unit_cost, row.currency)}</td>
+      <td class="num">${money(row.inbound_shipping_per_unit, row.currency)}</td>
+      <td class="num">${money(row.landed_unit_cost, row.currency)}</td>
+      <td>${row.currency}</td>
+      <td>${text(row.source)}</td>
+      <td>${text(row.supplier_name)}</td>
+      <td>${text(row.invoice_number)}</td>
       <td>
-        <button type="button" class="compactButton" data-edit-cost="${row.id}">${t("action.edit")}</button>
+        ${row.product_cost_id ? `<button type="button" class="compactButton" data-edit-cost="${row.product_cost_id}">${t("action.edit")}</button>` : "-"}
       </td>
     </tr>
   `);
@@ -1275,11 +1588,20 @@ function renderInventoryTotals(summary, rows = []) {
 }
 
 async function loadInventory() {
-  const [summary, items] = await Promise.all([
+  const [summary, items, openingLots, bundleComponents, bundleCandidates] = await Promise.all([
     requestJson("/inventory/summary"),
     requestJson("/inventory/items"),
+    requestJson("/inventory/opening-lots"),
+    requestJson("/inventory/bundle-components"),
+    requestJson("/inventory/bundle-candidates"),
   ]);
   state.inventoryRows = items.rows;
+  state.bundleComponents = bundleComponents.rows;
+  state.bundleCandidates = bundleCandidates;
+  const openingDate = document.querySelector('#openingLotForm input[name="purchase_date"]');
+  if (openingDate && !openingDate.value) {
+    openingDate.value = state.startDate || isoDate(new Date());
+  }
   renderInventoryTotals(summary, items.rows);
   renderRows("inventoryRows", items.rows, (row) => `
     <tr>
@@ -1302,6 +1624,19 @@ async function loadInventory() {
       </td>
     </tr>
   `);
+  renderRows("openingLotRows", openingLots.rows, (row) => `
+    <tr>
+      <td>${text(row.purchase_date)}</td>
+      <td>${text(row.sku)}</td>
+      <td>${text(row.product_name)}</td>
+      <td class="num">${row.quantity_received}</td>
+      <td class="num">${money(row.unit_cost, row.currency)}</td>
+      <td>${text(row.notes)}</td>
+      <td><button type="button" class="compactButton dangerButton" data-delete-opening-lot="${row.id}">${t("action.delete")}</button></td>
+    </tr>
+  `);
+  renderBundleCandidateOptions();
+  renderBundleRecipes();
 }
 
 async function loadFxRates() {
@@ -1313,6 +1648,13 @@ async function loadFxRates() {
       <td>${row.effective_date}</td>
     </tr>
   `);
+  const form = document.getElementById("ecbSyncForm");
+  if (form) {
+    const start = form.elements.namedItem("start_date");
+    const end = form.elements.namedItem("end_date");
+    if (!start.value) start.value = state.startDate || isoDate(new Date(new Date().getFullYear(), 0, 1));
+    if (!end.value) end.value = state.endDate || isoDate(new Date());
+  }
 }
 
 async function loadLandedCostSettings() {
@@ -1321,6 +1663,23 @@ async function loadLandedCostSettings() {
   if (select) {
     select.value = data.allocation_method;
   }
+}
+
+async function loadFulfillmentCostSettings() {
+  const data = await requestJson("/settings/fulfillment-costs");
+  const form = document.getElementById("fulfillmentCostForm");
+  if (!form) return;
+  [
+    "fba_prep_per_unit",
+    "fba_storage_per_unit",
+    "fbm_prep_per_unit",
+    "fbm_packaging_per_unit",
+    "fbm_outbound_per_unit",
+    "fbm_storage_per_unit",
+  ].forEach((field) => {
+    const input = form.elements.namedItem(field);
+    if (input) input.value = data[field];
+  });
 }
 
 async function loadSupplierCatalogStats() {
@@ -1675,8 +2034,38 @@ async function loadDataQuality() {
         <span>${t("table.unknownTypes")}</span>
         <strong>${summary.unknown_transaction_types}</strong>
       </div>
+      <div class="kpi">
+        <span>${t("table.orderMatch")}</span>
+        <strong>${summary.matched_order_groups}/${summary.order_groups}${summary.order_match_percent === null ? "" : ` (${summary.order_match_percent}%)`}</strong>
+      </div>
+      <div class="kpi">
+        <span>${t("table.units")}</span>
+        <strong>${summary.matched_order_units}/${summary.matched_order_units + summary.unmatched_order_units}</strong>
+      </div>
+      <div class="kpi">
+        <span>${t("table.refundGroups")}</span>
+        <strong>${summary.refund_groups} + ${summary.return_fee_groups}</strong>
+      </div>
     `;
   }
+  const reconciliationStatusLabel = (status) => ({
+    matched: t("status.matched"),
+    unmatched: t("status.unmatched"),
+    quantity_mismatch: t("status.quantityMismatch"),
+    refund_pending: t("status.refundPending"),
+    return_fee_pending: t("status.returnFeePending"),
+  }[status] || status);
+  renderRows("reconciliationRows", data.reconciliation_rows, (row) => `
+    <tr>
+      <td>${reconciliationStatusLabel(row.status)}</td>
+      <td>${paymentCategoryLabel(row.category)}</td>
+      <td>${text(row.external_transaction_id)}</td>
+      <td>${text(row.sku)}</td>
+      <td class="num">${row.payment_units}</td>
+      <td class="num">${row.order_units === null ? "-" : row.order_units}</td>
+      <td class="num">${money(row.amount_eur, "EUR")}</td>
+    </tr>
+  `);
   renderRows("missingCostRows", data.missing_costs, (row) => `
     <tr>
       <td>${text(row.sku)}</td>
@@ -1814,6 +2203,10 @@ async function loadProfitability() {
       <strong>${money(summary.amazon_fees_eur + summary.other_amount_eur, "EUR")}</strong>
     </div>
     <div class="kpi">
+      <span>${t("table.operationalCosts")}</span>
+      <strong>${money(-summary.operational_cost_eur, "EUR")}</strong>
+    </div>
+    <div class="kpi">
       <span>${t("table.matchedCogs")}</span>
       <strong>${money(summary.cogs_eur, "EUR")}</strong>
     </div>
@@ -1866,6 +2259,7 @@ async function loadProfitability() {
       <td class="num">${row.cogs_eur === null ? "-" : money(row.cogs_eur, "EUR")}</td>
       <td class="num">${money(row.refunds_eur, "EUR")}</td>
       <td class="num">${money(row.amazon_fees_eur + row.other_amount_eur, "EUR")}</td>
+      <td class="num" title="Prep ${money(row.prep_cost_eur, "EUR")} · Storage ${money(row.storage_cost_eur, "EUR")} · FBM ${money(row.fbm_logistics_cost_eur, "EUR")}">${money(-row.operational_cost_eur, "EUR")}</td>
       <td class="num">${row.gross_profit_eur === null ? "-" : money(row.gross_profit_eur, "EUR")}</td>
       <td class="num">${row.margin_percent === null ? "-" : `${row.margin_percent}%`}</td>
       <td class="num">${row.roi_percent === null ? "-" : `${row.roi_percent}%`}</td>
@@ -1881,7 +2275,7 @@ async function loadProfitability() {
 
 async function refreshAll() {
   setStatus("cashflowStatus", "status.loading", false, true);
-  await Promise.all([loadPayments(), loadCosts(), loadInvoices(), loadProductMappings(), loadInventory(), loadFxRates(), loadLandedCostSettings(), loadSupplierCatalogStats(), loadAmazonConnector(), loadGenericImports(), loadCashflow(), loadAmazonPnl(), loadDataQuality(), loadProfitability()]);
+  await Promise.all([loadPayments(), loadCosts(), loadInvoices(), loadProductMappings(), loadInventory(), loadFxRates(), loadLandedCostSettings(), loadFulfillmentCostSettings(), loadSupplierCatalogStats(), loadAmazonConnector(), loadGenericImports(), loadCashflow(), loadAmazonPnl(), loadDataQuality(), loadProfitability()]);
   setStatus("paymentStatus", "status.ready", false, true);
   setStatus("costStatus", "status.ready", false, true);
   setStatus("invoiceStatus", "status.ready", false, true);
@@ -1889,6 +2283,7 @@ async function refreshAll() {
   setStatus("inventoryStatus", "status.ready", false, true);
   setStatus("fxStatus", "status.ready", false, true);
   setStatus("landedCostStatus", "status.ready", false, true);
+  setStatus("fulfillmentCostStatus", "status.ready", false, true);
   setStatus("catalogStatus", "status.ready", false, true);
   setStatus("cashflowStatus", "status.loaded", false, true);
   setStatus("profitStatus", "status.loaded", false, true);
@@ -2054,6 +2449,160 @@ document.getElementById("inventoryForm").addEventListener("submit", async (event
     hideInventoryForm();
     await loadInventory();
     setStatus("inventoryStatus", "status.saved", false, true);
+  } catch (error) {
+    setStatus("inventoryStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("openingLotForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector("button");
+  button.disabled = true;
+  try {
+    const body = new FormData(form);
+    await requestJson("/inventory/opening-lots", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sku: body.get("sku"),
+        ean: body.get("ean") || null,
+        product_name: body.get("product_name"),
+        purchase_date: body.get("purchase_date"),
+        quantity_received: Number(body.get("quantity_received")),
+        unit_cost: Number(body.get("unit_cost")),
+        currency: body.get("currency"),
+        notes: body.get("notes") || null,
+      }),
+    });
+    form.reset();
+    form.elements.namedItem("purchase_date").value = state.startDate || isoDate(new Date());
+    await Promise.all([loadInventory(), loadProfitability()]);
+  } catch (error) {
+    setStatus("inventoryStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("openingLotRows").addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-delete-opening-lot]");
+  if (!button) return;
+  if (!window.confirm(t("message.confirmDeleteOpeningLot"))) return;
+  button.disabled = true;
+  try {
+    await requestJson(`/inventory/opening-lots/${button.dataset.deleteOpeningLot}`, {
+      method: "DELETE",
+    });
+    await Promise.all([loadInventory(), loadProfitability()]);
+  } catch (error) {
+    setStatus("inventoryStatus", error.message, true);
+  }
+});
+
+document.getElementById("bundleComponentForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector("button");
+  const body = new FormData(form);
+  const componentSku = String(body.get("component_sku") || "").trim();
+  const componentQuantity = Number(body.get("component_quantity"));
+  const existing = state.bundleDraft.find((component) => component.component_sku === componentSku);
+  if (existing) {
+    existing.component_quantity = componentQuantity;
+  } else {
+    state.bundleDraft.push({
+      component_sku: componentSku,
+      component_quantity: componentQuantity,
+    });
+  }
+  state.bundleDraftDirty = true;
+  form.elements.namedItem("component_sku").value = "";
+  form.elements.namedItem("component_quantity").value = "1";
+  renderBundleRecipes();
+  button.disabled = false;
+  form.elements.namedItem("component_sku").focus();
+});
+
+document.getElementById("bundleRecipeCards").addEventListener("click", (event) => {
+  if (event.target.closest("[data-start-bundle-recipe]")) {
+    startBundleRecipe();
+    return;
+  }
+  const card = event.target.closest("[data-select-bundle]");
+  if (!card) return;
+  state.activeBundleSku = card.dataset.selectBundle;
+  state.bundleDraftOriginalSku = null;
+  renderBundleRecipes();
+  document.querySelector('#bundleComponentForm input[name="component_sku"]').focus();
+});
+
+document.querySelector('#bundleComponentForm input[name="bundle_sku"]').addEventListener("input", (event) => {
+  state.bundleDraftDirty = true;
+  renderBundleSkuSuggestions(event.currentTarget.value);
+  const candidate = state.bundleCandidates.bundles.find((row) => row.sku === event.currentTarget.value.trim());
+  if (candidate) {
+    const nameInput = event.currentTarget.form.elements.namedItem("bundle_name");
+    if (nameInput && !nameInput.value.trim()) nameInput.value = candidate.product_name || "";
+  }
+  renderBundleRecipes();
+});
+
+document.querySelector('#bundleComponentForm input[name="bundle_name"]').addEventListener("input", () => {
+  state.bundleDraftDirty = true;
+  renderBundleRecipes();
+});
+
+document.getElementById("bundleSkuSuggestions").addEventListener("click", (event) => {
+  const option = event.target.closest("[data-bundle-suggestion]");
+  if (!option) return;
+  const form = document.getElementById("bundleComponentForm");
+  const candidate = state.bundleCandidates.bundles.find((row) => row.sku === option.dataset.bundleSuggestion);
+  form.elements.namedItem("bundle_sku").value = candidate.sku;
+  form.elements.namedItem("bundle_name").value = candidate.product_name || "";
+  state.bundleDraftDirty = true;
+  renderBundleSkuSuggestions("");
+  renderBundleRecipes();
+  form.elements.namedItem("component_sku").focus();
+});
+
+document.getElementById("activeRecipeComponents").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-remove-draft-component]");
+  if (!button) return;
+  state.bundleDraft.splice(Number(button.dataset.removeDraftComponent), 1);
+  state.bundleDraftDirty = true;
+  renderBundleRecipes();
+});
+
+document.getElementById("saveBundleRecipeButton").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  const form = document.getElementById("bundleComponentForm");
+  const bundleSkuInput = form.elements.namedItem("bundle_sku");
+  if (!bundleSkuInput.value.trim()) {
+    bundleSkuInput.reportValidity();
+    bundleSkuInput.focus();
+    return;
+  }
+  if (!state.bundleDraft.length) return;
+  button.disabled = true;
+  try {
+    const bundleSku = form.elements.namedItem("bundle_sku").value.trim();
+    await requestJson("/inventory/bundle-recipes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        bundle_sku: bundleSku,
+        bundle_name: form.elements.namedItem("bundle_name").value.trim() || null,
+        original_bundle_sku: state.bundleDraftOriginalSku,
+        components: state.bundleDraft,
+      }),
+    });
+    state.activeBundleSku = bundleSku;
+    state.bundleDraftOriginalSku = null;
+    state.bundleDraftDirty = false;
+    await Promise.all([loadInventory(), loadProfitability()]);
   } catch (error) {
     setStatus("inventoryStatus", error.message, true);
   } finally {
@@ -2264,38 +2813,17 @@ document.getElementById("manualCostForm").addEventListener("submit", async (even
 
 document.getElementById("clearManualCostButton").addEventListener("click", clearManualCostForm);
 
-document.getElementById("latestCosts").addEventListener("click", (event) => {
+document.getElementById("costLots").addEventListener("click", (event) => {
   const button = event.target.closest("button[data-edit-cost]");
   if (!button) return;
-  const row = state.productCostRows.find((item) => String(item.id) === String(button.dataset.editCost));
+  const row = state.productCostRows.find((item) => String(item.product_cost_id) === String(button.dataset.editCost));
   if (!row) return;
-  document.getElementById("manualCostId").value = row.id;
+  document.getElementById("manualCostId").value = row.product_cost_id;
   document.getElementById("manualCostSku").value = row.sku || "";
   document.getElementById("manualCostEan").value = row.ean || "";
   document.getElementById("manualCostName").value = row.product_name || "";
-  document.getElementById("manualCostValue").value = row.purchase_cost || "";
-  document.getElementById("manualCostDate").value = row.effective_date || isoDate(new Date());
-});
-
-document.getElementById("costImports").addEventListener("click", async (event) => {
-  const button = event.target.closest("button[data-delete-cost-import]");
-  if (!button) return;
-  const filename = button.dataset.deleteCostImportName || "";
-  const confirmed = window.confirm(`${t("message.confirmDeleteCostImport")}\n\n${filename}`);
-  if (!confirmed) return;
-  button.disabled = true;
-  setStatus("costStatus", "status.loading", false, true);
-  try {
-    await requestJson(`/imports/product-costs/${button.dataset.deleteCostImport}`, {
-      method: "DELETE",
-    });
-    await refreshAll();
-    setStatus("costStatus", "status.loaded", false, true);
-  } catch (error) {
-    setStatus("costStatus", error.message, true);
-  } finally {
-    button.disabled = false;
-  }
+  document.getElementById("manualCostValue").value = row.landed_unit_cost || "";
+  document.getElementById("manualCostDate").value = row.purchase_date || isoDate(new Date());
 });
 
 document.getElementById("invoicePreviewButton").addEventListener("click", async () => {
@@ -2410,6 +2938,32 @@ document.getElementById("fxForm").addEventListener("submit", async (event) => {
   }
 });
 
+document.getElementById("ecbSyncForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector("button");
+  button.disabled = true;
+  setStatus("fxStatus", "status.loading", false, true);
+  try {
+    const body = new FormData(form);
+    await requestJson("/settings/fx-rates/sync-ecb", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        start_date: body.get("start_date"),
+        end_date: body.get("end_date"),
+        currencies: ["SEK", "GBP", "PLN"],
+      }),
+    });
+    setStatus("fxStatus", "status.saved", false, true);
+    await refreshAll();
+  } catch (error) {
+    setStatus("fxStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
 document.getElementById("landedCostForm").addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;
@@ -2429,6 +2983,36 @@ document.getElementById("landedCostForm").addEventListener("submit", async (even
     await refreshAll();
   } catch (error) {
     setStatus("landedCostStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("fulfillmentCostForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector("button");
+  button.disabled = true;
+  setStatus("fulfillmentCostStatus", "status.saving", false, true);
+  try {
+    const body = new FormData(form);
+    await requestJson("/settings/fulfillment-costs", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        currency: "EUR",
+        fba_prep_per_unit: Number(body.get("fba_prep_per_unit")),
+        fba_storage_per_unit: Number(body.get("fba_storage_per_unit")),
+        fbm_prep_per_unit: Number(body.get("fbm_prep_per_unit")),
+        fbm_packaging_per_unit: Number(body.get("fbm_packaging_per_unit")),
+        fbm_outbound_per_unit: Number(body.get("fbm_outbound_per_unit")),
+        fbm_storage_per_unit: Number(body.get("fbm_storage_per_unit")),
+      }),
+    });
+    setStatus("fulfillmentCostStatus", "status.saved", false, true);
+    await loadProfitability();
+  } catch (error) {
+    setStatus("fulfillmentCostStatus", error.message, true);
   } finally {
     button.disabled = false;
   }

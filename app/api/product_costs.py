@@ -12,6 +12,9 @@ from app.db.database import get_db
 from app.ingestion.product_costs import build_product_cost_preview
 from app.models.product_cost import ProductCost
 from app.models.product_cost_import import ProductCostImport
+from app.models.inventory_lot import InventoryLot
+from app.models.purchase_invoice import PurchaseInvoice
+from app.models.purchase_invoice_line import PurchaseInvoiceLine
 from app.services.amazon_payment_import_service import DuplicateImportError
 from app.services.product_cost_import_service import commit_product_cost_import
 
@@ -72,6 +75,29 @@ class ProductCostLineRow(BaseModel):
 
 class ProductCostLineListResponse(BaseModel):
     rows: list[ProductCostLineRow]
+
+
+class ProductCostLotRow(BaseModel):
+    lot_id: int
+    product_cost_id: int | None
+    source: str
+    purchase_date: str
+    sku: str | None
+    supplier_sku: str | None
+    ean: str | None
+    product_name: str
+    quantity_received: float
+    base_unit_cost: float | None
+    inbound_shipping_per_unit: float
+    landed_unit_cost: float
+    currency: str
+    invoice_number: str | None
+    supplier_name: str | None
+    notes: str | None
+
+
+class ProductCostLotListResponse(BaseModel):
+    rows: list[ProductCostLotRow]
 
 
 class ProductCostManualRequest(BaseModel):
@@ -146,6 +172,56 @@ async def list_product_cost_lines(
     return ProductCostLineListResponse(
         rows=[cost_row(row, source_filename) for row, source_filename in result]
     )
+
+
+@router.get("/lots", response_model=ProductCostLotListResponse)
+async def list_product_cost_lots(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=5000)] = 5000,
+) -> ProductCostLotListResponse:
+    result = await db.execute(
+        select(InventoryLot, ProductCost, PurchaseInvoice)
+        .outerjoin(ProductCost, ProductCost.id == InventoryLot.product_cost_id)
+        .outerjoin(
+            PurchaseInvoiceLine,
+            PurchaseInvoiceLine.id == InventoryLot.invoice_line_id,
+        )
+        .outerjoin(
+            PurchaseInvoice,
+            PurchaseInvoice.id == PurchaseInvoiceLine.invoice_id,
+        )
+        .order_by(
+            InventoryLot.purchase_date.desc(),
+            InventoryLot.id.desc(),
+        )
+        .limit(limit)
+    )
+    rows: list[ProductCostLotRow] = []
+    for lot, cost, invoice in result:
+        raw = cost.raw_row if cost and cost.raw_row else {}
+        base_unit_cost = raw.get("base_unit_cost")
+        shipping_per_unit = raw.get("allocated_inbound_shipping_per_unit")
+        rows.append(
+            ProductCostLotRow(
+                lot_id=lot.id,
+                product_cost_id=cost.id if cost else None,
+                source=lot.source,
+                purchase_date=lot.purchase_date.isoformat(),
+                sku=lot.sku or lot.supplier_sku or lot.ean,
+                supplier_sku=lot.supplier_sku,
+                ean=lot.ean,
+                product_name=lot.product_name,
+                quantity_received=float(lot.quantity_received),
+                base_unit_cost=float(base_unit_cost) if base_unit_cost is not None else float(lot.unit_cost),
+                inbound_shipping_per_unit=float(shipping_per_unit or 0),
+                landed_unit_cost=float(lot.unit_cost),
+                currency=lot.currency,
+                invoice_number=invoice.invoice_number if invoice else None,
+                supplier_name=invoice.supplier_name if invoice else None,
+                notes=lot.notes,
+            )
+        )
+    return ProductCostLotListResponse(rows=rows)
 
 
 @router.post("/preview", response_model=ProductCostPreviewResponse)
@@ -252,6 +328,16 @@ async def update_product_cost_line(
     raw_row = dict(cost.raw_row or {})
     raw_row["ean"] = (payload.ean or "").strip() or None
     cost.raw_row = raw_row
+    lot = await db.scalar(
+        select(InventoryLot).where(InventoryLot.product_cost_id == cost.id)
+    )
+    if lot:
+        lot.purchase_date = payload.effective_date
+        lot.sku = payload.sku.strip()
+        lot.ean = (payload.ean or "").strip() or None
+        lot.product_name = (payload.product_name or "").strip() or lot.product_name
+        lot.unit_cost = Decimal(str(payload.purchase_cost))
+        lot.currency = payload.currency.upper()
     await db.commit()
     await db.refresh(cost)
     cost_import = await db.get(ProductCostImport, cost.import_id)

@@ -4,10 +4,12 @@ from app.models.amazon_payment_transaction_raw import AmazonPaymentTransactionRa
 from app.models.amazon_order_import import AmazonOrderImport
 from app.models.amazon_order_item import AmazonOrderItem
 from app.models.app_setting import AppSetting
+from app.models.bundle_component import BundleComponent
 from app.models.fx_rate import FxRate
 from app.models.generic_report_import import GenericReportImport
 from app.models.generic_report_row import GenericReportRow
 from app.models.inventory_item import InventoryItem
+from app.models.inventory_lot import InventoryLot
 from app.models.product_cost import ProductCost
 from app.models.product_cost_import import ProductCostImport
 from app.models.product_mapping import ProductMapping
@@ -22,10 +24,12 @@ __all__ = [
     "AmazonOrderImport",
     "AmazonOrderItem",
     "AppSetting",
+    "BundleComponent",
     "FxRate",
     "GenericReportImport",
     "GenericReportRow",
     "InventoryItem",
+    "InventoryLot",
     "ProductCost",
     "ProductCostImport",
     "ProductMapping",

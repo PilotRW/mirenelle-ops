@@ -321,6 +321,384 @@ button:disabled {
   border-top: 1px solid var(--line);
 }
 
+.recipeBuilder {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.72fr) minmax(0, 2fr);
+  min-height: 360px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(33, 104, 243, 0.08), transparent 30%),
+    #f8fafc;
+}
+
+.recipeListPane {
+  padding: 14px;
+  border-right: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.recipePaneHeader,
+.recipeCardTop,
+.componentCard,
+.componentMeta {
+  display: flex;
+  align-items: center;
+}
+
+.recipePaneHeader {
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.recipeCount {
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  font-weight: 760;
+}
+
+.recipeCards {
+  display: grid;
+  gap: 8px;
+}
+
+.recipeCard {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  min-height: 86px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fff;
+  text-align: left;
+  box-shadow: 0 2px 8px rgba(17, 24, 39, 0.03);
+}
+
+.recipeCard:hover,
+.recipeCard.active {
+  border-color: #8fb2fb;
+  background: linear-gradient(135deg, #fff, var(--accent-soft));
+  box-shadow: 0 6px 18px rgba(33, 104, 243, 0.11);
+  transform: translateY(-1px);
+}
+
+.recipeCard.active {
+  box-shadow: inset 3px 0 0 var(--accent), 0 6px 18px rgba(33, 104, 243, 0.11);
+}
+
+.recipeCardTop {
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.recipeCardTop strong,
+.componentIdentity strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recipeCardTop small {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  font-weight: 760;
+}
+
+.recipeCardSku,
+.recipeCardMeta {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.recipeCardSku {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.recipeEditorPane {
+  min-width: 0;
+  padding: 18px;
+}
+
+.recipeEditorForm {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.recipeBundleFields,
+.recipeComponentPicker {
+  display: grid;
+  gap: 10px;
+}
+
+.recipeBundleFields {
+  grid-template-columns: minmax(180px, 0.75fr) minmax(220px, 1.25fr);
+}
+
+.recipeBundleFields label {
+  position: relative;
+}
+
+.recipeSuggestions {
+  position: absolute;
+  top: calc(100% + 5px);
+  z-index: 12;
+  display: none;
+  width: min(520px, 92vw);
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 16px 35px rgba(17, 24, 39, 0.18);
+}
+
+.recipeSuggestions.open {
+  display: grid;
+}
+
+.recipeSuggestions button {
+  display: grid;
+  gap: 3px;
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--soft-line);
+  border-radius: 0;
+  color: var(--ink);
+  background: #fff;
+  text-align: left;
+}
+
+.recipeSuggestions button:hover {
+  background: var(--accent-soft);
+}
+
+.recipeSuggestions button strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.recipeSuggestions button span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recipeSuggestionEmpty {
+  padding: 16px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.recipeComponentPicker {
+  grid-template-columns: minmax(240px, 1fr) minmax(110px, 140px) auto;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid #cfe0ff;
+  border-radius: 8px;
+  background: rgba(234, 241, 255, 0.7);
+}
+
+.activeRecipeSummary {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) repeat(3, minmax(120px, 0.65fr));
+  gap: 1px;
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--line);
+}
+
+.recipeTitle,
+.recipeMetric,
+.recipeWelcome {
+  display: grid;
+  align-content: center;
+  min-height: 70px;
+  padding: 11px 13px;
+  background: #fff;
+}
+
+.recipeTitle span,
+.recipeMetric span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.recipeTitle strong,
+.recipeMetric strong {
+  margin-top: 4px;
+  font-size: 15px;
+}
+
+.recipeWelcome {
+  grid-column: 1 / -1;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.recipeWelcome:hover {
+  background: var(--accent-soft);
+}
+
+.activeRecipeSummary.hidden {
+  display: none;
+}
+
+.recipeWelcomeIcon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: #fff;
+  background: var(--accent);
+  font-size: 22px;
+}
+
+.componentCards {
+  display: grid;
+  gap: 8px;
+}
+
+.recipeSaveBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.recipeDraftStatus {
+  color: var(--warn);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+#saveBundleRecipeButton {
+  min-width: 150px;
+}
+
+#saveBundleRecipeButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.componentCard {
+  gap: 14px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.componentIdentity {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 4px;
+}
+
+.componentSku {
+  width: fit-content;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.componentMeta {
+  flex-wrap: wrap;
+  gap: 5px 14px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.componentQuantity {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 56px;
+  color: var(--accent-dark);
+}
+
+.componentQuantity span {
+  font-size: 12px;
+}
+
+.componentQuantity strong {
+  font-size: 20px;
+}
+
+.recipeEmptyState {
+  padding: 28px 16px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.55);
+  text-align: center;
+}
+
+.recipeEmptyAction {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 104px;
+  padding: 18px;
+  border: 1px dashed #b9c9e5;
+  border-radius: 8px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.55);
+  text-align: left;
+  cursor: pointer;
+}
+
+.recipeEmptyAction span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  color: #fff;
+  background: var(--accent);
+  font-size: 20px;
+}
+
+.recipeEmptyAction:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .selectedInvoiceInfo {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -984,6 +1362,30 @@ th.num {
   }
 
   .topActions {
+    flex-wrap: wrap;
+  }
+
+  .recipeBuilder {
+    grid-template-columns: 1fr;
+  }
+
+  .recipeListPane {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .recipeCards {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  }
+
+  .recipeBundleFields,
+  .recipeComponentPicker,
+  .activeRecipeSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .componentCard {
+    align-items: flex-start;
     flex-wrap: wrap;
   }
 }

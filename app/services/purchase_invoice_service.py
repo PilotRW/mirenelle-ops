@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ingestion.purchase_invoices import PRODUCT_LINE_TYPE, PurchaseInvoicePreview, calculate_sha256
 from app.models.product_cost import ProductCost
 from app.models.product_cost_import import ProductCostImport
+from app.models.inventory_lot import InventoryLot
 from app.models.purchase_invoice import PurchaseInvoice
 from app.models.purchase_invoice_line import PurchaseInvoiceLine
 from app.services.amazon_payment_import_service import DuplicateImportError
@@ -164,48 +165,62 @@ async def commit_purchase_invoice(
 
     for row_number, (raw_row, parsed) in enumerate(zip(preview.raw_rows, preview.parsed_rows), start=2):
         sku = str(parsed["sku"] or parsed["supplier_sku"] or parsed["ean"] or "")
-        db.add(
-            PurchaseInvoiceLine(
-                invoice_id=invoice.id,
-                row_number=row_number,
-                supplier_sku=parsed["supplier_sku"],
-                sku=parsed["sku"],
-                ean=parsed["ean"],
-                line_type=str(parsed["line_type"]),
-                expense_category=parsed["expense_category"],
-                product_name=str(parsed["product_name"]),
-                quantity=parsed["quantity"],
-                unit_cost=parsed["unit_cost"],
-                line_net_amount=parsed["line_net_amount"],
-                vat_rate_percent=parsed["vat_rate_percent"],
-                vat_amount=parsed["vat_amount"],
-                line_gross_amount=parsed["line_gross_amount"],
-                currency=str(parsed["currency"]),
-                raw_row=raw_row,
-            )
+        invoice_line = PurchaseInvoiceLine(
+            invoice_id=invoice.id,
+            row_number=row_number,
+            supplier_sku=parsed["supplier_sku"],
+            sku=parsed["sku"],
+            ean=parsed["ean"],
+            line_type=str(parsed["line_type"]),
+            expense_category=parsed["expense_category"],
+            product_name=str(parsed["product_name"]),
+            quantity=parsed["quantity"],
+            unit_cost=parsed["unit_cost"],
+            line_net_amount=parsed["line_net_amount"],
+            vat_rate_percent=parsed["vat_rate_percent"],
+            vat_amount=parsed["vat_amount"],
+            line_gross_amount=parsed["line_gross_amount"],
+            currency=str(parsed["currency"]),
+            raw_row=raw_row,
         )
+        db.add(invoice_line)
         if sku and parsed["line_type"] == PRODUCT_LINE_TYPE:
             landed = landed_costs.get(row_number - 2, {})
+            product_cost = ProductCost(
+                import_id=cost_import.id,
+                sku=sku,
+                product_name=str(parsed["product_name"]),
+                purchase_cost=landed.get("landed_unit_cost", parsed["unit_cost"]),
+                currency=str(parsed["currency"]),
+                effective_date=effective_date,
+                raw_row={
+                    "source": "purchase_invoice",
+                    "invoice_id": invoice.id,
+                    "invoice_number": preview.invoice_number,
+                    "supplier_name": preview.supplier_name,
+                    "ean": parsed["ean"],
+                    "base_unit_cost": str(landed.get("base_unit_cost", parsed["unit_cost"])),
+                    "allocated_inbound_shipping": str(landed.get("allocated_inbound_shipping", Decimal("0"))),
+                    "allocated_inbound_shipping_per_unit": str(landed.get("allocated_inbound_shipping_per_unit", Decimal("0"))),
+                    "landed_cost_allocation": str(landed.get("landed_cost_allocation", LANDED_ALLOCATION_LABELS[allocation_method])),
+                    "raw_row": raw_row,
+                },
+            )
+            db.add(product_cost)
+            await db.flush()
             db.add(
-                ProductCost(
-                    import_id=cost_import.id,
-                    sku=sku,
+                InventoryLot(
+                    invoice_line_id=invoice_line.id,
+                    product_cost_id=product_cost.id,
+                    source="purchase_invoice",
+                    purchase_date=effective_date,
+                    supplier_sku=parsed["supplier_sku"],
+                    sku=parsed["sku"],
+                    ean=parsed["ean"],
                     product_name=str(parsed["product_name"]),
-                    purchase_cost=landed.get("landed_unit_cost", parsed["unit_cost"]),
+                    quantity_received=parsed["quantity"],
+                    unit_cost=product_cost.purchase_cost,
                     currency=str(parsed["currency"]),
-                    effective_date=effective_date,
-                    raw_row={
-                        "source": "purchase_invoice",
-                        "invoice_id": invoice.id,
-                        "invoice_number": preview.invoice_number,
-                        "supplier_name": preview.supplier_name,
-                        "ean": parsed["ean"],
-                        "base_unit_cost": str(landed.get("base_unit_cost", parsed["unit_cost"])),
-                        "allocated_inbound_shipping": str(landed.get("allocated_inbound_shipping", Decimal("0"))),
-                        "allocated_inbound_shipping_per_unit": str(landed.get("allocated_inbound_shipping_per_unit", Decimal("0"))),
-                        "landed_cost_allocation": str(landed.get("landed_cost_allocation", LANDED_ALLOCATION_LABELS[allocation_method])),
-                        "raw_row": raw_row,
-                    },
                 )
             )
 

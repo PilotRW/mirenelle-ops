@@ -1,6 +1,6 @@
 # Mirenelle Ops - Project State
 
-Last updated: 2026-06-18
+Last updated: 2026-06-19
 
 ## Product Direction
 
@@ -39,8 +39,8 @@ Create a separate service for ecommerce operations and accounting:
   project now has `SECURITY_INCIDENT_RESPONSE.md` to document the required
   incident response roles, 6-month review cycle, 24-hour notification process,
   and Amazon notification at `security@amazon.com`.
-- Product sets/bundles are deferred because current sold sets are represented
-  as single sellable products, not assembled from component inventory.
+- Product sets/bundles use explicit operator-confirmed recipes. A sold Amazon
+  bundle SKU can consume multiple component SKU/EAN lots through FIFO.
 
 ## Current Input Reports
 
@@ -231,13 +231,61 @@ reconciliation are operational. Continue from this point:
    `revenue_eur` EUR 1,456.87 is net Payments charges,
    `sales_vat_eur` EUR 286.60 is Orders tax, and
    `revenue_gross_eur` EUR 1,743.47 is net plus VAT.
-3. Add an explicit reconciliation/data-quality report showing matched and
-   unmatched order/SKU groups. Current order transactions match 78/78; unmatched
-   payment rows are refunds and return-fee rows, which require separate refund
+3. Data Quality now includes explicit Payments-to-Orders reconciliation by
+   Amazon Order ID + SKU. It reports matched/unmatched order groups and units,
+   while refunds and return fees are shown separately as pending dedicated
    reconciliation.
-4. Exclude `NON_AMAZON` fulfillment rows and cancelled zero-quantity rows from
+4. Product Profitability now creates rows only from actual order products.
+   Product-attributable refunds are attached only to a SKU sold in the selected
+   period. Transfers, storage/service/FBA fees, and unmapped return fees remain
+   in Amazon P&L instead of appearing as fake products.
+5. Settings now include configurable EUR-per-unit fulfillment tariffs for FBA
+   prep/storage and FBM prep, packaging, outbound logistics, and storage.
+   Product Profitability shows these separately as operational costs and
+   subtracts them from net profit. Storage is currently an estimated allocation
+   per sold unit pending warehouse-day inventory snapshots.
+6. Added FIFO inventory lots backed by purchase invoice lines. Existing
+   invoice-based product costs were backfilled into 26 dated lots / 630 units.
+   Product Profitability now consumes historical sales chronologically and uses
+   the oldest available landed unit cost instead of the latest invoice price.
+   If a product has insufficient dated lots, COGS stays missing rather than
+   borrowing a future price.
+7. Inventory now has operator-managed Opening Inventory Lots for stock that
+   predates imported invoices. Each opening lot stores Amazon SKU, date,
+   quantity, landed unit cost, currency, EAN, and notes; it participates in
+   FIFO and purchased inventory quantities immediately.
+8. Added official ECB daily FX sync for SEK, GBP, and PLN. Transaction reports
+   and Product Profitability now convert each transaction using its own date;
+   weekends and holidays use the latest prior ECB business-day rate. FIFO lots
+   use the rate on the lot purchase date. Backfilled 354 ECB rows for
+   2026-01-01 through 2026-06-19.
+9. Rebuilt Product Costs as a complete FIFO lot registry. It now shows all 26
+   lots rather than only 24 latest SKU prices, including repeated purchases,
+   quantities, base cost, inbound shipping per unit, landed cost, supplier,
+   source, and invoice number. Editing a cost also updates its FIFO lot.
+10. Inventory now supports Bundle Recipes mapping a sold Amazon bundle SKU to
+    component SKU/EAN quantities. FIFO consumes recipe components atomically
+    and calculates bundle COGS from the component lots. A 12-component mask
+    recipe test produced EUR 33.56 COGS for four sold bundles; test recipes
+    were removed afterward.
+11. Rebuilt the Bundle Recipes UI as a draft-based recipe builder:
+    - bundle suggestions come from positive-quantity Amazon Orders rows, not
+      Payments fee/service rows;
+    - suggestions appear only after typing at least two characters and show at
+      most eight results;
+    - `Add component` adds or updates a component only in the browser draft;
+    - multiple components can be assembled before any database write;
+    - `Save bundle` atomically replaces the complete stored recipe through
+      `POST /inventory/bundle-recipes`;
+    - selecting an existing recipe loads it into the same editor for update;
+    - the editor shows component count, total units per bundle, and estimated
+      cost from the latest known component lots.
+    A two-component API/UI save test passed and all temporary recipes were
+    deleted afterward. The database currently contains zero confirmed real
+    bundle recipes.
+12. Exclude `NON_AMAZON` fulfillment rows and cancelled zero-quantity rows from
    sold-unit analytics. Preserve them in raw/order operational views.
-5. After validation, run the connector for later periods and make Orders the
+13. After validation, run the connector for later periods and make Orders the
    source of truth for inventory sold quantities.
 
 Operational notes:
@@ -261,17 +309,50 @@ Current verified inventory examples:
 - `Dr.Beckmann`: purchased 24, sold 13, on hand 11.
 - `Cif`: purchased 32, sold 4, on hand 28.
 
-Next Plan:
+## Tomorrow Resume Checklist
 
-1. Add reconciliation coverage and unmatched-row diagnostics to Data Quality.
-2. Implement separate refund/return-fee reconciliation; these rows do not
+Start here:
+
+1. Open `http://localhost:8010/ui/`, go to `Inventory -> Bundle Recipes`, and
+   enter the first confirmed real recipe:
+   choose/type the sold Amazon bundle SKU, add every component SKU/EAN and its
+   quantity with `Add component`, review the full draft, then click
+   `Save bundle`.
+2. Re-open the saved recipe from the left-hand card list and verify its
+   components, total units, and estimated cost.
+3. Refresh Product Profitability for the bundle's sales period and verify that
+   FIFO COGS is populated from component lots.
+4. Repeat for the remaining real bundle SKUs. Do not invent recipes from
+   product titles; they require operator confirmation.
+
+Useful commands:
+
+```bash
+cd /Users/pilotrw/GITHUB/mirenelle-ops
+docker compose up -d
+docker compose exec -T app alembic current
+git status --short
+```
+
+Expected database migration head:
+
+```text
+20260619_0017
+```
+
+## Next Plan
+
+1. Implement separate refund/return-fee reconciliation; these rows do not
    currently match the sales order ID directly.
-3. Add Fulfillment-Box / prep-center tariff settings for storage, prep,
-   labels, packing, and outbound handling.
-4. Split profitability and inventory planning by FBA/FBM logic:
+2. Configure confirmed real bundle recipes for existing bundle SKUs.
+3. Exclude `NON_AMAZON` and cancelled zero-quantity order rows from sold-unit
+   analytics while retaining them in raw operational views.
+4. Replace estimated per-sold-unit storage with warehouse-day allocation after
+   inventory snapshots are available.
+5. Split inventory planning by FBA/FBM logic:
    FBA uses Amazon fulfillment/inventory data; FBM needs own/prep-center stock
    and external handling tariffs.
-5. Add read-only FBA inventory connector.
+6. Add read-only FBA inventory connector.
 6. Add Customer Returns import after seeing the real file headers.
 7. Add Reimbursements import after seeing the real file headers.
 8. Add Service Fees import if the separate report has richer fields than
