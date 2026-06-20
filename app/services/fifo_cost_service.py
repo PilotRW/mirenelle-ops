@@ -7,10 +7,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.amazon_payment_transaction import AmazonPaymentTransaction
+from app.models.amazon_order_item import AmazonOrderItem
 from app.models.bundle_component import BundleComponent
 from app.models.inventory_lot import InventoryLot
 from app.models.product_mapping import ProductMapping
 from app.services.fx import get_fx_rate_history, get_rate_on_date
+from app.services.order_item_policy import partition_order_item_keys
 from app.services.product_mapping_service import product_similarity
 from app.services.transaction_classifier import is_order_payment
 
@@ -88,10 +90,16 @@ async def fifo_event_costs(
     )
     if end_date:
         sales_query = sales_query.where(AmazonPaymentTransaction.transaction_date <= end_date)
+    order_items = list(await db.scalars(select(AmazonOrderItem)))
+    known_order_keys, eligible_order_keys = partition_order_item_keys(order_items)
     sales = [
         row
         for row in await db.scalars(sales_query)
         if is_order_payment(row.transaction_type)
+        and (
+            (_clean(row.external_transaction_id), _clean(row.sku)) not in known_order_keys
+            or (_clean(row.external_transaction_id), _clean(row.sku)) in eligible_order_keys
+        )
     ]
     sale_aliases_by_sku: dict[str, set[str]] = defaultdict(set)
     for sale in sales:

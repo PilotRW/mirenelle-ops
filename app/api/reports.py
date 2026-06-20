@@ -24,6 +24,11 @@ from app.services.fx import (
 from app.services.app_settings import get_fulfillment_cost_settings
 from app.services.fifo_cost_service import fifo_event_costs
 from app.services.product_mapping_service import product_similarity
+from app.services.order_item_policy import (
+    is_sellable_order_item,
+    order_item_key,
+    partition_order_item_keys,
+)
 from app.services.transaction_classifier import classify_payment_type, is_order_payment
 
 
@@ -929,10 +934,12 @@ async def product_profitability(
     )
     transaction_rows = list((await db.execute(transaction_query)).all())
 
-    order_items = await db.scalars(select(AmazonOrderItem))
+    order_items = list(await db.scalars(select(AmazonOrderItem)))
+    known_order_keys, eligible_order_keys = partition_order_item_keys(order_items)
     order_by_payment_key = {
-        (item.amazon_order_id, item.sku): item
+        order_item_key(item): item
         for item in order_items
+        if is_sellable_order_item(item)
     }
 
     by_product: dict[tuple[str, str, str], dict[str, object]] = {}
@@ -1069,6 +1076,12 @@ async def product_profitability(
         matched_order = order_by_payment_key.get(
             (str(row.external_transaction_id or ""), str(row.sku or ""))
         )
+        order_key = (
+            str(row.external_transaction_id or ""),
+            str(row.sku or ""),
+        )
+        if order_key in known_order_keys and order_key not in eligible_order_keys:
+            continue
         fulfillment_channel = (
             matched_order.fulfillment_channel
             if matched_order

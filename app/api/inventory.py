@@ -17,6 +17,7 @@ from app.models.inventory_lot import InventoryLot
 from app.models.product_mapping import ProductMapping
 from app.models.purchase_invoice_line import PurchaseInvoiceLine
 from app.services.product_mapping_service import product_similarity
+from app.services.order_item_policy import partition_order_item_keys
 from app.services.transaction_classifier import is_order_payment
 
 
@@ -317,6 +318,8 @@ async def calculate_inventory_quantities(
     sales_matched = Decimal("0")
     sales_unmatched = Decimal("0")
     sales_buckets: dict[str, dict] = {}
+    order_items = list(await db.scalars(select(AmazonOrderItem)))
+    known_order_keys, eligible_order_keys = partition_order_item_keys(order_items)
     payment_rows = await db.scalars(
         select(AmazonPaymentTransaction)
         .where(AmazonPaymentTransaction.sku.is_not(None))
@@ -324,6 +327,12 @@ async def calculate_inventory_quantities(
     )
     for payment in payment_rows:
         if not is_order_payment(payment.transaction_type):
+            continue
+        order_key = (
+            (payment.external_transaction_id or "").strip(),
+            (payment.sku or "").strip(),
+        )
+        if order_key in known_order_keys and order_key not in eligible_order_keys:
             continue
         sku = (payment.sku or "").strip()
         if not sku:

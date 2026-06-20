@@ -1,6 +1,6 @@
 # Mirenelle Ops - Project State
 
-Last updated: 2026-06-19
+Last updated: 2026-06-21
 
 ## Product Direction
 
@@ -283,8 +283,12 @@ reconciliation are operational. Continue from this point:
     A two-component API/UI save test passed and all temporary recipes were
     deleted afterward. The database currently contains zero confirmed real
     bundle recipes.
-12. Exclude `NON_AMAZON` fulfillment rows and cancelled zero-quantity rows from
-   sold-unit analytics. Preserve them in raw/order operational views.
+12. Added one shared sellable-order policy for Product Profitability, FIFO
+    consumption, and Inventory sold quantities. It excludes `NON_AMAZON`,
+    cancelled/canceled items, and zero-quantity rows while preserving all
+    imported rows in raw/order operational views. The live database currently
+    has 102 order/SKU keys: 93 eligible and 9 excluded. Four unit tests and
+    live profitability/inventory endpoint checks pass.
 13. After validation, run the connector for later periods and make Orders the
    source of truth for inventory sold quantities.
 
@@ -309,20 +313,25 @@ Current verified inventory examples:
 - `Dr.Beckmann`: purchased 24, sold 13, on hand 11.
 - `Cif`: purchased 32, sold 4, on hand 28.
 
-## Tomorrow Resume Checklist
+## Current Resume Checklist
 
 Start here:
 
-1. Open `http://localhost:8010/ui/`, go to `Inventory -> Bundle Recipes`, and
+1. The next autonomous implementation step is separate refund/return-fee
+   reconciliation. First inspect the real Payments refund and return-fee rows,
+   determine which identifiers can reliably link them to the original
+   order/SKU, then add explicit matched/unmatched reporting without guessing.
+2. When the operator can confirm real bundle composition, open
+   `http://localhost:8010/ui/`, go to `Inventory -> Bundle Recipes`, and
    enter the first confirmed real recipe:
    choose/type the sold Amazon bundle SKU, add every component SKU/EAN and its
    quantity with `Add component`, review the full draft, then click
    `Save bundle`.
-2. Re-open the saved recipe from the left-hand card list and verify its
+3. Re-open the saved recipe from the left-hand card list and verify its
    components, total units, and estimated cost.
-3. Refresh Product Profitability for the bundle's sales period and verify that
+4. Refresh Product Profitability for the bundle's sales period and verify that
    FIFO COGS is populated from component lots.
-4. Repeat for the remaining real bundle SKUs. Do not invent recipes from
+5. Repeat for the remaining real bundle SKUs. Do not invent recipes from
    product titles; they require operator confirmation.
 
 Useful commands:
@@ -345,14 +354,12 @@ Expected database migration head:
 1. Implement separate refund/return-fee reconciliation; these rows do not
    currently match the sales order ID directly.
 2. Configure confirmed real bundle recipes for existing bundle SKUs.
-3. Exclude `NON_AMAZON` and cancelled zero-quantity order rows from sold-unit
-   analytics while retaining them in raw operational views.
-4. Replace estimated per-sold-unit storage with warehouse-day allocation after
+3. Replace estimated per-sold-unit storage with warehouse-day allocation after
    inventory snapshots are available.
-5. Split inventory planning by FBA/FBM logic:
+4. Split inventory planning by FBA/FBM logic:
    FBA uses Amazon fulfillment/inventory data; FBM needs own/prep-center stock
    and external handling tariffs.
-6. Add read-only FBA inventory connector.
+5. Add read-only FBA inventory connector.
 6. Add Customer Returns import after seeing the real file headers.
 7. Add Reimbursements import after seeing the real file headers.
 8. Add Service Fees import if the separate report has richer fields than
