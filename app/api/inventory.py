@@ -166,7 +166,7 @@ class BundleAssemblyRequest(BaseModel):
     bundle_sku: str = Field(min_length=1, max_length=160)
     assembly_date: date
     quantity: float = Field(gt=0)
-    assembly_provider: str = Field(default="unknown", max_length=32)
+    assembly_provider: str = Field(default="prep_center", max_length=32)
     unit_assembly_cost: float = Field(default=0, ge=0)
     currency: str = Field(default="EUR", min_length=3, max_length=8)
     notes: str | None = None

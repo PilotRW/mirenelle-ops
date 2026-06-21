@@ -367,6 +367,9 @@ reconciliation are operational. Continue from this point:
     EUR 0.50 reduced `Missha12-FBA-01` net profit from EUR 3.35 to EUR 2.85;
     the temporary assembly was deleted afterward. The live assemblies table
     remains empty. All 24 unit tests pass.
+25. Confirmed the business source of bundle assembly fees: the prep center
+    charges them. New assembly records therefore default to `prep_center`;
+    Amazon remains an explicit alternative only for exceptional cases.
 
 Operational notes:
 
@@ -421,7 +424,7 @@ git status --short
 Expected database migration head:
 
 ```text
-20260621_0023
+20260621_0024
 ```
 
 ## Next Plan

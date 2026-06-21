@@ -18,7 +18,7 @@ class BundleAssembly(Base):
     assembly_provider: Mapped[str] = mapped_column(
         String(32),
         nullable=False,
-        server_default="unknown",
+        server_default="prep_center",
     )
     unit_assembly_cost: Mapped[Decimal] = mapped_column(
         Numeric(12, 4),

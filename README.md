@@ -256,8 +256,8 @@ operations are entered.
 
 Bundle Assemblies records the physical transfer from loose components into
 finished bundles. Each assembly stores its own recipe snapshot, date, quantity,
-assembler (`unknown`, prep center, Amazon, in-house, or other), unit assembly
-cost, currency, and notes. This prevents later recipe edits from changing
+assembler (prep center by default, `unknown`, Amazon, in-house, or other), unit
+assembly cost, currency, and notes. This prevents later recipe edits from changing
 historical assembly consumption. Recorded assemblies cover bundle sales rather
 than adding to them:
 if 17 bundles were assembled and 4 later sold, components are consumed 17
