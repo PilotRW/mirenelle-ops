@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260621-12" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260621-13" />
   </head>
   <body>
     <div class="appShell">
@@ -759,7 +759,10 @@
                   <aside class="recipeListPane">
                     <div class="recipePaneHeader">
                       <strong data-i18n="section.bundleRecipes">Bundle Recipes</strong>
-                      <span id="recipeCount" class="recipeCount">0</span>
+                      <div class="recipePaneActions">
+                        <span id="recipeCount" class="recipeCount">0</span>
+                        <button id="newBundleRecipeButton" class="compactButton" type="button" data-i18n="action.newRecipe">New recipe</button>
+                      </div>
                     </div>
                     <div id="bundleRecipeCards" class="recipeCards"></div>
                   </aside>

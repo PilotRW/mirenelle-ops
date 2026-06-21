@@ -5,6 +5,7 @@ const translations = {
     "action.addOpeningLot": "Add opening lot",
     "action.addComponent": "Add component",
     "action.addSelected": "Add selected",
+    "action.newRecipe": "New recipe",
     "action.selectMultiple": "Select multiple",
     "action.selectVisible": "Select visible",
     "action.clearSelection": "Clear selection",
@@ -277,6 +278,7 @@ const translations = {
     "action.addOpeningLot": "Anfangsbestand hinzufügen",
     "action.addComponent": "Komponente hinzufügen",
     "action.addSelected": "Ausgewählte hinzufügen",
+    "action.newRecipe": "Neues Rezept",
     "action.selectMultiple": "Mehrere auswählen",
     "action.selectVisible": "Sichtbare auswählen",
     "action.clearSelection": "Auswahl leeren",
@@ -549,6 +551,7 @@ const translations = {
     "action.addOpeningLot": "Додати початкову партію",
     "action.addComponent": "Додати компонент",
     "action.addSelected": "Додати вибрані",
+    "action.newRecipe": "Новий рецепт",
     "action.selectMultiple": "Вибрати кілька",
     "action.selectVisible": "Вибрати видимі",
     "action.clearSelection": "Очистити вибір",
@@ -831,6 +834,7 @@ const state = {
   bundleComponents: [],
   bundleCandidates: { bundles: [], components: [] },
   activeBundleSku: null,
+  bundleEditorOpen: false,
   bundleDraft: [],
   bundleDraftOriginalSku: null,
   bundleDraftDirty: false,
@@ -1091,18 +1095,18 @@ function loadBundleDraft(group = null) {
 
 function renderBundleRecipes() {
   const groups = bundleRecipeGroups();
+  const builder = document.querySelector(".recipeBuilder");
+  const editor = document.querySelector(".recipeEditorPane");
   const recipeCount = document.getElementById("recipeCount");
   const cards = document.getElementById("bundleRecipeCards");
   const summary = document.getElementById("activeRecipeSummary");
   const componentCards = document.getElementById("activeRecipeComponents");
   const form = document.getElementById("bundleComponentForm");
-  if (!recipeCount || !cards || !summary || !componentCards || !form) return;
+  if (!recipeCount || !cards || !summary || !componentCards || !form || !builder || !editor) return;
 
   if (state.activeBundleSku && !groups.some((group) => group.sku === state.activeBundleSku)) {
     state.activeBundleSku = null;
   }
-  if (!state.activeBundleSku && groups.length) state.activeBundleSku = groups[0].sku;
-
   recipeCount.textContent = String(groups.length);
   cards.innerHTML = groups.length
     ? groups.map((group) => {
@@ -1124,6 +1128,10 @@ function renderBundleRecipes() {
         <strong>${t("recipe.chooseBundle")}</strong>
       </button>
     `;
+
+  builder.classList.toggle("browseOnly", !state.bundleEditorOpen);
+  editor.classList.toggle("hidden", !state.bundleEditorOpen);
+  if (!state.bundleEditorOpen) return;
 
   const active = groups.find((group) => group.sku === state.activeBundleSku);
   if (active && state.bundleDraftOriginalSku !== active.sku) {
@@ -1278,6 +1286,7 @@ function renderBundleSkuSuggestions(query = "") {
 
 function startBundleRecipe() {
   state.activeBundleSku = null;
+  state.bundleEditorOpen = true;
   closeBundleBatchPicker();
   loadBundleDraft();
   const form = document.getElementById("bundleComponentForm");
@@ -1291,6 +1300,22 @@ function startBundleRecipe() {
   bundleSku.focus();
 }
 
+function closeBundleRecipeEditor() {
+  state.activeBundleSku = null;
+  state.bundleEditorOpen = false;
+  closeBundleBatchPicker();
+  loadBundleDraft();
+  const form = document.getElementById("bundleComponentForm");
+  if (form) {
+    form.elements.namedItem("bundle_sku").value = "";
+    form.elements.namedItem("bundle_name").value = "";
+    form.elements.namedItem("component_sku").value = "";
+    form.elements.namedItem("component_quantity").value = "1";
+  }
+  renderBundleSkuSuggestions("");
+  renderBundleRecipes();
+}
+
 function updatePageTitle() {
   const title = document.getElementById("pageTitle");
   if (title) title.textContent = t(sectionTitleKey[state.activeSection] || "nav.dashboard");
@@ -1300,7 +1325,11 @@ function showSection(sectionName, resetScroll = false) {
   if (!document.getElementById(`section-${sectionName}`)) {
     sectionName = "dashboard";
   }
+  const previousSection = state.activeSection;
   state.activeSection = sectionName;
+  if (sectionName === "inventory" && previousSection !== "inventory" && !state.bundleDraftDirty) {
+    closeBundleRecipeEditor();
+  }
   localStorage.setItem("mirenelleOpsSection", sectionName);
   document.querySelectorAll(".pageSection").forEach((section) => {
     section.classList.toggle("active", section.id === `section-${sectionName}`);
@@ -2705,11 +2734,14 @@ document.getElementById("bundleRecipeCards").addEventListener("click", (event) =
   const card = event.target.closest("[data-select-bundle]");
   if (!card) return;
   state.activeBundleSku = card.dataset.selectBundle;
+  state.bundleEditorOpen = true;
   closeBundleBatchPicker();
   state.bundleDraftOriginalSku = null;
   renderBundleRecipes();
   document.querySelector('#bundleComponentForm input[name="component_sku"]').focus();
 });
+
+document.getElementById("newBundleRecipeButton").addEventListener("click", startBundleRecipe);
 
 document.querySelector('#bundleComponentForm input[name="bundle_sku"]').addEventListener("input", (event) => {
   state.bundleDraftDirty = true;

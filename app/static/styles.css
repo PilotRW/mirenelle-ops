@@ -333,6 +333,19 @@ button:disabled {
     #f8fafc;
 }
 
+.recipeBuilder.browseOnly {
+  grid-template-columns: 1fr;
+  min-height: 0;
+}
+
+.recipeBuilder.browseOnly .recipeListPane {
+  border-right: 0;
+}
+
+.recipeBuilder.browseOnly .recipeCards {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
 .recipeListPane {
   min-width: 0;
   padding: 14px;
@@ -352,6 +365,12 @@ button:disabled {
 .recipePaneHeader {
   justify-content: space-between;
   margin-bottom: 12px;
+}
+
+.recipePaneActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .recipeCount {
