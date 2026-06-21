@@ -334,7 +334,9 @@ button:disabled {
 }
 
 .recipeListPane {
+  min-width: 0;
   padding: 14px;
+  overflow: hidden;
   border-right: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.78);
 }
@@ -365,11 +367,14 @@ button:disabled {
 
 .recipeCards {
   display: grid;
+  min-width: 0;
   gap: 8px;
 }
 
 .recipeCard {
   display: grid;
+  min-width: 0;
+  max-width: 100%;
   gap: 5px;
   width: 100%;
   min-height: 86px;
@@ -395,15 +400,22 @@ button:disabled {
 }
 
 .recipeCardTop {
+  min-width: 0;
   justify-content: space-between;
   gap: 8px;
 }
 
 .recipeCardTop strong,
 .componentIdentity strong {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.recipeCardTop strong {
+  display: block;
+  flex: 1;
 }
 
 .recipeCardTop small {
