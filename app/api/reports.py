@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import get_db
 from app.models.amazon_order_item import AmazonOrderItem
 from app.models.amazon_payment_transaction import AmazonPaymentTransaction
+from app.models.amazon_reimbursement import AmazonReimbursement
 from app.models.amazon_return_item import AmazonReturnItem
 from app.models.product_cost import ProductCost
 from app.models.product_mapping import ProductMapping
@@ -111,6 +112,7 @@ class AmazonPnlCategoryRow(BaseModel):
     promotional_rebates_eur: float
     amazon_fees_eur: float
     other_amount_eur: float
+    reimbursements_eur: float = 0
     total_amount_eur: float
 
 
@@ -123,6 +125,7 @@ class AmazonPnlSummary(BaseModel):
     gross_sales_eur: float
     promotional_rebates_eur: float
     refunds_eur: float
+    reimbursements_eur: float
     amazon_fees_eur: float
     service_other_fees_eur: float
     transfers_eur: float
@@ -212,6 +215,7 @@ class ProductProfitabilityRow(BaseModel):
     sales_vat_eur: float
     revenue_eur: float
     refunds_eur: float
+    reimbursements_eur: float
     promotional_rebates_eur: float
     amazon_fees_eur: float
     other_amount_eur: float
@@ -284,6 +288,7 @@ class ProductProfitabilitySummary(BaseModel):
     sales_vat_eur: float
     revenue_eur: float
     refunds_eur: float
+    reimbursements_eur: float
     promotional_rebates_eur: float
     amazon_fees_eur: float
     other_amount_eur: float
@@ -575,6 +580,7 @@ async def amazon_pnl(
         "gross_sales_eur": 0.0,
         "promotional_rebates_eur": 0.0,
         "refunds_eur": 0.0,
+        "reimbursements_eur": 0.0,
         "amazon_fees_eur": 0.0,
         "service_other_fees_eur": 0.0,
         "transfers_eur": 0.0,
@@ -636,6 +642,42 @@ async def amazon_pnl(
                 2,
             )
 
+    reimbursements = list(await db.scalars(select(AmazonReimbursement)))
+    reimbursement_rows = 0
+    for reimbursement in reimbursements:
+        approval_date = reimbursement.approval_date.date()
+        if start_date and approval_date < start_date:
+            continue
+        if end_date and approval_date > end_date:
+            continue
+        rate_to_eur = get_rate_on_date(history, reimbursement.currency, approval_date)
+        amount_eur = eur(reimbursement.amount_total, rate_to_eur)
+        summary["reimbursements_eur"] = round(summary["reimbursements_eur"] + amount_eur, 2)
+        reimbursement_rows += 1
+        key = ("reimbursement", reimbursement.reason or "Reimbursement", "FBA")
+        bucket = category_buckets.setdefault(
+            key,
+            {
+                "rows": 0,
+                "units": 0.0,
+                "product_charges_eur": 0.0,
+                "promotional_rebates_eur": 0.0,
+                "amazon_fees_eur": 0.0,
+                "other_amount_eur": 0.0,
+                "reimbursements_eur": 0.0,
+                "total_amount_eur": 0.0,
+            },
+        )
+        bucket["rows"] = int(bucket["rows"]) + 1
+        bucket["units"] = round(float(bucket["units"]) + money(reimbursement.quantity_total), 3)
+        bucket["reimbursements_eur"] = round(float(bucket["reimbursements_eur"]) + amount_eur, 2)
+        bucket["total_amount_eur"] = round(float(bucket["total_amount_eur"]) + amount_eur, 2)
+    summary["rows"] += reimbursement_rows
+    summary["ledger_total_eur"] = round(
+        summary["ledger_total_eur"] + summary["reimbursements_eur"],
+        2,
+    )
+
     rows = [
         AmazonPnlCategoryRow(
             category=category,
@@ -652,7 +694,8 @@ async def amazon_pnl(
         + summary["promotional_rebates_eur"]
         + summary["refunds_eur"]
         + summary["amazon_fees_eur"]
-        + summary["service_other_fees_eur"],
+        + summary["service_other_fees_eur"]
+        + summary["reimbursements_eur"],
         2,
     )
     return AmazonPnlResponse(
@@ -1058,6 +1101,7 @@ async def product_profitability(
                 "revenue_eur": 0.0,
                 "sales_vat_eur": 0.0,
                 "refunds_eur": 0.0,
+                "reimbursements_eur": 0.0,
                 "promotional_rebates_eur": 0.0,
                 "amazon_fees_eur": 0.0,
                 "other_amount_eur": 0.0,
@@ -1219,6 +1263,47 @@ async def product_profitability(
             continue
         add_transaction_to_bucket(row, category, preferred_key, matched_order)
 
+    reimbursements = list(await db.scalars(select(AmazonReimbursement)))
+    period_reimbursements_eur = 0.0
+    for reimbursement in reimbursements:
+        approval_date = reimbursement.approval_date.date()
+        if start_date and approval_date < start_date:
+            continue
+        if end_date and approval_date > end_date:
+            continue
+        rate_to_eur = get_rate_on_date(
+            fx_history,
+            reimbursement.currency,
+            approval_date,
+        )
+        reimbursement_eur = eur(reimbursement.amount_total, rate_to_eur)
+        period_reimbursements_eur = round(
+            period_reimbursements_eur + reimbursement_eur,
+            2,
+        )
+        candidate_keys = sold_keys_by_sku.get(reimbursement.sku, [])
+        preferred_key = None
+        if reimbursement.amazon_order_id:
+            matched_order = order_by_payment_key.get(
+                (reimbursement.amazon_order_id, reimbursement.sku)
+            )
+            if matched_order:
+                preferred_key = (
+                    reimbursement.sku,
+                    matched_order.fulfillment_channel,
+                    matched_order.currency or reimbursement.currency,
+                )
+        if preferred_key not in by_product:
+            preferred_key = candidate_keys[0] if len(candidate_keys) == 1 else None
+        if preferred_key is None:
+            continue
+        bucket = by_product[preferred_key]
+        bucket["reimbursements_eur"] = round(
+            float(bucket["reimbursements_eur"])
+            + reimbursement_eur,
+            2,
+        )
+
     latest_costs = await db.scalars(
         select(ProductCost).order_by(ProductCost.product_name, ProductCost.effective_date.desc(), ProductCost.id.desc())
     )
@@ -1318,6 +1403,7 @@ async def product_profitability(
         sales_vat_eur = round(float(bucket["sales_vat_eur"]), 2)
         revenue_gross_eur = round(revenue_eur + sales_vat_eur, 2)
         refunds_eur = float(bucket["refunds_eur"])
+        reimbursements_eur = float(bucket["reimbursements_eur"])
         promotional_rebates_eur = float(bucket["promotional_rebates_eur"])
         amazon_fees_eur = float(bucket["amazon_fees_eur"])
         other_amount_eur = float(bucket["other_amount_eur"])
@@ -1378,6 +1464,7 @@ async def product_profitability(
             round(
                 revenue_eur
                 + refunds_eur
+                + reimbursements_eur
                 + promotional_rebates_eur
                 + amazon_fees_eur
                 + other_amount_eur
@@ -1426,6 +1513,7 @@ async def product_profitability(
                 sales_vat_eur=sales_vat_eur,
                 revenue_eur=revenue_eur,
                 refunds_eur=refunds_eur,
+                reimbursements_eur=reimbursements_eur,
                 promotional_rebates_eur=promotional_rebates_eur,
                 amazon_fees_eur=amazon_fees_eur,
                 other_amount_eur=other_amount_eur,
@@ -1453,6 +1541,7 @@ async def product_profitability(
     sales_vat_eur = round(sum(row.sales_vat_eur for row in rows), 2)
     revenue_eur = round(sum(row.revenue_eur for row in rows), 2)
     refunds_eur = round(sum(row.refunds_eur for row in rows), 2)
+    reimbursements_eur = period_reimbursements_eur
     promotional_rebates_eur = round(sum(row.promotional_rebates_eur for row in rows), 2)
     amazon_fees_eur = round(sum(row.amazon_fees_eur for row in rows), 2)
     other_amount_eur = round(sum(row.other_amount_eur for row in rows), 2)
@@ -1476,6 +1565,7 @@ async def product_profitability(
             sales_vat_eur=sales_vat_eur,
             revenue_eur=revenue_eur,
             refunds_eur=refunds_eur,
+            reimbursements_eur=reimbursements_eur,
             promotional_rebates_eur=promotional_rebates_eur,
             amazon_fees_eur=amazon_fees_eur,
             other_amount_eur=other_amount_eur,

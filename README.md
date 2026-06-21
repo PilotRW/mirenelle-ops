@@ -442,3 +442,8 @@ Reimbursements sync is available at
 `POST /integrations/amazon-sp-api/reimbursements/sync`. It imports
 `GET_FBA_REIMBURSEMENTS_DATA` with exact reimbursement-ID deduplication.
 Reimbursements remain separate from sales revenue.
+
+Product Profitability and Amazon P&L display reimbursements separately. They
+use approval-date FX and affect Amazon operating result, but never sales, VAT,
+units, average selling price, gross profit, or FIFO COGS. Product net profit
+stays unknown if FIFO cost coverage is incomplete.

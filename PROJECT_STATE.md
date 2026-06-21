@@ -325,6 +325,12 @@ reconciliation are operational. Continue from this point:
     first live import found one CustomerReturn reimbursement: exact
     order/SKU/FNSKU/ASIN linkage, EUR 93.84 cash, and one reimbursed unit.
     This amount is not present in Payments.
+18. Added reimbursements as a separate column and KPI in Product Profitability
+    and Amazon P&L. They use approval-date FX and increase Amazon operating
+    result, but do not change sales, VAT, units, average selling price, gross
+    profit, or FIFO COGS. EUR 93.84 appears in all-time and April 2026, and
+    EUR 0 in May 2026. Product-level net remains unknown when FIFO COGS is
+    incomplete; the known reimbursement remains visible separately.
 
 Operational notes:
 
@@ -351,8 +357,8 @@ Current verified inventory examples:
 
 Start here:
 
-1. Add reimbursements to Product Profitability and Amazon P&L as a separate
-   positive adjustment, not sales revenue. Do not alter units or FIFO COGS.
+1. Configure confirmed real bundle recipes for existing bundle SKUs. This is
+   the next genuine blocker because component composition needs operator input.
 2. When the operator can confirm real bundle composition, open
    `http://localhost:8010/ui/`, go to `Inventory -> Bundle Recipes`, and
    enter the first confirmed real recipe:
@@ -383,15 +389,14 @@ Expected database migration head:
 
 ## Next Plan
 
-1. Add Reimbursements import after inspecting the real report fields.
-2. Configure confirmed real bundle recipes for existing bundle SKUs.
+1. Configure confirmed real bundle recipes for existing bundle SKUs.
+2. Add Service Fees import if the separate report has richer fields than
+   Transaction View.
 3. Replace estimated per-sold-unit storage with warehouse-day allocation after
    inventory snapshots are available.
 4. Split inventory planning by FBA/FBM logic:
    FBA uses Amazon fulfillment/inventory data; FBM needs own/prep-center stock
    and external handling tariffs.
-5. Add Service Fees import if the separate report has richer fields than
-   Transaction View.
-6. Add OCR/repair fallback for image-based or malformed PDFs.
-7. Later: add landed-cost model refinements for freight, prep-center costs,
+5. Add OCR/repair fallback for image-based or malformed PDFs.
+6. Later: add landed-cost model refinements for freight, prep-center costs,
    marketplace service fees, and optional allocation methods per cost type.

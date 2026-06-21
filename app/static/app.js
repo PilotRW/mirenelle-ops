@@ -221,6 +221,7 @@ const translations = {
     "table.promo": "Promo",
     "table.purchased": "Purchased",
     "table.refunds": "Refunds",
+    "table.reimbursements": "Reimbursements",
     "table.reorderPoint": "Reorder point",
     "table.reserved": "Reserved",
     "table.quantity": "Quantity",
@@ -485,6 +486,7 @@ const translations = {
     "table.promo": "Promo",
     "table.purchased": "Gekauft",
     "table.refunds": "Erstattungen",
+    "table.reimbursements": "Erstattungen von Amazon",
     "table.reorderPoint": "Meldebestand",
     "table.reserved": "Reserviert",
     "table.quantity": "Menge",
@@ -749,6 +751,7 @@ const translations = {
     "table.promo": "Промо",
     "table.purchased": "Куплено",
     "table.refunds": "Повернення",
+    "table.reimbursements": "Компенсації Amazon",
     "table.reorderPoint": "Мін. залишок",
     "table.reserved": "Зарезервовано",
     "table.quantity": "Кількість",
@@ -1799,6 +1802,7 @@ function paymentCategoryLabel(category) {
   const keys = {
     order: "paymentCategory.order",
     refund: "paymentCategory.refund",
+    reimbursement: "report.reimbursements",
     fba_fee: "paymentCategory.fbaFee",
     return_fee: "paymentCategory.returnFee",
     service_fee: "paymentCategory.serviceFee",
@@ -1994,6 +1998,10 @@ async function loadAmazonPnl() {
         <strong>${money(summary.refunds_eur, "EUR")}</strong>
       </div>
       <div class="kpi">
+        <span>${t("table.reimbursements")}</span>
+        <strong>${money(summary.reimbursements_eur, "EUR")}</strong>
+      </div>
+      <div class="kpi">
         <span>${t("table.fees")}</span>
         <strong>${money(summary.amazon_fees_eur + summary.service_other_fees_eur, "EUR")}</strong>
       </div>
@@ -2021,6 +2029,7 @@ async function loadAmazonPnl() {
       <td class="num">${money(row.product_charges_eur, "EUR")}</td>
       <td class="num">${money(row.amazon_fees_eur, "EUR")}</td>
       <td class="num">${money(row.other_amount_eur, "EUR")}</td>
+      <td class="num">${money(row.reimbursements_eur, "EUR")}</td>
       <td class="num">${money(row.total_amount_eur, "EUR")}</td>
     </tr>
   `);
@@ -2229,6 +2238,10 @@ async function loadProfitability() {
       <strong>${money(summary.refunds_eur, "EUR")}</strong>
     </div>
     <div class="kpi">
+      <span>${t("table.reimbursements")}</span>
+      <strong>${money(summary.reimbursements_eur, "EUR")}</strong>
+    </div>
+    <div class="kpi">
       <span>${t("table.salesVat")}</span>
       <strong>${money(summary.sales_vat_eur, "EUR")}</strong>
     </div>
@@ -2292,6 +2305,7 @@ async function loadProfitability() {
       <td class="num">${row.purchase_cost_eur === null ? "-" : money(row.purchase_cost_eur, "EUR")}</td>
       <td class="num">${row.cogs_eur === null ? "-" : money(row.cogs_eur, "EUR")}</td>
       <td class="num">${money(row.refunds_eur, "EUR")}</td>
+      <td class="num">${money(row.reimbursements_eur, "EUR")}</td>
       <td class="num">${money(row.amazon_fees_eur + row.other_amount_eur, "EUR")}</td>
       <td class="num" title="Prep ${money(row.prep_cost_eur, "EUR")} · Storage ${money(row.storage_cost_eur, "EUR")} · FBM ${money(row.fbm_logistics_cost_eur, "EUR")}">${money(-row.operational_cost_eur, "EUR")}</td>
       <td class="num">${row.gross_profit_eur === null ? "-" : money(row.gross_profit_eur, "EUR")}</td>
