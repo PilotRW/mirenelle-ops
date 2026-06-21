@@ -1128,6 +1128,8 @@ function renderBundleRecipes() {
   const active = groups.find((group) => group.sku === state.activeBundleSku);
   if (active && state.bundleDraftOriginalSku !== active.sku) {
     loadBundleDraft(active);
+  }
+  if (active && !state.bundleDraftDirty) {
     form.elements.namedItem("bundle_sku").value = active.sku;
     form.elements.namedItem("bundle_name").value = active.name || "";
   }
@@ -1223,6 +1225,17 @@ function renderBundleBatchPicker() {
     : `<div class="recipeSuggestionEmpty">${t("message.noData")}</div>`;
 }
 
+function closeBundleBatchPicker({ clearSearch = true } = {}) {
+  const picker = document.getElementById("bundleBatchPicker");
+  const toggle = document.getElementById("bundleBatchToggle");
+  const search = document.getElementById("bundleBatchSearch");
+  state.bundleBatchSelected.clear();
+  if (clearSearch && search) search.value = "";
+  if (picker) picker.classList.add("hidden");
+  if (toggle) toggle.setAttribute("aria-expanded", "false");
+  renderBundleBatchPicker();
+}
+
 function upsertBundleDraftComponent(componentSku, componentQuantity) {
   const existingIndex = state.bundleDraft.findIndex(
     (component) => component.component_sku === componentSku,
@@ -1265,7 +1278,7 @@ function renderBundleSkuSuggestions(query = "") {
 
 function startBundleRecipe() {
   state.activeBundleSku = null;
-  state.bundleBatchSelected.clear();
+  closeBundleBatchPicker();
   loadBundleDraft();
   const form = document.getElementById("bundleComponentForm");
   const bundleSku = form?.elements.namedItem("bundle_sku");
@@ -2641,11 +2654,13 @@ document.getElementById("bundleComponentForm").addEventListener("submit", async 
 document.getElementById("bundleBatchToggle").addEventListener("click", (event) => {
   const picker = document.getElementById("bundleBatchPicker");
   const isOpening = picker.classList.contains("hidden");
-  picker.classList.toggle("hidden", !isOpening);
-  event.currentTarget.setAttribute("aria-expanded", String(isOpening));
   if (isOpening) {
+    picker.classList.remove("hidden");
+    event.currentTarget.setAttribute("aria-expanded", "true");
     renderBundleBatchPicker();
     document.getElementById("bundleBatchSearch").focus();
+  } else {
+    closeBundleBatchPicker({ clearSearch: false });
   }
 });
 
@@ -2677,10 +2692,9 @@ document.getElementById("bundleBatchAdd").addEventListener("click", () => {
   const componentQuantity = Number(form.elements.namedItem("component_quantity").value);
   const selected = state.bundleCandidates.components.filter((row) => state.bundleBatchSelected.has(row.sku));
   selected.slice().reverse().forEach((row) => upsertBundleDraftComponent(row.sku, componentQuantity));
-  state.bundleBatchSelected.clear();
   state.bundleDraftDirty = true;
+  closeBundleBatchPicker();
   renderBundleRecipes();
-  renderBundleBatchPicker();
 });
 
 document.getElementById("bundleRecipeCards").addEventListener("click", (event) => {
@@ -2691,7 +2705,7 @@ document.getElementById("bundleRecipeCards").addEventListener("click", (event) =
   const card = event.target.closest("[data-select-bundle]");
   if (!card) return;
   state.activeBundleSku = card.dataset.selectBundle;
-  state.bundleBatchSelected.clear();
+  closeBundleBatchPicker();
   state.bundleDraftOriginalSku = null;
   renderBundleRecipes();
   document.querySelector('#bundleComponentForm input[name="component_sku"]').focus();
@@ -2760,7 +2774,16 @@ document.getElementById("saveBundleRecipeButton").addEventListener("click", asyn
     state.activeBundleSku = bundleSku;
     state.bundleDraftOriginalSku = null;
     state.bundleDraftDirty = false;
+    closeBundleBatchPicker();
+    renderBundleSkuSuggestions("");
     await Promise.all([loadInventory(), loadProfitability()]);
+    const savedGroup = bundleRecipeGroups().find((group) => group.sku === bundleSku);
+    if (savedGroup) {
+      loadBundleDraft(savedGroup);
+      form.elements.namedItem("bundle_sku").value = savedGroup.sku;
+      form.elements.namedItem("bundle_name").value = savedGroup.name || "";
+      renderBundleRecipes();
+    }
   } catch (error) {
     setStatus("inventoryStatus", error.message, true);
   } finally {
