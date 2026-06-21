@@ -2560,11 +2560,15 @@ document.getElementById("bundleComponentForm").addEventListener("submit", async 
   const body = new FormData(form);
   const componentSku = String(body.get("component_sku") || "").trim();
   const componentQuantity = Number(body.get("component_quantity"));
-  const existing = state.bundleDraft.find((component) => component.component_sku === componentSku);
-  if (existing) {
+  const existingIndex = state.bundleDraft.findIndex(
+    (component) => component.component_sku === componentSku,
+  );
+  if (existingIndex >= 0) {
+    const [existing] = state.bundleDraft.splice(existingIndex, 1);
     existing.component_quantity = componentQuantity;
+    state.bundleDraft.unshift(existing);
   } else {
-    state.bundleDraft.push({
+    state.bundleDraft.unshift({
       component_sku: componentSku,
       component_quantity: componentQuantity,
     });
