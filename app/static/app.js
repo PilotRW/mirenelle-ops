@@ -7,6 +7,7 @@ const translations = {
     "action.addSelected": "Add selected",
     "action.newRecipe": "New recipe",
     "action.collapseBundle": "Collapse",
+    "action.recordAssembly": "Record assembly",
     "action.selectMultiple": "Select multiple",
     "action.selectVisible": "Select visible",
     "action.clearSelection": "Clear selection",
@@ -60,6 +61,8 @@ const translations = {
     "field.bundleName": "Bundle name",
     "field.componentSku": "Component SKU / EAN",
     "field.componentQuantity": "Component quantity",
+    "field.assemblyDate": "Assembly date",
+    "field.assemblyQuantity": "Bundles assembled",
     "field.searchComponents": "Search components",
     "field.fbaPrepPerUnit": "FBA prep / unit EUR",
     "field.fbaStoragePerUnit": "FBA storage / sold unit EUR",
@@ -135,6 +138,7 @@ const translations = {
     "section.inventory": "Inventory",
     "section.openingInventoryLots": "Opening Inventory Lots",
     "section.bundleRecipes": "Bundle Recipes",
+    "section.bundleAssemblies": "Bundle Assemblies",
     "section.invoiceLines": "Invoice Lines",
     "section.landedCost": "Landed Cost",
     "section.fulfillmentCosts": "Fulfillment Costs",
@@ -272,6 +276,7 @@ const translations = {
     "table.units": "Units",
     "table.unitsRefunded": "Units refunded",
     "table.unitsSold": "Units sold",
+    "table.usedInBundles": "Used in bundles",
     "table.unknownTypes": "Unknown types",
   },
   de: {
@@ -282,6 +287,7 @@ const translations = {
     "action.addSelected": "Ausgewählte hinzufügen",
     "action.newRecipe": "Neues Rezept",
     "action.collapseBundle": "Einklappen",
+    "action.recordAssembly": "Montage erfassen",
     "action.selectMultiple": "Mehrere auswählen",
     "action.selectVisible": "Sichtbare auswählen",
     "action.clearSelection": "Auswahl leeren",
@@ -335,6 +341,8 @@ const translations = {
     "field.bundleName": "Bundle-Name",
     "field.componentSku": "Komponenten-SKU / EAN",
     "field.componentQuantity": "Komponentenmenge",
+    "field.assemblyDate": "Montagedatum",
+    "field.assemblyQuantity": "Montierte Bundles",
     "field.searchComponents": "Komponenten suchen",
     "field.fbaPrepPerUnit": "FBA Vorbereitung / Einheit EUR",
     "field.fbaStoragePerUnit": "FBA Lager / verkaufte Einheit EUR",
@@ -410,6 +418,7 @@ const translations = {
     "section.inventory": "Bestand",
     "section.openingInventoryLots": "Anfangsbestands-Chargen",
     "section.bundleRecipes": "Bundle-Rezepte",
+    "section.bundleAssemblies": "Bundle-Montagen",
     "section.invoiceLines": "Rechnungszeilen",
     "section.landedCost": "Landed Cost",
     "section.fulfillmentCosts": "Fulfillment-Kosten",
@@ -547,6 +556,7 @@ const translations = {
     "table.units": "Einheiten",
     "table.unitsRefunded": "Erstattete Einheiten",
     "table.unitsSold": "Verkaufte Einheiten",
+    "table.usedInBundles": "In Bundles verwendet",
     "table.unknownTypes": "Unbekannte Typen",
   },
   uk: {
@@ -557,6 +567,7 @@ const translations = {
     "action.addSelected": "Додати вибрані",
     "action.newRecipe": "Новий рецепт",
     "action.collapseBundle": "Згорнути",
+    "action.recordAssembly": "Записати складання",
     "action.selectMultiple": "Вибрати кілька",
     "action.selectVisible": "Вибрати видимі",
     "action.clearSelection": "Очистити вибір",
@@ -610,6 +621,8 @@ const translations = {
     "field.bundleName": "Назва набору",
     "field.componentSku": "SKU / EAN компонента",
     "field.componentQuantity": "Кількість компонента",
+    "field.assemblyDate": "Дата складання",
+    "field.assemblyQuantity": "Зібрано бандлів",
     "field.searchComponents": "Пошук компонентів",
     "field.fbaPrepPerUnit": "FBA prep / одиницю EUR",
     "field.fbaStoragePerUnit": "FBA зберігання / продану одиницю EUR",
@@ -685,6 +698,7 @@ const translations = {
     "section.inventory": "Товарні залишки",
     "section.openingInventoryLots": "Початкові партії залишків",
     "section.bundleRecipes": "Рецепти наборів",
+    "section.bundleAssemblies": "Складання бандлів",
     "section.invoiceLines": "Позиції інвойсу",
     "section.landedCost": "Landed Cost",
     "section.fulfillmentCosts": "Витрати фулфілменту",
@@ -822,6 +836,7 @@ const translations = {
     "table.units": "Одиниці",
     "table.unitsRefunded": "Повернені одиниці",
     "table.unitsSold": "Продані одиниці",
+    "table.usedInBundles": "Використано в бандлах",
     "table.unknownTypes": "Невідомі типи",
   },
 };
@@ -838,6 +853,7 @@ const state = {
   profitSummary: null,
   inventoryRows: [],
   bundleComponents: [],
+  bundleAssemblies: [],
   bundleCandidates: { bundles: [], components: [] },
   activeBundleSku: null,
   bundleEditorOpen: false,
@@ -1108,7 +1124,9 @@ function renderBundleRecipes() {
   const summary = document.getElementById("activeRecipeSummary");
   const componentCards = document.getElementById("activeRecipeComponents");
   const form = document.getElementById("bundleComponentForm");
-  if (!recipeCount || !cards || !summary || !componentCards || !form || !builder || !editor) return;
+  const assemblyForm = document.getElementById("bundleAssemblyForm");
+  const assemblyRows = document.getElementById("bundleAssemblyRows");
+  if (!recipeCount || !cards || !summary || !componentCards || !form || !assemblyForm || !assemblyRows || !builder || !editor) return;
 
   if (state.activeBundleSku && !groups.some((group) => group.sku === state.activeBundleSku)) {
     state.activeBundleSku = null;
@@ -1140,6 +1158,21 @@ function renderBundleRecipes() {
   if (!state.bundleEditorOpen) return;
 
   const active = groups.find((group) => group.sku === state.activeBundleSku);
+  const activeAssemblies = state.bundleAssemblies.filter(
+    (assembly) => assembly.bundle_sku === state.activeBundleSku,
+  );
+  assemblyRows.innerHTML = activeAssemblies.length
+    ? activeAssemblies.map((assembly) => `
+      <article class="bundleAssemblyRow">
+        <div><strong>${escapeHtml(assembly.assembly_date)}</strong><span>${escapeHtml(assembly.notes || "")}</span></div>
+        <strong>× ${integer(assembly.quantity)}</strong>
+        <button type="button" class="compactButton dangerButton" data-delete-bundle-assembly="${assembly.id}">${t("action.delete")}</button>
+      </article>
+    `).join("")
+    : `<div class="recipeEmptyState">${t("message.noData")}</div>`;
+  if (!assemblyForm.elements.namedItem("assembly_date").value) {
+    assemblyForm.elements.namedItem("assembly_date").value = isoDate(new Date());
+  }
   if (active && state.bundleDraftOriginalSku !== active.sku) {
     loadBundleDraft(active);
   }
@@ -1729,16 +1762,18 @@ function renderInventoryTotals(summary, rows = []) {
 }
 
 async function loadInventory() {
-  const [summary, items, openingLots, bundleComponents, bundleCandidates] = await Promise.all([
+  const [summary, items, openingLots, bundleComponents, bundleCandidates, bundleAssemblies] = await Promise.all([
     requestJson("/inventory/summary"),
     requestJson("/inventory/items"),
     requestJson("/inventory/opening-lots"),
     requestJson("/inventory/bundle-components"),
     requestJson("/inventory/bundle-candidates"),
+    requestJson("/inventory/bundle-assemblies"),
   ]);
   state.inventoryRows = items.rows;
   state.bundleComponents = bundleComponents.rows;
   state.bundleCandidates = bundleCandidates;
+  state.bundleAssemblies = bundleAssemblies.rows;
   const openingDate = document.querySelector('#openingLotForm input[name="purchase_date"]');
   if (openingDate && !openingDate.value) {
     openingDate.value = state.startDate || isoDate(new Date());
@@ -1752,6 +1787,7 @@ async function loadInventory() {
       <td>${text(row.fulfillment_channel)}</td>
       <td class="num">${integer(row.purchased_quantity)}</td>
       <td class="num">${integer(row.sold_quantity)}</td>
+      <td class="num">${integer(row.bundle_consumed_quantity)}</td>
       <td class="num">${integer(row.quantity_on_hand)}</td>
       <td class="num">${integer(row.quantity_available)}</td>
       <td class="num">${integer(row.quantity_reserved)}</td>
@@ -2752,6 +2788,50 @@ document.getElementById("newBundleRecipeButton").addEventListener("click", start
 document.getElementById("collapseBundleRecipeButton").addEventListener("click", () => {
   if (state.bundleDraftDirty && !window.confirm(t("message.confirmDiscardBundleChanges"))) return;
   closeBundleRecipeEditor();
+});
+
+document.getElementById("bundleAssemblyForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!state.activeBundleSku) return;
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const body = new FormData(form);
+  button.disabled = true;
+  try {
+    await requestJson("/inventory/bundle-assemblies", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        bundle_sku: state.activeBundleSku,
+        assembly_date: body.get("assembly_date"),
+        quantity: Number(body.get("quantity")),
+        notes: body.get("notes") || null,
+      }),
+    });
+    form.elements.namedItem("quantity").value = "1";
+    form.elements.namedItem("notes").value = "";
+    await loadInventory();
+  } catch (error) {
+    setStatus("inventoryStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("bundleAssemblyRows").addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-delete-bundle-assembly]");
+  if (!button) return;
+  button.disabled = true;
+  try {
+    await requestJson(`/inventory/bundle-assemblies/${button.dataset.deleteBundleAssembly}`, {
+      method: "DELETE",
+    });
+    await loadInventory();
+  } catch (error) {
+    setStatus("inventoryStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
 });
 
 document.querySelector('#bundleComponentForm input[name="bundle_sku"]').addEventListener("input", (event) => {

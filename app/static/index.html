@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260621-13" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260621-14" />
   </head>
   <body>
     <div class="appShell">
@@ -815,6 +815,27 @@
                       <button id="collapseBundleRecipeButton" class="secondaryButton" type="button" data-i18n="action.collapseBundle">Collapse</button>
                       <button id="saveBundleRecipeButton" type="button" data-i18n="action.saveBundle">Save bundle</button>
                     </div>
+                    <section class="bundleAssemblyPanel">
+                      <div class="sectionHeader">
+                        <h4 data-i18n="section.bundleAssemblies">Bundle Assemblies</h4>
+                      </div>
+                      <form id="bundleAssemblyForm" class="bundleAssemblyForm">
+                        <label>
+                          <span data-i18n="field.assemblyDate">Assembly date</span>
+                          <input name="assembly_date" type="date" required />
+                        </label>
+                        <label>
+                          <span data-i18n="field.assemblyQuantity">Bundles assembled</span>
+                          <input name="quantity" type="number" min="0.001" step="0.001" value="1" required />
+                        </label>
+                        <label>
+                          <span data-i18n="field.notes">Notes</span>
+                          <input name="notes" />
+                        </label>
+                        <button type="submit" data-i18n="action.recordAssembly">Record assembly</button>
+                      </form>
+                      <div id="bundleAssemblyRows" class="bundleAssemblyRows"></div>
+                    </section>
                   </div>
                 </div>
               </section>
@@ -828,6 +849,7 @@
                       <th data-i18n="field.fulfillment">Fulfillment</th>
                       <th class="num" data-i18n="table.purchased">Purchased</th>
                       <th class="num" data-i18n="table.sold">Sold</th>
+                      <th class="num" data-i18n="table.usedInBundles">Used in bundles</th>
                       <th class="num" data-i18n="table.onHand">On hand</th>
                       <th class="num" data-i18n="table.available">Available</th>
                       <th class="num" data-i18n="table.reserved">Reserved</th>
@@ -1110,6 +1132,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260621-09"></script>
+    <script src="/ui/app.js?v=20260621-10"></script>
   </body>
 </html>

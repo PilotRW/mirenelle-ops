@@ -234,6 +234,9 @@ GET    /inventory/bundle-components
 POST   /inventory/bundle-components
 POST   /inventory/bundle-recipes
 DELETE /inventory/bundle-components/{component_id}
+GET    /inventory/bundle-assemblies
+POST   /inventory/bundle-assemblies
+DELETE /inventory/bundle-assemblies/{assembly_id}
 ```
 
 Each recipe maps a sold Amazon bundle SKU to one or more component SKU/EAN
@@ -246,6 +249,18 @@ each component and quantity with `Add component`, then persist the complete
 recipe with `Save bundle`. `Add component` does not write to the database.
 `POST /inventory/bundle-recipes` replaces the complete recipe atomically, so
 editing an existing bundle cannot leave a partially saved component list.
+
+Inventory expands sold bundle quantities into their component quantities. A
+bundle sale therefore reduces component stock even before historical assembly
+operations are entered.
+
+Bundle Assemblies records the physical transfer from loose components into
+finished bundles. Each assembly stores its own recipe snapshot, date, quantity,
+and notes. This prevents later recipe edits from changing historical assembly
+consumption. Recorded assemblies cover bundle sales rather than adding to them:
+if 17 bundles were assembled and 4 later sold, components are consumed 17
+times, not 21. If no assembly has been recorded, sold bundles continue to
+consume components as a safe fallback.
 Bundle SKU suggestions come from positive-quantity Amazon Orders rows and are
 filtered only after the operator types at least two characters.
 

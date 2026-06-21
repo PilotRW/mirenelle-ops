@@ -12,6 +12,7 @@ from app.db.database import get_db
 from app.models.amazon_order_item import AmazonOrderItem
 from app.models.amazon_payment_transaction import AmazonPaymentTransaction
 from app.models.bundle_component import BundleComponent
+from app.models.bundle_assembly import BundleAssembly
 from app.models.inventory_item import InventoryItem
 from app.models.inventory_lot import InventoryLot
 from app.models.product_mapping import ProductMapping
@@ -48,6 +49,7 @@ class InventoryItemRow(BaseModel):
     fulfillment_channel: str
     purchased_quantity: float
     sold_quantity: float
+    bundle_consumed_quantity: float
     quantity_on_hand: float
     quantity_reserved: float
     quantity_available: float
@@ -160,6 +162,25 @@ class BundleCandidateResponse(BaseModel):
     components: list[ComponentCandidateRow]
 
 
+class BundleAssemblyRequest(BaseModel):
+    bundle_sku: str = Field(min_length=1, max_length=160)
+    assembly_date: date
+    quantity: float = Field(gt=0)
+    notes: str | None = None
+
+
+class BundleAssemblyRow(BaseModel):
+    id: int
+    bundle_sku: str
+    assembly_date: str
+    quantity: float
+    notes: str | None
+
+
+class BundleAssemblyListResponse(BaseModel):
+    rows: list[BundleAssemblyRow]
+
+
 def clean_text(value: str | None) -> str | None:
     return (value or "").strip() or None
 
@@ -188,6 +209,16 @@ def bundle_component_row(component: BundleComponent) -> BundleComponentRow:
     )
 
 
+def bundle_assembly_row(assembly: BundleAssembly) -> BundleAssemblyRow:
+    return BundleAssemblyRow(
+        id=assembly.id,
+        bundle_sku=assembly.bundle_sku,
+        assembly_date=assembly.assembly_date.isoformat(),
+        quantity=float(assembly.quantity),
+        notes=assembly.notes,
+    )
+
+
 def inventory_status(item: InventoryItem) -> str:
     available = (item.quantity_on_hand or Decimal("0")) - (item.quantity_reserved or Decimal("0"))
     if available <= 0:
@@ -201,6 +232,7 @@ def inventory_row(
     item: InventoryItem,
     purchased_quantity: Decimal | None = None,
     sold_quantity: Decimal | None = None,
+    bundle_consumed_quantity: Decimal | None = None,
 ) -> InventoryItemRow:
     available = (item.quantity_on_hand or Decimal("0")) - (item.quantity_reserved or Decimal("0"))
     return InventoryItemRow(
@@ -213,6 +245,7 @@ def inventory_row(
         fulfillment_channel=item.fulfillment_channel,
         purchased_quantity=float(purchased_quantity or 0),
         sold_quantity=float(sold_quantity or 0),
+        bundle_consumed_quantity=float(bundle_consumed_quantity or 0),
         quantity_on_hand=float(item.quantity_on_hand or 0),
         quantity_reserved=float(item.quantity_reserved or 0),
         quantity_available=float(available),
@@ -253,7 +286,7 @@ def best_purchased_match(product_details_aliases: set[str], candidates: list[tup
 
 
 def bundle_component_sales(
-    recipe: list[BundleComponent],
+    recipe: list[BundleComponent] | list[dict],
     bundle_quantity: Decimal,
     purchased: dict[str, dict],
 ) -> dict[str, Decimal] | None:
@@ -266,19 +299,45 @@ def bundle_component_sales(
                 purchased_key_by_identifier.setdefault(clean_identifier, purchased_sku)
 
     for component in recipe:
-        component_identifier = (component.component_sku or "").strip()
+        component_identifier = (
+            component.get("component_sku")
+            if isinstance(component, dict)
+            else component.component_sku
+        )
+        component_identifier = (component_identifier or "").strip()
         purchased_sku = purchased_key_by_identifier.get(component_identifier)
         if not purchased_sku:
             return None
+        component_quantity = (
+            component.get("component_quantity")
+            if isinstance(component, dict)
+            else component.component_quantity
+        )
         component_sales[purchased_sku] += (
-            abs(bundle_quantity) * Decimal(str(component.component_quantity))
+            abs(bundle_quantity) * Decimal(str(component_quantity))
         )
     return dict(component_sales)
 
 
+def split_bundle_component_consumption(
+    sold_quantity: Decimal,
+    assembly_quantity: Decimal,
+) -> tuple[Decimal, Decimal]:
+    return (
+        max(Decimal("0"), sold_quantity - assembly_quantity),
+        assembly_quantity,
+    )
+
+
 async def calculate_inventory_quantities(
     db: AsyncSession,
-) -> tuple[dict[str, dict], defaultdict[str, Decimal], Decimal, Decimal]:
+) -> tuple[
+    dict[str, dict],
+    defaultdict[str, Decimal],
+    defaultdict[str, Decimal],
+    Decimal,
+    Decimal,
+]:
     purchased: dict[str, dict] = {}
     purchased_candidates: list[tuple[str, str]] = []
     invoice_lines = await db.scalars(
@@ -339,6 +398,8 @@ async def calculate_inventory_quantities(
             mapped_product_skus.setdefault(mapping.amazon_product_details, mapped_sku)
 
     sold_by_sku: defaultdict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    assembled_by_sku: defaultdict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    bundle_sales_by_sku: defaultdict[str, Decimal] = defaultdict(lambda: Decimal("0"))
     recipes_by_bundle: defaultdict[str, list[BundleComponent]] = defaultdict(list)
     for component in await db.scalars(
         select(BundleComponent).order_by(
@@ -384,12 +445,7 @@ async def calculate_inventory_quantities(
         quantity = bucket["quantity"]
         recipe = recipes_by_bundle.get(sku, [])
         if recipe:
-            component_sales = bundle_component_sales(recipe, quantity, purchased)
-            if component_sales is None:
-                sales_unmatched += quantity
-                continue
-            for component_sku, component_quantity in component_sales.items():
-                sold_by_sku[component_sku] += component_quantity
+            bundle_sales_by_sku[sku] += quantity
             sales_matched += quantity
             continue
         product_details_aliases = set(bucket["product_details_aliases"])
@@ -413,7 +469,85 @@ async def calculate_inventory_quantities(
         else:
             sales_unmatched += quantity
 
-    return purchased, sold_by_sku, sales_matched, sales_unmatched
+    assembly_quantity_by_bundle: defaultdict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    assemblies = await db.scalars(
+        select(BundleAssembly).order_by(
+            BundleAssembly.assembly_date,
+            BundleAssembly.id,
+        )
+    )
+    for assembly in assemblies:
+        bundle_sku = (assembly.bundle_sku or "").strip()
+        assembly_quantity_by_bundle[bundle_sku] += Decimal(str(assembly.quantity))
+        assembly_components = bundle_component_sales(
+            list(assembly.component_snapshot or []),
+            Decimal(str(assembly.quantity)),
+            purchased,
+        )
+        if assembly_components is None:
+            continue
+        for component_sku, component_quantity in assembly_components.items():
+            assembled_by_sku[component_sku] += component_quantity
+
+    for bundle_sku in set(bundle_sales_by_sku) | set(assembly_quantity_by_bundle):
+        recipe = recipes_by_bundle.get(bundle_sku, [])
+        assembly_quantity = assembly_quantity_by_bundle[bundle_sku]
+        sold_quantity = bundle_sales_by_sku[bundle_sku]
+        uncovered_sale_quantity, _ = (
+            split_bundle_component_consumption(sold_quantity, assembly_quantity)
+        )
+        uncovered_sale_components = bundle_component_sales(
+            recipe,
+            uncovered_sale_quantity,
+            purchased,
+        )
+        if uncovered_sale_components is None:
+            if sold_quantity:
+                sales_unmatched += sold_quantity
+                sales_matched -= sold_quantity
+            continue
+        for component_sku, component_quantity in uncovered_sale_components.items():
+            sold_by_sku[component_sku] += component_quantity
+
+    return purchased, sold_by_sku, assembled_by_sku, sales_matched, sales_unmatched
+
+
+async def update_estimated_inventory_items(
+    db: AsyncSession,
+    purchased: dict[str, dict],
+    sold_by_sku: defaultdict[str, Decimal],
+    assembled_by_sku: defaultdict[str, Decimal],
+) -> tuple[int, int]:
+    created = 0
+    updated = 0
+    for sku, values in purchased.items():
+        item = await db.scalar(
+            select(InventoryItem)
+            .where(InventoryItem.sku == sku)
+            .where(InventoryItem.marketplace == "EU")
+            .where(InventoryItem.fulfillment_channel == "FBA")
+        )
+        if item is None:
+            item = InventoryItem(sku=sku, marketplace="EU", fulfillment_channel="FBA")
+            db.add(item)
+            created += 1
+        else:
+            updated += 1
+        item.ean = values["ean"]
+        item.product_name = values["product_name"]
+        item.quantity_on_hand = max(
+            Decimal("0"),
+            values["quantity"] - sold_by_sku[sku] - assembled_by_sku[sku],
+        )
+        item.quantity_reserved = Decimal("0")
+        item.quantity_inbound = Decimal("0")
+        item.notes = (
+            "Estimated from purchase invoices minus matched Amazon order quantities "
+            "and recorded bundle assemblies. "
+            f"Purchased: {values['quantity']}; matched sold: {sold_by_sku[sku]}; "
+            f"used in assemblies: {assembled_by_sku[sku]}."
+        )
+    return created, updated
 
 
 @router.get("/items", response_model=InventoryListResponse)
@@ -434,13 +568,14 @@ async def list_inventory_items(
     if marketplace and marketplace.upper() != "ALL":
         statement = statement.where(InventoryItem.marketplace == marketplace.upper())
     result = await db.scalars(statement)
-    purchased, sold_by_sku, _, _ = await calculate_inventory_quantities(db)
+    purchased, sold_by_sku, assembled_by_sku, _, _ = await calculate_inventory_quantities(db)
     return InventoryListResponse(
         rows=[
             inventory_row(
                 item,
                 purchased_quantity=purchased.get(item.sku, {}).get("quantity", Decimal("0")),
                 sold_quantity=sold_by_sku[item.sku],
+                bundle_consumed_quantity=assembled_by_sku[item.sku],
             )
             for item in result
         ]
@@ -675,6 +810,100 @@ async def delete_bundle_component(
     return {"component_id": component_id, "deleted": True}
 
 
+@router.get("/bundle-assemblies", response_model=BundleAssemblyListResponse)
+async def list_bundle_assemblies(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> BundleAssemblyListResponse:
+    assemblies = await db.scalars(
+        select(BundleAssembly).order_by(
+            BundleAssembly.assembly_date.desc(),
+            BundleAssembly.id.desc(),
+        )
+    )
+    return BundleAssemblyListResponse(
+        rows=[bundle_assembly_row(assembly) for assembly in assemblies]
+    )
+
+
+@router.post("/bundle-assemblies", response_model=BundleAssemblyRow)
+async def create_bundle_assembly(
+    payload: BundleAssemblyRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> BundleAssemblyRow:
+    bundle_sku = payload.bundle_sku.strip()
+    recipe = list(
+        await db.scalars(
+            select(BundleComponent)
+            .where(BundleComponent.bundle_sku == bundle_sku)
+            .order_by(BundleComponent.component_sku)
+        )
+    )
+    if not recipe:
+        raise HTTPException(status_code=422, detail="Save the bundle recipe before recording assembly.")
+
+    purchased, sold_by_sku, assembled_by_sku, _, _ = await calculate_inventory_quantities(db)
+    required = bundle_component_sales(
+        recipe,
+        Decimal(str(payload.quantity)),
+        purchased,
+    )
+    if required is None:
+        raise HTTPException(status_code=422, detail="One or more bundle components have no inventory lot.")
+    shortages = []
+    for component_sku, required_quantity in required.items():
+        available = (
+            purchased[component_sku]["quantity"]
+            - sold_by_sku[component_sku]
+            - assembled_by_sku[component_sku]
+        )
+        if required_quantity > available:
+            shortages.append(
+                f"{component_sku}: required {required_quantity}, available {max(available, Decimal('0'))}"
+            )
+    if shortages:
+        raise HTTPException(
+            status_code=422,
+            detail="Insufficient component inventory: " + "; ".join(shortages),
+        )
+
+    assembly = BundleAssembly(
+        bundle_sku=bundle_sku,
+        assembly_date=payload.assembly_date,
+        quantity=Decimal(str(payload.quantity)),
+        component_snapshot=[
+            {
+                "component_sku": component.component_sku,
+                "component_quantity": str(component.component_quantity),
+            }
+            for component in recipe
+        ],
+        notes=clean_text(payload.notes),
+    )
+    db.add(assembly)
+    await db.commit()
+    await db.refresh(assembly)
+    purchased, sold_by_sku, assembled_by_sku, _, _ = await calculate_inventory_quantities(db)
+    await update_estimated_inventory_items(db, purchased, sold_by_sku, assembled_by_sku)
+    await db.commit()
+    return bundle_assembly_row(assembly)
+
+
+@router.delete("/bundle-assemblies/{assembly_id}")
+async def delete_bundle_assembly(
+    assembly_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict[str, int | bool]:
+    assembly = await db.get(BundleAssembly, assembly_id)
+    if assembly is None:
+        raise HTTPException(status_code=404, detail="Bundle assembly not found.")
+    await db.delete(assembly)
+    await db.commit()
+    purchased, sold_by_sku, assembled_by_sku, _, _ = await calculate_inventory_quantities(db)
+    await update_estimated_inventory_items(db, purchased, sold_by_sku, assembled_by_sku)
+    await db.commit()
+    return {"assembly_id": assembly_id, "deleted": True}
+
+
 @router.post("/items", response_model=InventoryItemRow)
 async def upsert_inventory_item(
     payload: InventoryItemRequest,
@@ -695,11 +924,12 @@ async def upsert_inventory_item(
     apply_inventory_payload(item, payload)
     await db.commit()
     await db.refresh(item)
-    purchased, sold_by_sku, _, _ = await calculate_inventory_quantities(db)
+    purchased, sold_by_sku, assembled_by_sku, _, _ = await calculate_inventory_quantities(db)
     return inventory_row(
         item,
         purchased_quantity=purchased.get(item.sku, {}).get("quantity", Decimal("0")),
         sold_quantity=sold_by_sku[item.sku],
+        bundle_consumed_quantity=assembled_by_sku[item.sku],
     )
 
 
@@ -707,33 +937,16 @@ async def upsert_inventory_item(
 async def sync_inventory_from_invoices(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> SyncInventoryResponse:
-    purchased, sold_by_sku, sales_matched, sales_unmatched = await calculate_inventory_quantities(db)
+    purchased, sold_by_sku, assembled_by_sku, sales_matched, sales_unmatched = (
+        await calculate_inventory_quantities(db)
+    )
 
-    created = 0
-    updated = 0
-    for sku, values in purchased.items():
-        item = await db.scalar(
-            select(InventoryItem)
-            .where(InventoryItem.sku == sku)
-            .where(InventoryItem.marketplace == "EU")
-            .where(InventoryItem.fulfillment_channel == "FBA")
-        )
-        if item is None:
-            item = InventoryItem(sku=sku, marketplace="EU", fulfillment_channel="FBA")
-            db.add(item)
-            created += 1
-        else:
-            updated += 1
-        item.ean = values["ean"]
-        item.product_name = values["product_name"]
-        item.quantity_on_hand = max(Decimal("0"), values["quantity"] - sold_by_sku[sku])
-        item.quantity_reserved = Decimal("0")
-        item.quantity_inbound = Decimal("0")
-        sold_quantity = sold_by_sku[sku]
-        item.notes = (
-            "Estimated from purchase invoices minus matched Amazon order quantities. "
-            f"Purchased: {values['quantity']}; matched sold: {sold_quantity}."
-        )
+    created, updated = await update_estimated_inventory_items(
+        db,
+        purchased,
+        sold_by_sku,
+        assembled_by_sku,
+    )
 
     await db.commit()
     return SyncInventoryResponse(
@@ -757,11 +970,12 @@ async def update_inventory_item(
     apply_inventory_payload(item, payload)
     await db.commit()
     await db.refresh(item)
-    purchased, sold_by_sku, _, _ = await calculate_inventory_quantities(db)
+    purchased, sold_by_sku, assembled_by_sku, _, _ = await calculate_inventory_quantities(db)
     return inventory_row(
         item,
         purchased_quantity=purchased.get(item.sku, {}).get("quantity", Decimal("0")),
         sold_quantity=sold_by_sku[item.sku],
+        bundle_consumed_quantity=assembled_by_sku[item.sku],
     )
 
 

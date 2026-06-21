@@ -8,6 +8,7 @@ from app.models.amazon_return_item import AmazonReturnItem
 from app.models.amazon_reimbursement import AmazonReimbursement
 from app.models.app_setting import AppSetting
 from app.models.bundle_component import BundleComponent
+from app.models.bundle_assembly import BundleAssembly
 from app.models.fx_rate import FxRate
 from app.models.generic_report_import import GenericReportImport
 from app.models.generic_report_row import GenericReportRow
@@ -30,6 +31,7 @@ __all__ = [
     "AmazonOrderItem",
     "AppSetting",
     "BundleComponent",
+    "BundleAssembly",
     "FxRate",
     "GenericReportImport",
     "GenericReportRow",

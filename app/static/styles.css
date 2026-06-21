@@ -738,6 +738,49 @@ button:disabled {
   border-top: 1px solid var(--line);
 }
 
+.bundleAssemblyPanel {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.bundleAssemblyForm {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.7fr) minmax(130px, 0.7fr) minmax(180px, 1.4fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.bundleAssemblyRows {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.bundleAssemblyRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.bundleAssemblyRow > div {
+  display: grid;
+  gap: 2px;
+}
+
+.bundleAssemblyRow span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .recipeDraftStatus {
   color: var(--warn);
   font-size: 12px;
@@ -1542,6 +1585,10 @@ th.num {
 
   .bundleBatchActions button {
     width: 100%;
+  }
+
+  .bundleAssemblyForm {
+    grid-template-columns: 1fr;
   }
 
   .componentCard {

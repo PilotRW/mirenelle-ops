@@ -346,6 +346,19 @@ reconciliation are operational. Continue from this point:
     `GET_FBA_FULFILLMENT_LONGTERM_STORAGE_FEE_CHARGES_DATA`; Amazon completed
     the request as `CANCELLED`, so no empty aged-storage subsystem was added.
     Monthly storage remains the authoritative available fee source.
+21. Confirmed and saved the real `Missha12-FBA-01` recipe with 12 distinct
+    mask components at one unit each. May profitability matches it to four
+    sold bundles, EUR 8.39 unit cost, and EUR 33.56 FIFO COGS.
+22. Inventory now expands bundle sales into component movements. The four sold
+    `Missha12-FBA-01` units changed every mask component from purchased 20 /
+    sold 0 / on hand 20 to purchased 20 / sold 4 / on hand 16.
+23. Added Bundle Assemblies with migration `20260621_0022`. Operators can
+    record the date and quantity of physical bundle assembly. Each operation
+    preserves a recipe snapshot, validates component availability, updates
+    inventory immediately, and can be deleted to reverse the movement.
+    Assemblies cover already sold bundle quantities instead of double-counting
+    them. No historical assembly operations were invented; the live table is
+    currently empty.
 
 Operational notes:
 
@@ -372,9 +385,9 @@ Current verified inventory examples:
 
 Start here:
 
-1. Configure confirmed real bundle recipes for existing bundle SKUs. This is
-   the next genuine business-data blocker because component composition needs
-   operator input.
+1. Configure confirmed real bundle recipes for the remaining bundle SKUs.
+   `Missha12-FBA-01` is complete; other recipes remain business-data blockers
+   because component composition needs operator input.
 2. When the operator can confirm real bundle composition, open
    `http://localhost:8010/ui/`, go to `Inventory -> Bundle Recipes`, and
    enter the first confirmed real recipe:
@@ -400,19 +413,22 @@ git status --short
 Expected database migration head:
 
 ```text
-20260621_0021
+20260621_0022
 ```
 
 ## Next Plan
 
-1. Configure confirmed real bundle recipes for existing bundle SKUs.
-2. Revisit aged-inventory storage only when Amazon provides a completed report;
+1. Configure confirmed real bundle recipes for the remaining bundle SKUs.
+2. Enter real historical/current Bundle Assembly operations when the operator
+   can confirm assembly dates and quantities. Do not infer them solely from an
+   FBA stock snapshot.
+3. Revisit aged-inventory storage only when Amazon provides a completed report;
    the current live request was cancelled.
-3. Replace estimated per-sold-unit storage with warehouse-day allocation after
+4. Replace estimated per-sold-unit storage with warehouse-day allocation after
    inventory snapshots are available.
-4. Split inventory planning by FBA/FBM logic:
+5. Split inventory planning by FBA/FBM logic:
    FBA uses Amazon fulfillment/inventory data; FBM needs own/prep-center stock
    and external handling tariffs.
-5. Add OCR/repair fallback for image-based or malformed PDFs.
-6. Later: add landed-cost model refinements for freight, prep-center costs,
+6. Add OCR/repair fallback for image-based or malformed PDFs.
+7. Later: add landed-cost model refinements for freight, prep-center costs,
    marketplace service fees, and optional allocation methods per cost type.
