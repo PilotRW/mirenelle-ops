@@ -12,6 +12,7 @@ from app.models.amazon_order_item import AmazonOrderItem
 from app.models.amazon_payment_transaction import AmazonPaymentTransaction
 from app.models.amazon_reimbursement import AmazonReimbursement
 from app.models.amazon_return_item import AmazonReturnItem
+from app.models.fba_storage_fee import FbaStorageFee
 from app.models.product_cost import ProductCost
 from app.models.product_mapping import ProductMapping
 from app.models.purchase_invoice import PurchaseInvoice
@@ -1019,6 +1020,31 @@ async def product_profitability(
     fx_history = await get_fx_rate_history(db)
     fulfillment_costs = await get_fulfillment_cost_settings(db)
     fifo_costs = await fifo_event_costs(db, end_date)
+    storage_fee_rows = list(await db.scalars(select(FbaStorageFee)))
+    use_actual_storage = (
+        start_date is not None
+        and end_date is not None
+        and start_date.year == end_date.year
+        and start_date.month == end_date.month
+    )
+    actual_storage_by_sku: dict[str, float] = {}
+    if use_actual_storage:
+        for storage_fee in storage_fee_rows:
+            if (
+                storage_fee.sku
+                and storage_fee.month_of_charge.year == start_date.year
+                and storage_fee.month_of_charge.month == start_date.month
+            ):
+                rate_to_eur = get_rate_on_date(
+                    fx_history,
+                    storage_fee.currency,
+                    storage_fee.month_of_charge,
+                )
+                actual_storage_by_sku[storage_fee.sku] = round(
+                    actual_storage_by_sku.get(storage_fee.sku, 0)
+                    + eur(storage_fee.estimated_monthly_storage_fee, rate_to_eur),
+                    2,
+                )
 
     transaction_query = (
         select(
@@ -1413,9 +1439,13 @@ async def product_profitability(
                 units_estimated * fulfillment_costs["fba_prep_per_unit"],
                 2,
             )
-            storage_cost_eur = round(
-                units_estimated * fulfillment_costs["fba_storage_per_unit"],
-                2,
+            storage_cost_eur = (
+                actual_storage_by_sku[sku]
+                if sku and sku in actual_storage_by_sku
+                else round(
+                    units_estimated * fulfillment_costs["fba_storage_per_unit"],
+                    2,
+                )
             )
             fbm_logistics_cost_eur = 0.0
         elif fulfillment_channel == "FBM":

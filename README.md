@@ -447,3 +447,10 @@ Product Profitability and Amazon P&L display reimbursements separately. They
 use approval-date FX and affect Amazon operating result, but never sales, VAT,
 units, average selling price, gross profit, or FIFO COGS. Product net profit
 stays unknown if FIFO cost coverage is incomplete.
+
+Detailed monthly FBA storage fees can be synced through
+`POST /integrations/amazon-sp-api/storage-fees/sync`. The source is
+`GET_FBA_STORAGE_FEE_CHARGES_DATA`; FNSKU is mapped through FBA inventory
+snapshots. Single-month profitability uses the imported SKU-level fee instead
+of the configured per-sold-unit estimate. Unallocated fees are never spread
+heuristically.

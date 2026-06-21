@@ -21,6 +21,7 @@ from app.services.amazon_order_sync_service import sync_orders_report
 from app.services.amazon_return_sync_service import sync_returns_report
 from app.services.fba_inventory_sync_service import sync_fba_inventory
 from app.services.amazon_reimbursement_sync_service import sync_reimbursements
+from app.services.fba_storage_fee_sync_service import sync_storage_fees
 from app.services.amazon_payment_import_service import DuplicateImportError
 from app.services.amazon_sp_api_client import (
     DEFAULT_REPORTS_API_MIN_INTERVALS,
@@ -392,6 +393,19 @@ async def sync_amazon_reimbursements(
         raise HTTPException(status_code=400, detail="end_date must be greater than or equal to start_date.")
     try:
         return await sync_reimbursements(db, payload.start_date, payload.end_date)
+    except AmazonSpApiConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except AmazonSpApiError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.post("/storage-fees/sync")
+async def sync_amazon_storage_fees(
+    payload: AmazonOrderSyncRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict:
+    try:
+        return await sync_storage_fees(db, payload.start_date)
     except AmazonSpApiConfigError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except AmazonSpApiError as exc:

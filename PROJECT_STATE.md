@@ -331,6 +331,14 @@ reconciliation are operational. Continue from this point:
     profit, or FIFO COGS. EUR 93.84 appears in all-time and April 2026, and
     EUR 0 in May 2026. Product-level net remains unknown when FIFO COGS is
     incomplete; the known reimbursement remains visible separately.
+19. Added detailed monthly FBA storage fees from
+    `GET_FBA_STORAGE_FEE_CHARGES_DATA` with migration `20260621_0021`,
+    exact FNSKU-to-SKU mapping through FBA snapshots, idempotent monthly
+    upserts, and an Amazon Connector sync action. The May 2026 import contains
+    87 fully mapped rows totaling EUR 5.34. For a single-month profitability
+    period, actual SKU-level storage replaces the per-sold-unit estimate. May
+    sold-product allocation is EUR 3.09; fees for SKUs without a product row
+    stay unallocated instead of being spread heuristically.
 
 Operational notes:
 
@@ -358,7 +366,8 @@ Current verified inventory examples:
 Start here:
 
 1. Configure confirmed real bundle recipes for existing bundle SKUs. This is
-   the next genuine blocker because component composition needs operator input.
+   the next genuine business-data blocker because component composition needs
+   operator input.
 2. When the operator can confirm real bundle composition, open
    `http://localhost:8010/ui/`, go to `Inventory -> Bundle Recipes`, and
    enter the first confirmed real recipe:
@@ -384,14 +393,14 @@ git status --short
 Expected database migration head:
 
 ```text
-20260621_0020
+20260621_0021
 ```
 
 ## Next Plan
 
 1. Configure confirmed real bundle recipes for existing bundle SKUs.
-2. Add Service Fees import if the separate report has richer fields than
-   Transaction View.
+2. Evaluate aged-inventory/long-term storage fee reports only if Amazon returns
+   non-zero data; monthly storage fees are already integrated.
 3. Replace estimated per-sold-unit storage with warehouse-day allocation after
    inventory snapshots are available.
 4. Split inventory planning by FBA/FBM logic:

@@ -24,6 +24,7 @@ const translations = {
     "action.syncOaCatalog": "Sync OA catalog",
     "action.syncInventory": "Sync stock",
     "action.syncFbaInventory": "Sync FBA inventory",
+    "action.syncStorageFees": "Sync storage fees",
     "action.syncEcbRates": "Sync ECB rates",
     "action.useMatch": "Use",
     "action.viewLines": "Lines",
@@ -289,6 +290,7 @@ const translations = {
     "action.syncOaCatalog": "OA-Katalog synchronisieren",
     "action.syncInventory": "Bestand synchronisieren",
     "action.syncFbaInventory": "FBA-Bestand synchronisieren",
+    "action.syncStorageFees": "Lagergebühren synchronisieren",
     "action.syncEcbRates": "ECB-Kurse synchronisieren",
     "action.useMatch": "Nutzen",
     "action.viewLines": "Zeilen",
@@ -554,6 +556,7 @@ const translations = {
     "action.syncOaCatalog": "Синхронізувати OA каталог",
     "action.syncInventory": "Синхронізувати залишки",
     "action.syncFbaInventory": "Синхронізувати FBA залишки",
+    "action.syncStorageFees": "Синхронізувати зберігання",
     "action.syncEcbRates": "Синхронізувати курси ECB",
     "action.useMatch": "Застосувати",
     "action.viewLines": "Позиції",
@@ -3149,6 +3152,35 @@ document.getElementById("amazonFbaInventorySyncButton").addEventListener("click"
     });
     document.getElementById("amazonOrdersPreview").textContent = JSON.stringify(result, null, 2);
     await loadInventory();
+    setStatus("amazonConnectorStatus", "status.imported", false, true);
+  } catch (error) {
+    setStatus("amazonConnectorStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("amazonStorageFeesSyncButton").addEventListener("click", async () => {
+  const form = document.getElementById("amazonOrdersSyncForm");
+  const button = document.getElementById("amazonStorageFeesSyncButton");
+  const formData = new FormData(form);
+  if (!form.reportValidity()) return;
+  button.disabled = true;
+  setStatus("amazonConnectorStatus", "status.loading", false, true);
+  try {
+    const result = await requestJson("/integrations/amazon-sp-api/storage-fees/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        marketplace: formData.get("marketplace"),
+        start_date: formData.get("start_date"),
+        end_date: formData.get("end_date"),
+        poll_interval_seconds: 30,
+        wait_timeout_seconds: 600,
+      }),
+    });
+    document.getElementById("amazonOrdersPreview").textContent = JSON.stringify(result, null, 2);
+    await loadProfitability();
     setStatus("amazonConnectorStatus", "status.imported", false, true);
   } catch (error) {
     setStatus("amazonConnectorStatus", error.message, true);
