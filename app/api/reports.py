@@ -29,6 +29,8 @@ from app.services.bundle_assembly_cost_service import bundle_assembly_event_cost
 from app.services.fifo_cost_service import fifo_event_costs
 from app.services.product_mapping_service import product_similarity
 from app.services.refund_reconciliation import (
+    refund_only_period_costs,
+    refund_product_key,
     refund_match_status,
     refunded_skus_by_order,
     resolve_return_fee_sku,
@@ -1120,7 +1122,7 @@ async def product_profitability(
                     if matched_order and matched_order.product_name
                     else row.product_details
                 ),
-                "sku": row.sku,
+                "sku": key[0],
                 "asin": matched_order.asin if matched_order else None,
                 "marketplace": matched_order.marketplace if matched_order else row.marketplace,
                 "fulfillment_channel": fulfillment_channel,
@@ -1264,9 +1266,10 @@ async def product_profitability(
             if key not in sku_keys:
                 sku_keys.append(key)
 
-    # Refunds and item-level return fees are product-level only when their real
-    # SKU can be attached to a product sold in the selected period. Other
-    # FBA/service fees and transfers remain in Amazon P&L.
+    # Refunds and item-level return fees are product-level when their real SKU
+    # can be attached either to a product sold in the selected period or to an
+    # exact historical Order ID + SKU. This keeps prior-period refund products
+    # visible without turning technical fee SKUs into products.
     for row in transaction_rows:
         category = classify_payment_type(row.transaction_type)
         if category not in {"refund", "return_fee"} or not row.sku:
@@ -1283,25 +1286,21 @@ async def product_profitability(
             (str(row.external_transaction_id or ""), linked_sku)
         )
         candidate_keys = sold_keys_by_sku.get(linked_sku, [])
-        preferred_key = None
-        if matched_order:
-            preferred_key = (
-                linked_sku,
-                matched_order.fulfillment_channel,
-                matched_order.currency or row.currency,
-            )
-        if preferred_key not in by_product:
-            preferred_key = next(
-                (
-                    key
-                    for key in candidate_keys
-                    if key[1] == row.fulfillment_channel and key[2] == row.currency
-                ),
-                candidate_keys[0] if len(candidate_keys) == 1 else None,
-            )
+        preferred_key = refund_product_key(
+            linked_sku=linked_sku,
+            row_fulfillment_channel=row.fulfillment_channel,
+            row_currency=row.currency,
+            matched_order=matched_order,
+            candidate_keys=candidate_keys,
+            existing_keys=set(by_product),
+        )
         if preferred_key is None:
             continue
         add_transaction_to_bucket(row, category, preferred_key, matched_order)
+        if linked_sku:
+            sku_keys = sold_keys_by_sku.setdefault(linked_sku, [])
+            if preferred_key not in sku_keys:
+                sku_keys.append(preferred_key)
 
     reimbursements = list(await db.scalars(select(AmazonReimbursement)))
     period_reimbursements_eur = 0.0
@@ -1429,14 +1428,14 @@ async def product_profitability(
         units_estimated = int(bucket["units_estimated"])
         fifo_units_costed = float(bucket["fifo_units_costed"])
         fifo_cogs_eur = round(float(bucket["fifo_cogs_eur"]), 2)
-        has_complete_fifo_cost = (
-            units_estimated > 0
-            and abs(fifo_units_costed - units_estimated) <= 0.001
-        )
-        purchase_cost_eur = (
-            round(fifo_cogs_eur / units_estimated, 2)
-            if has_complete_fifo_cost
-            else None
+        (
+            has_complete_fifo_cost,
+            purchase_cost_eur,
+            cogs_eur,
+        ) = refund_only_period_costs(
+            units_estimated=units_estimated,
+            fifo_units_costed=fifo_units_costed,
+            fifo_cogs_eur=fifo_cogs_eur,
         )
         units_refunded = int(bucket["units_refunded"])
         revenue_eur = float(bucket["revenue_eur"])
@@ -1505,7 +1504,6 @@ async def product_profitability(
             if units_estimated
             else None
         )
-        cogs_eur = fifo_cogs_eur if has_complete_fifo_cost else None
         gross_profit_eur = (
             round(revenue_eur - cogs_eur, 2)
             if cogs_eur is not None

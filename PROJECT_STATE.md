@@ -415,7 +415,15 @@ Current verified inventory examples:
   is empty because no real assembly dates, quantities, or prep-center tariff
   have been entered.
 - Last verification: 26 unit tests passed; API create/update/delete and browser
-  Edit/Cancel flows passed; all temporary records were removed.
+    Edit/Cancel flows passed; all temporary records were removed.
+27. Fixed Product Profitability to include refund-only products when an exact
+    historical Amazon Order ID + SKU match exists. Prior-period refunds now
+    create a real product row with zero period sales/COGS while refund amounts,
+    promotional adjustments, and linked fees affect period net profit.
+    Unmatched technical return-fee SKUs remain excluded. Live May verification
+    now shows 12 products instead of 11; `4H-BZM0-7HOS` appears with zero
+    period sales, one refund, and EUR -40.49 net profit. Total matched net
+    profit changed from EUR 203.80 to EUR 163.31. All 29 tests pass.
 
 ## Current Resume Checklist
 

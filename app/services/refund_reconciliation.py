@@ -40,3 +40,50 @@ def resolve_return_fee_sku(
     if len(candidates) > 1:
         return "ambiguous", None
     return "unmatched", None
+
+
+def refund_product_key(
+    linked_sku: str,
+    row_fulfillment_channel: str,
+    row_currency: str,
+    matched_order: object | None,
+    candidate_keys: list[tuple[str, str, str]],
+    existing_keys: set[tuple[str, str, str]],
+) -> tuple[str, str, str] | None:
+    preferred_key = None
+    if matched_order:
+        preferred_key = (
+            linked_sku,
+            str(getattr(matched_order, "fulfillment_channel", "") or row_fulfillment_channel),
+            str(getattr(matched_order, "currency", "") or row_currency),
+        )
+        # An exact Order ID + SKU match is authoritative even if the original
+        # sale was outside the selected profitability period.
+        return preferred_key
+    preferred_key = next(
+        (
+            key
+            for key in candidate_keys
+            if key[1] == row_fulfillment_channel and key[2] == row_currency
+        ),
+        candidate_keys[0] if len(candidate_keys) == 1 else None,
+    )
+    return preferred_key if preferred_key in existing_keys else None
+
+
+def refund_only_period_costs(
+    units_estimated: int,
+    fifo_units_costed: float,
+    fifo_cogs_eur: float,
+) -> tuple[bool, float | None, float | None]:
+    has_complete_cost = (
+        units_estimated == 0
+        or abs(fifo_units_costed - units_estimated) <= 0.001
+    )
+    purchase_cost_eur = (
+        round(fifo_cogs_eur / units_estimated, 2)
+        if has_complete_cost and units_estimated > 0
+        else None
+    )
+    cogs_eur = fifo_cogs_eur if has_complete_cost else None
+    return has_complete_cost, purchase_cost_eur, cogs_eur

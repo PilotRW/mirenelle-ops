@@ -273,6 +273,12 @@ Saved assembly metadata can be edited in place. Quantity remains immutable
 during editing because changing a physical assembly quantity is an inventory
 movement; reverse the incorrect operation and record the corrected quantity
 instead.
+
+Product Profitability also creates a product row for a refund whose original
+sale is outside the selected period when the refund can be linked by exact
+Amazon Order ID + SKU. Such a row has zero period sales and zero period COGS;
+the refund, promotional adjustment, and linked Amazon fees still affect period
+net profit. Unmatched technical return-fee SKUs remain excluded.
 Bundle SKU suggestions come from positive-quantity Amazon Orders rows and are
 filtered only after the operator types at least two characters.
 
