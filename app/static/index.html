@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260621-14" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260621-15" />
   </head>
   <body>
     <div class="appShell">
@@ -117,6 +117,7 @@
                         <th class="num" data-i18n="table.refunds">Refunds</th>
                         <th class="num" data-i18n="table.reimbursements">Reimbursements</th>
                         <th class="num" data-i18n="table.amazonFees">Amazon fees</th>
+                        <th class="num" data-i18n="table.bundleAssemblyCost">Bundle assembly</th>
                         <th class="num" data-i18n="table.operationalCosts">Operational costs</th>
                         <th class="num" data-i18n="table.grossProfit">Gross Profit</th>
                         <th class="num" data-i18n="table.margin">Margin</th>
@@ -501,6 +502,7 @@
                       <th class="num" data-i18n="table.refunds">Refunds</th>
                       <th class="num" data-i18n="table.reimbursements">Reimbursements</th>
                       <th class="num" data-i18n="table.amazonFees">Amazon fees</th>
+                      <th class="num" data-i18n="table.bundleAssemblyCost">Bundle assembly</th>
                       <th class="num" data-i18n="table.operationalCosts">Operational costs</th>
                       <th class="num" data-i18n="table.grossProfit">Gross Profit</th>
                       <th class="num" data-i18n="table.margin">Margin</th>
@@ -829,6 +831,30 @@
                           <input name="quantity" type="number" min="0.001" step="0.001" value="1" required />
                         </label>
                         <label>
+                          <span data-i18n="field.assemblyProvider">Assembler</span>
+                          <select name="assembly_provider">
+                            <option value="unknown" data-i18n="assemblyProvider.unknown">Unknown</option>
+                            <option value="prep_center" data-i18n="assemblyProvider.prepCenter">Prep center</option>
+                            <option value="amazon" data-i18n="assemblyProvider.amazon">Amazon</option>
+                            <option value="in_house" data-i18n="assemblyProvider.inHouse">In-house</option>
+                            <option value="other" data-i18n="assemblyProvider.other">Other</option>
+                          </select>
+                        </label>
+                        <label>
+                          <span data-i18n="field.assemblyUnitCost">Cost per bundle</span>
+                          <input name="unit_assembly_cost" type="number" min="0" step="0.0001" value="0" required />
+                        </label>
+                        <label>
+                          <span data-i18n="field.currency">Currency</span>
+                          <select name="currency">
+                            <option value="EUR">EUR</option>
+                            <option value="GBP">GBP</option>
+                            <option value="SEK">SEK</option>
+                            <option value="PLN">PLN</option>
+                            <option value="USD">USD</option>
+                          </select>
+                        </label>
+                        <label>
                           <span data-i18n="field.notes">Notes</span>
                           <input name="notes" />
                         </label>
@@ -1132,6 +1158,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260621-10"></script>
+    <script src="/ui/app.js?v=20260621-15"></script>
   </body>
 </html>

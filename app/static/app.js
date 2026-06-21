@@ -47,6 +47,7 @@ const translations = {
     "field.invoiceNumber": "Invoice",
     "field.invoiceFile": "Invoice CSV/XLSX/PDF",
     "field.invoiceNumber": "Invoice number",
+    "field.notes": "Notes",
     "field.marketplace": "Marketplace",
     "field.ordersReport": "All Orders report",
     "field.rateToEur": "Rate to EUR",
@@ -63,6 +64,8 @@ const translations = {
     "field.componentQuantity": "Component quantity",
     "field.assemblyDate": "Assembly date",
     "field.assemblyQuantity": "Bundles assembled",
+    "field.assemblyProvider": "Assembler",
+    "field.assemblyUnitCost": "Cost per bundle",
     "field.searchComponents": "Search components",
     "field.fbaPrepPerUnit": "FBA prep / unit EUR",
     "field.fbaStoragePerUnit": "FBA storage / sold unit EUR",
@@ -139,6 +142,11 @@ const translations = {
     "section.openingInventoryLots": "Opening Inventory Lots",
     "section.bundleRecipes": "Bundle Recipes",
     "section.bundleAssemblies": "Bundle Assemblies",
+    "assemblyProvider.unknown": "Unknown",
+    "assemblyProvider.prepCenter": "Prep center",
+    "assemblyProvider.amazon": "Amazon",
+    "assemblyProvider.inHouse": "In-house",
+    "assemblyProvider.other": "Other",
     "section.invoiceLines": "Invoice Lines",
     "section.landedCost": "Landed Cost",
     "section.fulfillmentCosts": "Fulfillment Costs",
@@ -227,6 +235,7 @@ const translations = {
     "table.netRoi": "Net ROI",
     "table.other": "Other",
     "table.operationalCosts": "Operational costs",
+    "table.bundleAssemblyCost": "Bundle assembly",
     "table.onHand": "On hand",
     "table.paymentRows": "Payment rows",
     "table.period": "Period",
@@ -327,6 +336,7 @@ const translations = {
     "field.invoiceNumber": "Rechnung",
     "field.invoiceFile": "Rechnung CSV/XLSX/PDF",
     "field.invoiceNumber": "Rechnungsnummer",
+    "field.notes": "Notizen",
     "field.marketplace": "Marketplace",
     "field.ordersReport": "All-Orders-Report",
     "field.rateToEur": "Kurs zu EUR",
@@ -343,6 +353,8 @@ const translations = {
     "field.componentQuantity": "Komponentenmenge",
     "field.assemblyDate": "Montagedatum",
     "field.assemblyQuantity": "Montierte Bundles",
+    "field.assemblyProvider": "Montage durch",
+    "field.assemblyUnitCost": "Kosten pro Bundle",
     "field.searchComponents": "Komponenten suchen",
     "field.fbaPrepPerUnit": "FBA Vorbereitung / Einheit EUR",
     "field.fbaStoragePerUnit": "FBA Lager / verkaufte Einheit EUR",
@@ -419,6 +431,11 @@ const translations = {
     "section.openingInventoryLots": "Anfangsbestands-Chargen",
     "section.bundleRecipes": "Bundle-Rezepte",
     "section.bundleAssemblies": "Bundle-Montagen",
+    "assemblyProvider.unknown": "Unbekannt",
+    "assemblyProvider.prepCenter": "Prep-Center",
+    "assemblyProvider.amazon": "Amazon",
+    "assemblyProvider.inHouse": "Intern",
+    "assemblyProvider.other": "Andere",
     "section.invoiceLines": "Rechnungszeilen",
     "section.landedCost": "Landed Cost",
     "section.fulfillmentCosts": "Fulfillment-Kosten",
@@ -507,6 +524,7 @@ const translations = {
     "table.netRoi": "Netto-ROI",
     "table.other": "Sonstiges",
     "table.operationalCosts": "Operative Kosten",
+    "table.bundleAssemblyCost": "Bundle-Montage",
     "table.onHand": "Auf Lager",
     "table.paymentRows": "Zahlungszeilen",
     "table.period": "Zeitraum",
@@ -607,6 +625,7 @@ const translations = {
     "field.invoiceNumber": "Інвойс",
     "field.invoiceFile": "Інвойс CSV/XLSX/PDF",
     "field.invoiceNumber": "Номер інвойсу",
+    "field.notes": "Примітки",
     "field.marketplace": "Маркетплейс",
     "field.ordersReport": "All Orders звіт",
     "field.rateToEur": "Курс до EUR",
@@ -623,6 +642,8 @@ const translations = {
     "field.componentQuantity": "Кількість компонента",
     "field.assemblyDate": "Дата складання",
     "field.assemblyQuantity": "Зібрано бандлів",
+    "field.assemblyProvider": "Хто збирає",
+    "field.assemblyUnitCost": "Вартість за бандл",
     "field.searchComponents": "Пошук компонентів",
     "field.fbaPrepPerUnit": "FBA prep / одиницю EUR",
     "field.fbaStoragePerUnit": "FBA зберігання / продану одиницю EUR",
@@ -699,6 +720,11 @@ const translations = {
     "section.openingInventoryLots": "Початкові партії залишків",
     "section.bundleRecipes": "Рецепти наборів",
     "section.bundleAssemblies": "Складання бандлів",
+    "assemblyProvider.unknown": "Невідомо",
+    "assemblyProvider.prepCenter": "Преп-центр",
+    "assemblyProvider.amazon": "Amazon",
+    "assemblyProvider.inHouse": "Власними силами",
+    "assemblyProvider.other": "Інше",
     "section.invoiceLines": "Позиції інвойсу",
     "section.landedCost": "Landed Cost",
     "section.fulfillmentCosts": "Витрати фулфілменту",
@@ -787,6 +813,7 @@ const translations = {
     "table.netRoi": "Чистий ROI",
     "table.other": "Інше",
     "table.operationalCosts": "Операційні витрати",
+    "table.bundleAssemblyCost": "Збирання бандлу",
     "table.onHand": "На складі",
     "table.paymentRows": "Рядки платежів",
     "table.period": "Період",
@@ -1165,6 +1192,8 @@ function renderBundleRecipes() {
     ? activeAssemblies.map((assembly) => `
       <article class="bundleAssemblyRow">
         <div><strong>${escapeHtml(assembly.assembly_date)}</strong><span>${escapeHtml(assembly.notes || "")}</span></div>
+        <span>${t(`assemblyProvider.${assembly.assembly_provider === "prep_center" ? "prepCenter" : assembly.assembly_provider === "in_house" ? "inHouse" : assembly.assembly_provider}`)}</span>
+        <strong>${money(Number(assembly.quantity) * Number(assembly.unit_assembly_cost), assembly.currency)}</strong>
         <strong>× ${integer(assembly.quantity)}</strong>
         <button type="button" class="compactButton dangerButton" data-delete-bundle-assembly="${assembly.id}">${t("action.delete")}</button>
       </article>
@@ -2406,6 +2435,10 @@ async function loadProfitability() {
       <strong>${money(summary.amazon_fees_eur + summary.other_amount_eur, "EUR")}</strong>
     </div>
     <div class="kpi">
+      <span>${t("table.bundleAssemblyCost")}</span>
+      <strong>${money(-summary.bundle_assembly_cost_eur, "EUR")}</strong>
+    </div>
+    <div class="kpi">
       <span>${t("table.operationalCosts")}</span>
       <strong>${money(-summary.operational_cost_eur, "EUR")}</strong>
     </div>
@@ -2463,7 +2496,8 @@ async function loadProfitability() {
       <td class="num">${money(row.refunds_eur, "EUR")}</td>
       <td class="num">${money(row.reimbursements_eur, "EUR")}</td>
       <td class="num">${money(row.amazon_fees_eur + row.other_amount_eur, "EUR")}</td>
-      <td class="num" title="Prep ${money(row.prep_cost_eur, "EUR")} · Storage ${money(row.storage_cost_eur, "EUR")} · FBM ${money(row.fbm_logistics_cost_eur, "EUR")}">${money(-row.operational_cost_eur, "EUR")}</td>
+      <td class="num">${money(-row.bundle_assembly_cost_eur, "EUR")}</td>
+      <td class="num" title="Prep ${money(row.prep_cost_eur, "EUR")} · Storage ${money(row.storage_cost_eur, "EUR")} · FBM ${money(row.fbm_logistics_cost_eur, "EUR")} · Bundle ${money(row.bundle_assembly_cost_eur, "EUR")}">${money(-row.operational_cost_eur, "EUR")}</td>
       <td class="num">${row.gross_profit_eur === null ? "-" : money(row.gross_profit_eur, "EUR")}</td>
       <td class="num">${row.margin_percent === null ? "-" : `${row.margin_percent}%`}</td>
       <td class="num">${row.roi_percent === null ? "-" : `${row.roi_percent}%`}</td>
@@ -2805,6 +2839,9 @@ document.getElementById("bundleAssemblyForm").addEventListener("submit", async (
         bundle_sku: state.activeBundleSku,
         assembly_date: body.get("assembly_date"),
         quantity: Number(body.get("quantity")),
+        assembly_provider: body.get("assembly_provider"),
+        unit_assembly_cost: Number(body.get("unit_assembly_cost")),
+        currency: body.get("currency"),
         notes: body.get("notes") || null,
       }),
     });

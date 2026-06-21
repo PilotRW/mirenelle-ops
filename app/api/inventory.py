@@ -166,6 +166,9 @@ class BundleAssemblyRequest(BaseModel):
     bundle_sku: str = Field(min_length=1, max_length=160)
     assembly_date: date
     quantity: float = Field(gt=0)
+    assembly_provider: str = Field(default="unknown", max_length=32)
+    unit_assembly_cost: float = Field(default=0, ge=0)
+    currency: str = Field(default="EUR", min_length=3, max_length=8)
     notes: str | None = None
 
 
@@ -174,6 +177,9 @@ class BundleAssemblyRow(BaseModel):
     bundle_sku: str
     assembly_date: str
     quantity: float
+    assembly_provider: str
+    unit_assembly_cost: float
+    currency: str
     notes: str | None
 
 
@@ -215,6 +221,9 @@ def bundle_assembly_row(assembly: BundleAssembly) -> BundleAssemblyRow:
         bundle_sku=assembly.bundle_sku,
         assembly_date=assembly.assembly_date.isoformat(),
         quantity=float(assembly.quantity),
+        assembly_provider=assembly.assembly_provider,
+        unit_assembly_cost=float(assembly.unit_assembly_cost),
+        currency=assembly.currency,
         notes=assembly.notes,
     )
 
@@ -831,6 +840,14 @@ async def create_bundle_assembly(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> BundleAssemblyRow:
     bundle_sku = payload.bundle_sku.strip()
+    assembly_provider = payload.assembly_provider.strip().lower()
+    allowed_providers = {"unknown", "prep_center", "amazon", "in_house", "other"}
+    if assembly_provider not in allowed_providers:
+        raise HTTPException(
+            status_code=422,
+            detail="Assembly provider must be unknown, prep_center, amazon, in_house, or other.",
+        )
+    currency = payload.currency.strip().upper()
     recipe = list(
         await db.scalars(
             select(BundleComponent)
@@ -870,6 +887,9 @@ async def create_bundle_assembly(
         bundle_sku=bundle_sku,
         assembly_date=payload.assembly_date,
         quantity=Decimal(str(payload.quantity)),
+        assembly_provider=assembly_provider,
+        unit_assembly_cost=Decimal(str(payload.unit_assembly_cost)),
+        currency=currency,
         component_snapshot=[
             {
                 "component_sku": component.component_sku,

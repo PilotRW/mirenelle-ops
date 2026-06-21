@@ -256,11 +256,18 @@ operations are entered.
 
 Bundle Assemblies records the physical transfer from loose components into
 finished bundles. Each assembly stores its own recipe snapshot, date, quantity,
-and notes. This prevents later recipe edits from changing historical assembly
-consumption. Recorded assemblies cover bundle sales rather than adding to them:
+assembler (`unknown`, prep center, Amazon, in-house, or other), unit assembly
+cost, currency, and notes. This prevents later recipe edits from changing
+historical assembly consumption. Recorded assemblies cover bundle sales rather
+than adding to them:
 if 17 bundles were assembled and 4 later sold, components are consumed 17
 times, not 21. If no assembly has been recorded, sold bundles continue to
 consume components as a safe fallback.
+
+Assembly cost is a separate operational cost rather than component COGS.
+Product Profitability allocates it to sold bundles from the oldest eligible
+assembly batches first. An assembly dated after a sale is never charged to that
+sale. Non-EUR assembly cost is converted using the rate on the assembly date.
 Bundle SKU suggestions come from positive-quantity Amazon Orders rows and are
 filtered only after the operator types at least two characters.
 

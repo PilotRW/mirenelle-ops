@@ -746,7 +746,7 @@ button:disabled {
 
 .bundleAssemblyForm {
   display: grid;
-  grid-template-columns: minmax(130px, 0.7fr) minmax(130px, 0.7fr) minmax(180px, 1.4fr) auto;
+  grid-template-columns: repeat(2, minmax(120px, 0.7fr)) minmax(145px, 0.9fr) minmax(120px, 0.7fr) minmax(90px, 0.5fr) minmax(180px, 1.2fr) auto;
   align-items: end;
   gap: 10px;
 }
@@ -759,7 +759,7 @@ button:disabled {
 
 .bundleAssemblyRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto auto;
   align-items: center;
   gap: 12px;
   padding: 9px 11px;

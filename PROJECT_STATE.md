@@ -359,6 +359,14 @@ reconciliation are operational. Continue from this point:
     Assemblies cover already sold bundle quantities instead of double-counting
     them. No historical assembly operations were invented; the live table is
     currently empty.
+24. Added bundle assembly pricing with migration `20260621_0023`. Every
+    assembly can now record who assembled it (`unknown`, prep center, Amazon,
+    in-house, or other), cost per finished bundle, and currency. Product
+    Profitability allocates this as a separate operational cost using FIFO
+    assembly batches and the assembly-date FX rate. A live temporary check at
+    EUR 0.50 reduced `Missha12-FBA-01` net profit from EUR 3.35 to EUR 2.85;
+    the temporary assembly was deleted afterward. The live assemblies table
+    remains empty. All 24 unit tests pass.
 
 Operational notes:
 
@@ -413,15 +421,17 @@ git status --short
 Expected database migration head:
 
 ```text
-20260621_0022
+20260621_0023
 ```
 
 ## Next Plan
 
 1. Configure confirmed real bundle recipes for the remaining bundle SKUs.
 2. Enter real historical/current Bundle Assembly operations when the operator
-   can confirm assembly dates and quantities. Do not infer them solely from an
-   FBA stock snapshot.
+   can confirm assembly dates, quantities, provider, and price per bundle. The
+   provider can remain `Unknown` until it is clear whether the prep center or
+   Amazon charged the fee. Do not infer quantities solely from an FBA stock
+   snapshot.
 3. Revisit aged-inventory storage only when Amazon provides a completed report;
    the current live request was cancelled.
 4. Replace estimated per-sold-unit storage with warehouse-day allocation after

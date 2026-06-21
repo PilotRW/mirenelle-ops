@@ -25,6 +25,7 @@ from app.services.fx import (
     get_rate_on_date,
 )
 from app.services.app_settings import get_fulfillment_cost_settings
+from app.services.bundle_assembly_cost_service import bundle_assembly_event_costs
 from app.services.fifo_cost_service import fifo_event_costs
 from app.services.product_mapping_service import product_similarity
 from app.services.refund_reconciliation import (
@@ -223,6 +224,7 @@ class ProductProfitabilityRow(BaseModel):
     prep_cost_eur: float
     storage_cost_eur: float
     fbm_logistics_cost_eur: float
+    bundle_assembly_cost_eur: float
     operational_cost_eur: float
     average_selling_price_eur: float | None
     purchase_cost_eur: float | None
@@ -293,6 +295,7 @@ class ProductProfitabilitySummary(BaseModel):
     promotional_rebates_eur: float
     amazon_fees_eur: float
     other_amount_eur: float
+    bundle_assembly_cost_eur: float
     operational_cost_eur: float
     cogs_eur: float
     gross_profit_eur: float
@@ -1020,6 +1023,7 @@ async def product_profitability(
     fx_history = await get_fx_rate_history(db)
     fulfillment_costs = await get_fulfillment_cost_settings(db)
     fifo_costs = await fifo_event_costs(db, end_date)
+    assembly_costs = await bundle_assembly_event_costs(db, end_date)
     storage_fee_rows = list(await db.scalars(select(FbaStorageFee)))
     use_actual_storage = (
         start_date is not None
@@ -1095,6 +1099,7 @@ async def product_profitability(
     by_product: dict[tuple[str, str, str], dict[str, object]] = {}
     sold_keys_by_sku: dict[str, list[tuple[str, str, str]]] = {}
     applied_fifo_events: set[tuple[str, str]] = set()
+    applied_assembly_events: set[tuple[str, str]] = set()
 
     def add_transaction_to_bucket(
         row: object,
@@ -1135,6 +1140,7 @@ async def product_profitability(
                 "fx_rate_weight": 0.0,
                 "fifo_units_costed": 0.0,
                 "fifo_cogs_eur": 0.0,
+                "bundle_assembly_cost_eur": 0.0,
                 "product_details_aliases": set(),
             },
         )
@@ -1198,6 +1204,14 @@ async def product_profitability(
                     2,
                 )
                 applied_fifo_events.add(fifo_key)
+            assembly_cost = assembly_costs.get(fifo_key)
+            if assembly_cost and fifo_key not in applied_assembly_events:
+                bucket["bundle_assembly_cost_eur"] = round(
+                    float(bucket["bundle_assembly_cost_eur"])
+                    + float(assembly_cost.cost_eur),
+                    2,
+                )
+                applied_assembly_events.add(fifo_key)
         elif category == "refund":
             bucket["refunds_eur"] = round(
                 float(bucket["refunds_eur"]) + eur(row.revenue_original, rate_to_eur),
@@ -1433,6 +1447,10 @@ async def product_profitability(
         promotional_rebates_eur = float(bucket["promotional_rebates_eur"])
         amazon_fees_eur = float(bucket["amazon_fees_eur"])
         other_amount_eur = float(bucket["other_amount_eur"])
+        bundle_assembly_cost_eur = round(
+            float(bucket["bundle_assembly_cost_eur"]),
+            2,
+        )
         fulfillment_channel = str(bucket["fulfillment_channel"]).upper()
         if fulfillment_channel == "FBA":
             prep_cost_eur = round(
@@ -1470,7 +1488,10 @@ async def product_profitability(
             storage_cost_eur = 0.0
             fbm_logistics_cost_eur = 0.0
         operational_cost_eur = round(
-            prep_cost_eur + storage_cost_eur + fbm_logistics_cost_eur,
+            prep_cost_eur
+            + storage_cost_eur
+            + fbm_logistics_cost_eur
+            + bundle_assembly_cost_eur,
             2,
         )
         fx_rate_weight = float(bucket["fx_rate_weight"])
@@ -1550,6 +1571,7 @@ async def product_profitability(
                 prep_cost_eur=prep_cost_eur,
                 storage_cost_eur=storage_cost_eur,
                 fbm_logistics_cost_eur=fbm_logistics_cost_eur,
+                bundle_assembly_cost_eur=bundle_assembly_cost_eur,
                 operational_cost_eur=operational_cost_eur,
                 average_selling_price_eur=average_selling_price_eur,
                 purchase_cost_eur=purchase_cost_eur,
@@ -1575,6 +1597,10 @@ async def product_profitability(
     promotional_rebates_eur = round(sum(row.promotional_rebates_eur for row in rows), 2)
     amazon_fees_eur = round(sum(row.amazon_fees_eur for row in rows), 2)
     other_amount_eur = round(sum(row.other_amount_eur for row in rows), 2)
+    bundle_assembly_cost_eur = round(
+        sum(row.bundle_assembly_cost_eur for row in rows),
+        2,
+    )
     operational_cost_eur = round(sum(row.operational_cost_eur for row in rows), 2)
     cogs_eur = round(sum(row.cogs_eur or 0 for row in matched_rows), 2)
     gross_profit_eur = round(sum(row.gross_profit_eur or 0 for row in matched_rows), 2)
@@ -1599,6 +1625,7 @@ async def product_profitability(
             promotional_rebates_eur=promotional_rebates_eur,
             amazon_fees_eur=amazon_fees_eur,
             other_amount_eur=other_amount_eur,
+            bundle_assembly_cost_eur=bundle_assembly_cost_eur,
             operational_cost_eur=operational_cost_eur,
             cogs_eur=cogs_eur,
             gross_profit_eur=gross_profit_eur,
