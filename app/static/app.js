@@ -6,6 +6,7 @@ const translations = {
     "action.addComponent": "Add component",
     "action.addSelected": "Add selected",
     "action.newRecipe": "New recipe",
+    "action.collapseBundle": "Collapse",
     "action.selectMultiple": "Select multiple",
     "action.selectVisible": "Select visible",
     "action.clearSelection": "Clear selection",
@@ -80,6 +81,7 @@ const translations = {
     "message.confirmDeleteInventory": "Delete this inventory item?",
     "message.confirmDeleteOpeningLot": "Delete this opening inventory lot?",
     "message.confirmDeleteComponent": "Delete this bundle component?",
+    "message.confirmDiscardBundleChanges": "Discard unsaved bundle changes and collapse the editor?",
     "recipe.chooseBundle": "Choose a bundle or start a new recipe",
     "recipe.componentLines": "Components",
     "recipe.totalUnits": "Units per bundle",
@@ -279,6 +281,7 @@ const translations = {
     "action.addComponent": "Komponente hinzufügen",
     "action.addSelected": "Ausgewählte hinzufügen",
     "action.newRecipe": "Neues Rezept",
+    "action.collapseBundle": "Einklappen",
     "action.selectMultiple": "Mehrere auswählen",
     "action.selectVisible": "Sichtbare auswählen",
     "action.clearSelection": "Auswahl leeren",
@@ -353,6 +356,7 @@ const translations = {
     "message.confirmDeleteInventory": "Diesen Bestandseintrag löschen?",
     "message.confirmDeleteOpeningLot": "Diese Anfangsbestands-Charge löschen?",
     "message.confirmDeleteComponent": "Diese Bundle-Komponente löschen?",
+    "message.confirmDiscardBundleChanges": "Nicht gespeicherte Bundle-Änderungen verwerfen und den Editor einklappen?",
     "recipe.chooseBundle": "Bundle wählen oder ein neues Rezept anlegen",
     "recipe.componentLines": "Komponenten",
     "recipe.totalUnits": "Einheiten pro Bundle",
@@ -552,6 +556,7 @@ const translations = {
     "action.addComponent": "Додати компонент",
     "action.addSelected": "Додати вибрані",
     "action.newRecipe": "Новий рецепт",
+    "action.collapseBundle": "Згорнути",
     "action.selectMultiple": "Вибрати кілька",
     "action.selectVisible": "Вибрати видимі",
     "action.clearSelection": "Очистити вибір",
@@ -626,6 +631,7 @@ const translations = {
     "message.confirmDeleteInventory": "Видалити цей запис залишків?",
     "message.confirmDeleteOpeningLot": "Видалити цю початкову партію?",
     "message.confirmDeleteComponent": "Видалити цей компонент набору?",
+    "message.confirmDiscardBundleChanges": "Відкинути незбережені зміни бандлу та згорнути редактор?",
     "recipe.chooseBundle": "Оберіть набір або створіть новий рецепт",
     "recipe.componentLines": "Компоненти",
     "recipe.totalUnits": "Одиниць у наборі",
@@ -2742,6 +2748,11 @@ document.getElementById("bundleRecipeCards").addEventListener("click", (event) =
 });
 
 document.getElementById("newBundleRecipeButton").addEventListener("click", startBundleRecipe);
+
+document.getElementById("collapseBundleRecipeButton").addEventListener("click", () => {
+  if (state.bundleDraftDirty && !window.confirm(t("message.confirmDiscardBundleChanges"))) return;
+  closeBundleRecipeEditor();
+});
 
 document.querySelector('#bundleComponentForm input[name="bundle_sku"]').addEventListener("input", (event) => {
   state.bundleDraftDirty = true;
