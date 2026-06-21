@@ -399,24 +399,46 @@ Current verified inventory examples:
 - `Dr.Beckmann`: purchased 24, sold 13, on hand 11.
 - `Cif`: purchased 32, sold 4, on hand 28.
 
+## Current Resume Point
+
+- Latest verified commit: `ff7877b` (`Edit bundle assembly costs`).
+- Working tree was clean after the commit.
+- Database migration head: `20260621_0024`.
+- Bundle assembly fees are charged by the prep center and default to
+  `prep_center`.
+- Assembly cost is allocated to sold bundles as a separate operational cost
+  using FIFO assembly batches and the FX rate on the assembly date.
+- Saved assembly date, provider, unit cost, currency, and notes are editable.
+  Quantity remains immutable; delete and recreate an incorrect physical
+  movement.
+- `Missha12-FBA-01` has a confirmed 12-component recipe. The assemblies table
+  is empty because no real assembly dates, quantities, or prep-center tariff
+  have been entered.
+- Last verification: 26 unit tests passed; API create/update/delete and browser
+  Edit/Cancel flows passed; all temporary records were removed.
+
 ## Current Resume Checklist
 
 Start here:
 
-1. Configure confirmed real bundle recipes for the remaining bundle SKUs.
+1. Ask the operator for the real prep-center assembly tariff, currency, dates,
+   and quantities for `Missha12-FBA-01`, then enter those assembly operations.
+2. Refresh Product Profitability for the sales period and verify the separate
+   `Bundle assembly` cost and recalculated net profit.
+3. Configure confirmed real bundle recipes for the remaining bundle SKUs.
    `Missha12-FBA-01` is complete; other recipes remain business-data blockers
    because component composition needs operator input.
-2. When the operator can confirm real bundle composition, open
+4. When the operator can confirm real bundle composition, open
    `http://localhost:8010/ui/`, go to `Inventory -> Bundle Recipes`, and
    enter the first confirmed real recipe:
    choose/type the sold Amazon bundle SKU, add every component SKU/EAN and its
    quantity with `Add component`, review the full draft, then click
    `Save bundle`.
-3. Re-open the saved recipe from the left-hand card list and verify its
+5. Re-open the saved recipe from the left-hand card list and verify its
    components, total units, and estimated cost.
-4. Refresh Product Profitability for the bundle's sales period and verify that
+6. Refresh Product Profitability for the bundle's sales period and verify that
    FIFO COGS is populated from component lots.
-5. Repeat for the remaining real bundle SKUs. Do not invent recipes from
+7. Repeat for the remaining real bundle SKUs. Do not invent recipes from
    product titles; they require operator confirmation.
 
 Useful commands:
@@ -438,10 +460,8 @@ Expected database migration head:
 
 1. Configure confirmed real bundle recipes for the remaining bundle SKUs.
 2. Enter real historical/current Bundle Assembly operations when the operator
-   can confirm assembly dates, quantities, provider, and price per bundle. The
-   provider can remain `Unknown` until it is clear whether the prep center or
-   Amazon charged the fee. Do not infer quantities solely from an FBA stock
-   snapshot.
+   confirms assembly dates, quantities, currency, and prep-center price per
+   bundle. Do not infer quantities solely from an FBA stock snapshot.
 3. Revisit aged-inventory storage only when Amazon provides a completed report;
    the current live request was cancelled.
 4. Replace estimated per-sold-unit storage with warehouse-day allocation after
