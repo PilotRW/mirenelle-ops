@@ -159,7 +159,10 @@ Completed:
 - Amazon Connector has conservative Reports API rate-limit protection:
   `createReport` is spaced at least 65 seconds apart across the whole sync run,
   and retryable Amazon responses are retried with backoff and `Retry-After`
-  support.
+  support. The limiter is shared across Orders, Returns, FBA Inventory,
+  Storage Fees, and Reimbursements syncs so concurrent sync types cannot each
+  consume the same quota independently. Amazon report status `FATAL` is a
+  report-generation failure, not an HTTP rate-limit response.
 - Dashboard and Product Profitability now include sellerboard-style operating
   metrics from existing data: sales, orders/units, refunds, Amazon fees,
   gross profit, net profit, margins, ROI, and product status counts. Ads, BSR,

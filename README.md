@@ -414,7 +414,14 @@ The connector also uses a conservative Reports API throttle to avoid exceeding
 Amazon limits. `createReport` is spaced at least 65 seconds apart across the
 whole sync run, including `All EU marketplaces`; retryable Amazon responses
 such as `429` and `503` are retried with backoff and `Retry-After` support.
+The limiter is shared by Orders, Returns, FBA Inventory, Storage Fees, and
+Reimbursements syncs, so starting different sync types at the same time does
+not bypass the `createReport` interval.
 This makes EU-wide sync intentionally slow but safer for API quotas.
+
+Amazon report processing status `FATAL` is different from throttling: it means
+Amazon failed to generate that specific report. Rate limiting is identified by
+HTTP `429` / `QuotaExceeded`.
 
 Manual All Orders report upload remains available on the same page as a
 fallback/debug path.

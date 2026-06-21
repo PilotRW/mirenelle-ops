@@ -32,6 +32,7 @@ FAILED_REPORT_STATUSES = {"CANCELLED", "FATAL"}
 DEFAULT_REPORTS_API_MIN_INTERVALS: dict[str, float] = {
     "createReport": 65.0,
     "getReport": 1.0,
+    "getReports": 1.0,
     "getReportDocument": 1.0,
     "downloadReportDocument": 0.5,
 }
@@ -83,6 +84,13 @@ class AmazonSpApiRateLimiter:
             self._next_allowed_at.get(operation, 0),
             time.monotonic() + seconds,
         )
+
+
+# All report sync services in this application process must share the same
+# limiter. Otherwise simultaneous Orders, Returns, Inventory, Storage, and
+# Reimbursements syncs can each satisfy their own limiter while collectively
+# exceeding Amazon's operation quota.
+SHARED_REPORTS_API_RATE_LIMITER = AmazonSpApiRateLimiter()
 
 
 @dataclass(frozen=True)
@@ -137,7 +145,7 @@ class AmazonSpApiClient:
         self.endpoint = settings.AMAZON_SP_API_ENDPOINT.rstrip("/")
         self.region = settings.AMAZON_SP_API_REGION
         self._access_token: str | None = None
-        self.rate_limiter = rate_limiter or AmazonSpApiRateLimiter()
+        self.rate_limiter = rate_limiter or SHARED_REPORTS_API_RATE_LIMITER
 
     async def _lwa_access_token(self, client: httpx.AsyncClient) -> str:
         if self._access_token:
