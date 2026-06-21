@@ -252,6 +252,30 @@ def best_purchased_match(product_details_aliases: set[str], candidates: list[tup
     return best_sku if best_score >= Decimal("55") else None
 
 
+def bundle_component_sales(
+    recipe: list[BundleComponent],
+    bundle_quantity: Decimal,
+    purchased: dict[str, dict],
+) -> dict[str, Decimal] | None:
+    component_sales: defaultdict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    purchased_key_by_identifier: dict[str, str] = {}
+    for purchased_sku, values in purchased.items():
+        for identifier in (purchased_sku, values.get("ean")):
+            clean_identifier = (identifier or "").strip()
+            if clean_identifier:
+                purchased_key_by_identifier.setdefault(clean_identifier, purchased_sku)
+
+    for component in recipe:
+        component_identifier = (component.component_sku or "").strip()
+        purchased_sku = purchased_key_by_identifier.get(component_identifier)
+        if not purchased_sku:
+            return None
+        component_sales[purchased_sku] += (
+            abs(bundle_quantity) * Decimal(str(component.component_quantity))
+        )
+    return dict(component_sales)
+
+
 async def calculate_inventory_quantities(
     db: AsyncSession,
 ) -> tuple[dict[str, dict], defaultdict[str, Decimal], Decimal, Decimal]:
@@ -315,6 +339,14 @@ async def calculate_inventory_quantities(
             mapped_product_skus.setdefault(mapping.amazon_product_details, mapped_sku)
 
     sold_by_sku: defaultdict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    recipes_by_bundle: defaultdict[str, list[BundleComponent]] = defaultdict(list)
+    for component in await db.scalars(
+        select(BundleComponent).order_by(
+            BundleComponent.bundle_sku,
+            BundleComponent.component_sku,
+        )
+    ):
+        recipes_by_bundle[(component.bundle_sku or "").strip()].append(component)
     sales_matched = Decimal("0")
     sales_unmatched = Decimal("0")
     sales_buckets: dict[str, dict] = {}
@@ -350,6 +382,16 @@ async def calculate_inventory_quantities(
 
     for sku, bucket in sales_buckets.items():
         quantity = bucket["quantity"]
+        recipe = recipes_by_bundle.get(sku, [])
+        if recipe:
+            component_sales = bundle_component_sales(recipe, quantity, purchased)
+            if component_sales is None:
+                sales_unmatched += quantity
+                continue
+            for component_sku, component_quantity in component_sales.items():
+                sold_by_sku[component_sku] += component_quantity
+            sales_matched += quantity
+            continue
         product_details_aliases = set(bucket["product_details_aliases"])
         product_details_aliases.add(sku)
         matched_sku = (
