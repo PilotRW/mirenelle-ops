@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260621-15" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260621-16" />
   </head>
   <body>
     <div class="appShell">
@@ -858,7 +858,10 @@
                           <span data-i18n="field.notes">Notes</span>
                           <input name="notes" />
                         </label>
-                        <button type="submit" data-i18n="action.recordAssembly">Record assembly</button>
+                        <div class="bundleAssemblyFormActions">
+                          <button id="cancelBundleAssemblyEdit" class="secondaryButton hidden" type="button" data-i18n="action.cancel">Cancel</button>
+                          <button id="saveBundleAssemblyButton" type="submit" data-i18n="action.recordAssembly">Record assembly</button>
+                        </div>
                       </form>
                       <div id="bundleAssemblyRows" class="bundleAssemblyRows"></div>
                     </section>
@@ -1158,6 +1161,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260621-15"></script>
+    <script src="/ui/app.js?v=20260621-16"></script>
   </body>
 </html>

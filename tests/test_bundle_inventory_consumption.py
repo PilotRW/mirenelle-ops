@@ -2,13 +2,28 @@ from decimal import Decimal
 from types import SimpleNamespace
 from unittest import TestCase
 
+from fastapi import HTTPException
+
 from app.api.inventory import (
     bundle_component_sales,
+    normalize_assembly_provider,
     split_bundle_component_consumption,
 )
 
 
 class BundleInventoryConsumptionTest(TestCase):
+    def test_normalizes_supported_assembly_provider(self) -> None:
+        self.assertEqual(
+            normalize_assembly_provider(" Prep_Center "),
+            "prep_center",
+        )
+
+    def test_rejects_unknown_assembly_provider_value(self) -> None:
+        with self.assertRaises(HTTPException) as context:
+            normalize_assembly_provider("warehouse")
+
+        self.assertEqual(context.exception.status_code, 422)
+
     def test_expands_bundle_units_into_component_sales(self) -> None:
         recipe = [
             SimpleNamespace(component_sku="MASK-A", component_quantity=Decimal("1")),

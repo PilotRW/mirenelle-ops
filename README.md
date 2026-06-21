@@ -236,6 +236,7 @@ POST   /inventory/bundle-recipes
 DELETE /inventory/bundle-components/{component_id}
 GET    /inventory/bundle-assemblies
 POST   /inventory/bundle-assemblies
+PUT    /inventory/bundle-assemblies/{assembly_id}
 DELETE /inventory/bundle-assemblies/{assembly_id}
 ```
 
@@ -268,6 +269,10 @@ Assembly cost is a separate operational cost rather than component COGS.
 Product Profitability allocates it to sold bundles from the oldest eligible
 assembly batches first. An assembly dated after a sale is never charged to that
 sale. Non-EUR assembly cost is converted using the rate on the assembly date.
+Saved assembly metadata can be edited in place. Quantity remains immutable
+during editing because changing a physical assembly quantity is an inventory
+movement; reverse the incorrect operation and record the corrected quantity
+instead.
 Bundle SKU suggestions come from positive-quantity Amazon Orders rows and are
 filtered only after the operator types at least two characters.
 

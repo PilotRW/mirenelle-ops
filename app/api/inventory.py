@@ -172,6 +172,14 @@ class BundleAssemblyRequest(BaseModel):
     notes: str | None = None
 
 
+class BundleAssemblyUpdateRequest(BaseModel):
+    assembly_date: date
+    assembly_provider: str = Field(default="prep_center", max_length=32)
+    unit_assembly_cost: float = Field(default=0, ge=0)
+    currency: str = Field(default="EUR", min_length=3, max_length=8)
+    notes: str | None = None
+
+
 class BundleAssemblyRow(BaseModel):
     id: int
     bundle_sku: str
@@ -189,6 +197,17 @@ class BundleAssemblyListResponse(BaseModel):
 
 def clean_text(value: str | None) -> str | None:
     return (value or "").strip() or None
+
+
+def normalize_assembly_provider(value: str) -> str:
+    provider = value.strip().lower()
+    allowed_providers = {"unknown", "prep_center", "amazon", "in_house", "other"}
+    if provider not in allowed_providers:
+        raise HTTPException(
+            status_code=422,
+            detail="Assembly provider must be unknown, prep_center, amazon, in_house, or other.",
+        )
+    return provider
 
 
 def opening_lot_row(lot: InventoryLot) -> OpeningLotRow:
@@ -840,13 +859,7 @@ async def create_bundle_assembly(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> BundleAssemblyRow:
     bundle_sku = payload.bundle_sku.strip()
-    assembly_provider = payload.assembly_provider.strip().lower()
-    allowed_providers = {"unknown", "prep_center", "amazon", "in_house", "other"}
-    if assembly_provider not in allowed_providers:
-        raise HTTPException(
-            status_code=422,
-            detail="Assembly provider must be unknown, prep_center, amazon, in_house, or other.",
-        )
+    assembly_provider = normalize_assembly_provider(payload.assembly_provider)
     currency = payload.currency.strip().upper()
     recipe = list(
         await db.scalars(
@@ -905,6 +918,25 @@ async def create_bundle_assembly(
     purchased, sold_by_sku, assembled_by_sku, _, _ = await calculate_inventory_quantities(db)
     await update_estimated_inventory_items(db, purchased, sold_by_sku, assembled_by_sku)
     await db.commit()
+    return bundle_assembly_row(assembly)
+
+
+@router.put("/bundle-assemblies/{assembly_id}", response_model=BundleAssemblyRow)
+async def update_bundle_assembly(
+    assembly_id: int,
+    payload: BundleAssemblyUpdateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> BundleAssemblyRow:
+    assembly = await db.get(BundleAssembly, assembly_id)
+    if assembly is None:
+        raise HTTPException(status_code=404, detail="Bundle assembly not found.")
+    assembly.assembly_date = payload.assembly_date
+    assembly.assembly_provider = normalize_assembly_provider(payload.assembly_provider)
+    assembly.unit_assembly_cost = Decimal(str(payload.unit_assembly_cost))
+    assembly.currency = payload.currency.strip().upper()
+    assembly.notes = clean_text(payload.notes)
+    await db.commit()
+    await db.refresh(assembly)
     return bundle_assembly_row(assembly)
 
 

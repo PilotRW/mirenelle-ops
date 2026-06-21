@@ -751,6 +751,11 @@ button:disabled {
   gap: 10px;
 }
 
+.bundleAssemblyFormActions {
+  display: flex;
+  gap: 8px;
+}
+
 .bundleAssemblyRows {
   display: grid;
   gap: 6px;
@@ -759,7 +764,7 @@ button:disabled {
 
 .bundleAssemblyRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto auto auto;
   align-items: center;
   gap: 12px;
   padding: 9px 11px;
@@ -1589,6 +1594,10 @@ th.num {
 
   .bundleAssemblyForm {
     grid-template-columns: 1fr;
+  }
+
+  .bundleAssemblyFormActions {
+    flex-direction: column-reverse;
   }
 
   .componentCard {

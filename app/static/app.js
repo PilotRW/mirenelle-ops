@@ -8,6 +8,7 @@ const translations = {
     "action.newRecipe": "New recipe",
     "action.collapseBundle": "Collapse",
     "action.recordAssembly": "Record assembly",
+    "action.updateAssembly": "Update assembly",
     "action.selectMultiple": "Select multiple",
     "action.selectVisible": "Select visible",
     "action.clearSelection": "Clear selection",
@@ -297,6 +298,7 @@ const translations = {
     "action.newRecipe": "Neues Rezept",
     "action.collapseBundle": "Einklappen",
     "action.recordAssembly": "Montage erfassen",
+    "action.updateAssembly": "Montage aktualisieren",
     "action.selectMultiple": "Mehrere auswählen",
     "action.selectVisible": "Sichtbare auswählen",
     "action.clearSelection": "Auswahl leeren",
@@ -586,6 +588,7 @@ const translations = {
     "action.newRecipe": "Новий рецепт",
     "action.collapseBundle": "Згорнути",
     "action.recordAssembly": "Записати складання",
+    "action.updateAssembly": "Оновити складання",
     "action.selectMultiple": "Вибрати кілька",
     "action.selectVisible": "Вибрати видимі",
     "action.clearSelection": "Очистити вибір",
@@ -881,6 +884,7 @@ const state = {
   inventoryRows: [],
   bundleComponents: [],
   bundleAssemblies: [],
+  editingBundleAssemblyId: null,
   bundleCandidates: { bundles: [], components: [] },
   activeBundleSku: null,
   bundleEditorOpen: false,
@@ -1195,6 +1199,7 @@ function renderBundleRecipes() {
         <span>${t(`assemblyProvider.${assembly.assembly_provider === "prep_center" ? "prepCenter" : assembly.assembly_provider === "in_house" ? "inHouse" : assembly.assembly_provider}`)}</span>
         <strong>${money(Number(assembly.quantity) * Number(assembly.unit_assembly_cost), assembly.currency)}</strong>
         <strong>× ${integer(assembly.quantity)}</strong>
+        <button type="button" class="compactButton" data-edit-bundle-assembly="${assembly.id}">${t("action.edit")}</button>
         <button type="button" class="compactButton dangerButton" data-delete-bundle-assembly="${assembly.id}">${t("action.delete")}</button>
       </article>
     `).join("")
@@ -1258,6 +1263,21 @@ function renderBundleRecipes() {
       `;
     }).join("")
     : `<div class="recipeEmptyState">${t("recipe.empty")}</div>`;
+}
+
+function resetBundleAssemblyForm() {
+  const form = document.getElementById("bundleAssemblyForm");
+  state.editingBundleAssemblyId = null;
+  form.elements.namedItem("quantity").disabled = false;
+  form.elements.namedItem("quantity").value = "1";
+  form.elements.namedItem("assembly_provider").value = "prep_center";
+  form.elements.namedItem("unit_assembly_cost").value = "0";
+  form.elements.namedItem("currency").value = "EUR";
+  form.elements.namedItem("notes").value = "";
+  document.getElementById("cancelBundleAssemblyEdit").classList.add("hidden");
+  const saveButton = document.getElementById("saveBundleAssemblyButton");
+  saveButton.textContent = t("action.recordAssembly");
+  saveButton.dataset.i18n = "action.recordAssembly";
 }
 
 function renderBundleCandidateOptions() {
@@ -1353,6 +1373,7 @@ function renderBundleSkuSuggestions(query = "") {
 }
 
 function startBundleRecipe() {
+  resetBundleAssemblyForm();
   state.activeBundleSku = null;
   state.bundleEditorOpen = true;
   closeBundleBatchPicker();
@@ -1369,6 +1390,7 @@ function startBundleRecipe() {
 }
 
 function closeBundleRecipeEditor() {
+  resetBundleAssemblyForm();
   state.activeBundleSku = null;
   state.bundleEditorOpen = false;
   closeBundleBatchPicker();
@@ -2809,6 +2831,7 @@ document.getElementById("bundleRecipeCards").addEventListener("click", (event) =
   }
   const card = event.target.closest("[data-select-bundle]");
   if (!card) return;
+  resetBundleAssemblyForm();
   state.activeBundleSku = card.dataset.selectBundle;
   state.bundleEditorOpen = true;
   closeBundleBatchPicker();
@@ -2830,23 +2853,30 @@ document.getElementById("bundleAssemblyForm").addEventListener("submit", async (
   const form = event.currentTarget;
   const button = form.querySelector('button[type="submit"]');
   const body = new FormData(form);
+  const editingId = state.editingBundleAssemblyId;
   button.disabled = true;
   try {
-    await requestJson("/inventory/bundle-assemblies", {
-      method: "POST",
+    const payload = {
+      assembly_date: body.get("assembly_date"),
+      assembly_provider: body.get("assembly_provider"),
+      unit_assembly_cost: Number(body.get("unit_assembly_cost")),
+      currency: body.get("currency"),
+      notes: body.get("notes") || null,
+    };
+    if (!editingId) {
+      payload.bundle_sku = state.activeBundleSku;
+      payload.quantity = Number(body.get("quantity"));
+    }
+    await requestJson(
+      editingId
+        ? `/inventory/bundle-assemblies/${editingId}`
+        : "/inventory/bundle-assemblies",
+      {
+      method: editingId ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        bundle_sku: state.activeBundleSku,
-        assembly_date: body.get("assembly_date"),
-        quantity: Number(body.get("quantity")),
-        assembly_provider: body.get("assembly_provider"),
-        unit_assembly_cost: Number(body.get("unit_assembly_cost")),
-        currency: body.get("currency"),
-        notes: body.get("notes") || null,
-      }),
+      body: JSON.stringify(payload),
     });
-    form.elements.namedItem("quantity").value = "1";
-    form.elements.namedItem("notes").value = "";
+    resetBundleAssemblyForm();
     await loadInventory();
   } catch (error) {
     setStatus("inventoryStatus", error.message, true);
@@ -2855,7 +2885,33 @@ document.getElementById("bundleAssemblyForm").addEventListener("submit", async (
   }
 });
 
+document.getElementById("cancelBundleAssemblyEdit").addEventListener("click", () => {
+  resetBundleAssemblyForm();
+});
+
 document.getElementById("bundleAssemblyRows").addEventListener("click", async (event) => {
+  const editButton = event.target.closest("button[data-edit-bundle-assembly]");
+  if (editButton) {
+    const assembly = state.bundleAssemblies.find(
+      (row) => row.id === Number(editButton.dataset.editBundleAssembly),
+    );
+    if (!assembly) return;
+    const form = document.getElementById("bundleAssemblyForm");
+    state.editingBundleAssemblyId = assembly.id;
+    form.elements.namedItem("assembly_date").value = assembly.assembly_date;
+    form.elements.namedItem("quantity").value = String(assembly.quantity);
+    form.elements.namedItem("quantity").disabled = true;
+    form.elements.namedItem("assembly_provider").value = assembly.assembly_provider;
+    form.elements.namedItem("unit_assembly_cost").value = String(assembly.unit_assembly_cost);
+    form.elements.namedItem("currency").value = assembly.currency;
+    form.elements.namedItem("notes").value = assembly.notes || "";
+    document.getElementById("cancelBundleAssemblyEdit").classList.remove("hidden");
+    const saveButton = document.getElementById("saveBundleAssemblyButton");
+    saveButton.textContent = t("action.updateAssembly");
+    saveButton.dataset.i18n = "action.updateAssembly";
+    form.elements.namedItem("unit_assembly_cost").focus();
+    return;
+  }
   const button = event.target.closest("button[data-delete-bundle-assembly]");
   if (!button) return;
   button.disabled = true;
@@ -2863,6 +2919,9 @@ document.getElementById("bundleAssemblyRows").addEventListener("click", async (e
     await requestJson(`/inventory/bundle-assemblies/${button.dataset.deleteBundleAssembly}`, {
       method: "DELETE",
     });
+    if (state.editingBundleAssemblyId === Number(button.dataset.deleteBundleAssembly)) {
+      resetBundleAssemblyForm();
+    }
     await loadInventory();
   } catch (error) {
     setStatus("inventoryStatus", error.message, true);

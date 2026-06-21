@@ -366,10 +366,17 @@ reconciliation are operational. Continue from this point:
     assembly batches and the assembly-date FX rate. A live temporary check at
     EUR 0.50 reduced `Missha12-FBA-01` net profit from EUR 3.35 to EUR 2.85;
     the temporary assembly was deleted afterward. The live assemblies table
-    remains empty. All 24 unit tests pass.
+    remains empty.
 25. Confirmed the business source of bundle assembly fees: the prep center
     charges them. New assembly records therefore default to `prep_center`;
     Amazon remains an explicit alternative only for exceptional cases.
+26. Added in-place editing for saved assembly date, provider, unit cost,
+    currency, and notes. Quantity is deliberately locked during editing because
+    it represents a physical inventory movement; an incorrect quantity must be
+    deleted and recorded again. Profitability picks up metadata/cost changes on
+    the next report refresh. The API create/update/delete roundtrip and browser
+    Edit/Cancel flow were verified; all 26 unit tests pass and the temporary
+    assembly record was deleted.
 
 Operational notes:
 
