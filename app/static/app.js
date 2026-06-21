@@ -4,6 +4,10 @@ const translations = {
     "action.add": "Add",
     "action.addOpeningLot": "Add opening lot",
     "action.addComponent": "Add component",
+    "action.addSelected": "Add selected",
+    "action.selectMultiple": "Select multiple",
+    "action.selectVisible": "Select visible",
+    "action.clearSelection": "Clear selection",
     "action.saveBundle": "Save bundle",
     "action.commit": "Commit",
     "action.commitRaw": "Commit raw",
@@ -54,6 +58,7 @@ const translations = {
     "field.bundleName": "Bundle name",
     "field.componentSku": "Component SKU / EAN",
     "field.componentQuantity": "Component quantity",
+    "field.searchComponents": "Search components",
     "field.fbaPrepPerUnit": "FBA prep / unit EUR",
     "field.fbaStoragePerUnit": "FBA storage / sold unit EUR",
     "field.fbmPrepPerUnit": "FBM prep / unit EUR",
@@ -82,6 +87,7 @@ const translations = {
     "recipe.purchased": "Purchased in FIFO lots",
     "recipe.latestCost": "Latest lot cost",
     "recipe.unsaved": "Unsaved changes",
+    "recipe.selected": "selected",
     "message.selectInvoiceLine": "Select an invoice product first.",
     "message.storageAllocationNote": "Storage is currently estimated per sold unit until warehouse-day inventory snapshots are available.",
     "marketplace.eu": "All EU marketplaces",
@@ -270,6 +276,10 @@ const translations = {
     "action.add": "Hinzufügen",
     "action.addOpeningLot": "Anfangsbestand hinzufügen",
     "action.addComponent": "Komponente hinzufügen",
+    "action.addSelected": "Ausgewählte hinzufügen",
+    "action.selectMultiple": "Mehrere auswählen",
+    "action.selectVisible": "Sichtbare auswählen",
+    "action.clearSelection": "Auswahl leeren",
     "action.saveBundle": "Bundle speichern",
     "action.commit": "Speichern",
     "action.commitRaw": "Rohdaten speichern",
@@ -320,6 +330,7 @@ const translations = {
     "field.bundleName": "Bundle-Name",
     "field.componentSku": "Komponenten-SKU / EAN",
     "field.componentQuantity": "Komponentenmenge",
+    "field.searchComponents": "Komponenten suchen",
     "field.fbaPrepPerUnit": "FBA Vorbereitung / Einheit EUR",
     "field.fbaStoragePerUnit": "FBA Lager / verkaufte Einheit EUR",
     "field.fbmPrepPerUnit": "FBM Vorbereitung / Einheit EUR",
@@ -348,6 +359,7 @@ const translations = {
     "recipe.purchased": "In FIFO-Losen eingekauft",
     "recipe.latestCost": "Letzter Lospreis",
     "recipe.unsaved": "Nicht gespeicherte Änderungen",
+    "recipe.selected": "ausgewählt",
     "message.selectInvoiceLine": "Wähle zuerst ein Rechnungsprodukt.",
     "message.storageAllocationNote": "Lagerkosten werden vorerst pro verkaufter Einheit geschätzt, bis tägliche Bestands-Snapshots verfügbar sind.",
     "marketplace.eu": "Alle EU-Marketplaces",
@@ -536,6 +548,10 @@ const translations = {
     "action.add": "Додати",
     "action.addOpeningLot": "Додати початкову партію",
     "action.addComponent": "Додати компонент",
+    "action.addSelected": "Додати вибрані",
+    "action.selectMultiple": "Вибрати кілька",
+    "action.selectVisible": "Вибрати видимі",
+    "action.clearSelection": "Очистити вибір",
     "action.saveBundle": "Зберегти бандл",
     "action.commit": "Зберегти",
     "action.commitRaw": "Зберегти raw",
@@ -586,6 +602,7 @@ const translations = {
     "field.bundleName": "Назва набору",
     "field.componentSku": "SKU / EAN компонента",
     "field.componentQuantity": "Кількість компонента",
+    "field.searchComponents": "Пошук компонентів",
     "field.fbaPrepPerUnit": "FBA prep / одиницю EUR",
     "field.fbaStoragePerUnit": "FBA зберігання / продану одиницю EUR",
     "field.fbmPrepPerUnit": "FBM prep / одиницю EUR",
@@ -614,6 +631,7 @@ const translations = {
     "recipe.purchased": "Закуплено у FIFO-партіях",
     "recipe.latestCost": "Ціна останньої партії",
     "recipe.unsaved": "Незбережені зміни",
+    "recipe.selected": "вибрано",
     "message.selectInvoiceLine": "Спочатку обери товар з інвойсу.",
     "message.storageAllocationNote": "Поки немає щоденних snapshot залишків, зберігання оцінюється ставкою на продану одиницю.",
     "marketplace.eu": "Усі EU маркетплейси",
@@ -816,6 +834,7 @@ const state = {
   bundleDraft: [],
   bundleDraftOriginalSku: null,
   bundleDraftDirty: false,
+  bundleBatchSelected: new Set(),
   paymentRows: [],
   selectedPaymentId: null,
   invoiceRows: [],
@@ -1171,6 +1190,55 @@ function renderBundleCandidateOptions() {
   )).join("");
 }
 
+function filteredBundleBatchCandidates() {
+  const query = document.getElementById("bundleBatchSearch")?.value.trim().toLocaleLowerCase() || "";
+  if (!query) return state.bundleCandidates.components;
+  return state.bundleCandidates.components.filter((row) => (
+    row.sku.toLocaleLowerCase().includes(query)
+      || (row.ean || "").toLocaleLowerCase().includes(query)
+      || (row.product_name || "").toLocaleLowerCase().includes(query)
+  ));
+}
+
+function renderBundleBatchPicker() {
+  const target = document.getElementById("bundleBatchOptions");
+  const count = document.getElementById("bundleBatchCount");
+  const addButton = document.getElementById("bundleBatchAdd");
+  if (!target || !count || !addButton) return;
+  const candidates = filteredBundleBatchCandidates();
+  count.textContent = `${state.bundleBatchSelected.size} ${t("recipe.selected")}`;
+  addButton.disabled = state.bundleBatchSelected.size === 0;
+  target.innerHTML = candidates.length
+    ? candidates.map((row) => `
+      <label class="bundleBatchOption ${state.bundleBatchSelected.has(row.sku) ? "selected" : ""}">
+        <input type="checkbox" value="${escapeHtml(row.sku)}" ${state.bundleBatchSelected.has(row.sku) ? "checked" : ""} />
+        <span class="bundleBatchCheck" aria-hidden="true">✓</span>
+        <span class="bundleBatchIdentity">
+          <strong>${escapeHtml(row.sku)}</strong>
+          <span>${escapeHtml(row.product_name || row.sku)}</span>
+        </span>
+        <span class="bundleBatchMeta">${integer(row.available_quantity)} · ${money(row.latest_unit_cost, row.currency)}</span>
+      </label>
+    `).join("")
+    : `<div class="recipeSuggestionEmpty">${t("message.noData")}</div>`;
+}
+
+function upsertBundleDraftComponent(componentSku, componentQuantity) {
+  const existingIndex = state.bundleDraft.findIndex(
+    (component) => component.component_sku === componentSku,
+  );
+  if (existingIndex >= 0) {
+    const [existing] = state.bundleDraft.splice(existingIndex, 1);
+    existing.component_quantity = componentQuantity;
+    state.bundleDraft.unshift(existing);
+    return;
+  }
+  state.bundleDraft.unshift({
+    component_sku: componentSku,
+    component_quantity: componentQuantity,
+  });
+}
+
 function renderBundleSkuSuggestions(query = "") {
   const target = document.getElementById("bundleSkuSuggestions");
   if (!target) return;
@@ -1197,6 +1265,7 @@ function renderBundleSkuSuggestions(query = "") {
 
 function startBundleRecipe() {
   state.activeBundleSku = null;
+  state.bundleBatchSelected.clear();
   loadBundleDraft();
   const form = document.getElementById("bundleComponentForm");
   const bundleSku = form?.elements.namedItem("bundle_sku");
@@ -2560,25 +2629,58 @@ document.getElementById("bundleComponentForm").addEventListener("submit", async 
   const body = new FormData(form);
   const componentSku = String(body.get("component_sku") || "").trim();
   const componentQuantity = Number(body.get("component_quantity"));
-  const existingIndex = state.bundleDraft.findIndex(
-    (component) => component.component_sku === componentSku,
-  );
-  if (existingIndex >= 0) {
-    const [existing] = state.bundleDraft.splice(existingIndex, 1);
-    existing.component_quantity = componentQuantity;
-    state.bundleDraft.unshift(existing);
-  } else {
-    state.bundleDraft.unshift({
-      component_sku: componentSku,
-      component_quantity: componentQuantity,
-    });
-  }
+  upsertBundleDraftComponent(componentSku, componentQuantity);
   state.bundleDraftDirty = true;
   form.elements.namedItem("component_sku").value = "";
   form.elements.namedItem("component_quantity").value = "1";
   renderBundleRecipes();
   button.disabled = false;
   form.elements.namedItem("component_sku").focus();
+});
+
+document.getElementById("bundleBatchToggle").addEventListener("click", (event) => {
+  const picker = document.getElementById("bundleBatchPicker");
+  const isOpening = picker.classList.contains("hidden");
+  picker.classList.toggle("hidden", !isOpening);
+  event.currentTarget.setAttribute("aria-expanded", String(isOpening));
+  if (isOpening) {
+    renderBundleBatchPicker();
+    document.getElementById("bundleBatchSearch").focus();
+  }
+});
+
+document.getElementById("bundleBatchSearch").addEventListener("input", renderBundleBatchPicker);
+
+document.getElementById("bundleBatchOptions").addEventListener("change", (event) => {
+  const checkbox = event.target.closest('input[type="checkbox"]');
+  if (!checkbox) return;
+  if (checkbox.checked) {
+    state.bundleBatchSelected.add(checkbox.value);
+  } else {
+    state.bundleBatchSelected.delete(checkbox.value);
+  }
+  renderBundleBatchPicker();
+});
+
+document.getElementById("bundleBatchSelectVisible").addEventListener("click", () => {
+  filteredBundleBatchCandidates().forEach((row) => state.bundleBatchSelected.add(row.sku));
+  renderBundleBatchPicker();
+});
+
+document.getElementById("bundleBatchClear").addEventListener("click", () => {
+  state.bundleBatchSelected.clear();
+  renderBundleBatchPicker();
+});
+
+document.getElementById("bundleBatchAdd").addEventListener("click", () => {
+  const form = document.getElementById("bundleComponentForm");
+  const componentQuantity = Number(form.elements.namedItem("component_quantity").value);
+  const selected = state.bundleCandidates.components.filter((row) => state.bundleBatchSelected.has(row.sku));
+  selected.slice().reverse().forEach((row) => upsertBundleDraftComponent(row.sku, componentQuantity));
+  state.bundleBatchSelected.clear();
+  state.bundleDraftDirty = true;
+  renderBundleRecipes();
+  renderBundleBatchPicker();
 });
 
 document.getElementById("bundleRecipeCards").addEventListener("click", (event) => {
@@ -2589,6 +2691,7 @@ document.getElementById("bundleRecipeCards").addEventListener("click", (event) =
   const card = event.target.closest("[data-select-bundle]");
   if (!card) return;
   state.activeBundleSku = card.dataset.selectBundle;
+  state.bundleBatchSelected.clear();
   state.bundleDraftOriginalSku = null;
   renderBundleRecipes();
   document.querySelector('#bundleComponentForm input[name="component_sku"]').focus();

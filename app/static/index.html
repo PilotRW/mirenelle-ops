@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260619-10" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260621-11" />
   </head>
   <body>
     <div class="appShell">
@@ -787,6 +787,22 @@
                           <input name="component_quantity" type="number" min="0.001" step="0.001" value="1" required />
                         </label>
                         <button type="submit" data-i18n="action.addComponent">Add component</button>
+                        <button id="bundleBatchToggle" class="secondaryButton" type="button" aria-expanded="false" data-i18n="action.selectMultiple">Select multiple</button>
+                      </div>
+                      <div id="bundleBatchPicker" class="bundleBatchPicker hidden">
+                        <div class="bundleBatchHeader">
+                          <label>
+                            <span data-i18n="field.searchComponents">Search components</span>
+                            <input id="bundleBatchSearch" type="search" autocomplete="off" data-i18n-placeholder="field.searchComponents" />
+                          </label>
+                          <strong id="bundleBatchCount" class="bundleBatchCount">0 selected</strong>
+                        </div>
+                        <div id="bundleBatchOptions" class="bundleBatchOptions"></div>
+                        <div class="bundleBatchActions">
+                          <button id="bundleBatchSelectVisible" class="secondaryButton" type="button" data-i18n="action.selectVisible">Select visible</button>
+                          <button id="bundleBatchClear" class="ghostButton" type="button" data-i18n="action.clearSelection">Clear selection</button>
+                          <button id="bundleBatchAdd" type="button" disabled data-i18n="action.addSelected">Add selected</button>
+                        </div>
                       </div>
                     </form>
                     <div id="activeRecipeSummary" class="activeRecipeSummary"></div>
@@ -1090,6 +1106,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260621-06"></script>
+    <script src="/ui/app.js?v=20260621-07"></script>
   </body>
 </html>
