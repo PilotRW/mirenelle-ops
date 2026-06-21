@@ -853,6 +853,7 @@
                   <input name="end_date" type="date" required />
                 </label>
                 <button type="submit" data-i18n="action.downloadOrders">Download orders</button>
+                <button id="amazonReturnsSyncButton" class="secondaryButton" type="button" data-i18n="action.downloadReturns">Download customer returns</button>
               </form>
               <pre id="amazonOrdersPreview" class="previewBox" data-i18n="message.noPreview">No preview loaded.</pre>
               <form id="amazonOrdersForm" class="formRow genericForm">
@@ -893,6 +894,25 @@
                   <tbody id="amazonOrderImports"></tbody>
                 </table>
               </div>
+              <section class="subPanel">
+                <div class="sectionHeader">
+                  <h3 data-i18n="report.customerReturns">Customer Returns</h3>
+                </div>
+                <div class="tableWrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th data-i18n="table.id">ID</th>
+                        <th data-i18n="field.marketplace">Marketplace</th>
+                        <th class="num" data-i18n="table.rows">Rows</th>
+                        <th data-i18n="table.period">Period</th>
+                        <th data-i18n="table.file">File</th>
+                      </tr>
+                    </thead>
+                    <tbody id="amazonReturnImports"></tbody>
+                  </table>
+                </div>
+              </section>
             </section>
           </section>
 
@@ -1065,6 +1085,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260621-01"></script>
+    <script src="/ui/app.js?v=20260621-02"></script>
   </body>
 </html>

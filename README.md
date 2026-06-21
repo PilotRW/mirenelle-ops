@@ -162,6 +162,20 @@ product SKU only when the same order contains exactly one refunded product.
 Orders with multiple refunded SKUs are reported as ambiguous and are never
 assigned heuristically.
 
+Read-only FBA Customer Returns sync:
+
+```text
+POST /integrations/amazon-sp-api/returns/sync
+GET  /integrations/amazon-sp-api/returns/imports
+```
+
+The importer uses Amazon report
+`GET_FBA_FULFILLMENT_CUSTOMER_RETURNS_DATA`. It stores order ID, seller SKU,
+ASIN, FNSKU, disposition, reason, status, fulfillment center, LPN, and customer
+comments. FNSKU provides the exact bridge from Payments technical return-fee
+SKUs (`X00...`) to the real product SKU. Matched return fees are included in
+the corresponding Product Profitability row.
+
 Fulfillment cost settings:
 
 ```text

@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.database import get_db
 from app.models.amazon_order_item import AmazonOrderItem
 from app.models.amazon_payment_transaction import AmazonPaymentTransaction
+from app.models.amazon_return_item import AmazonReturnItem
 from app.models.product_cost import ProductCost
 from app.models.product_mapping import ProductMapping
 from app.models.purchase_invoice import PurchaseInvoice
@@ -824,6 +825,11 @@ async def data_quality(
         if classify_payment_type(row.transaction_type) == "refund"
     ]
     refund_skus_by_order = refunded_skus_by_order(refund_keys)
+    return_items = list(await db.scalars(select(AmazonReturnItem)))
+    returned_sku_by_order_fnsku = {
+        (item.order_id, item.fnsku): item.sku
+        for item in return_items
+    }
 
     reconciliation_rows: list[ReconciliationRow] = []
     order_groups = 0
@@ -881,7 +887,9 @@ async def data_quality(
             return_fee_groups += 1
             status, linked_sku = resolve_return_fee_sku(
                 str(row.external_transaction_id or ""),
+                str(row.sku or ""),
                 refund_skus_by_order,
+                returned_sku_by_order_fnsku,
             )
             if status == "matched":
                 matched_return_fee_groups += 1
@@ -1008,6 +1016,11 @@ async def product_profitability(
         order_item_key(item): item
         for item in order_items
         if is_sellable_order_item(item)
+    }
+    return_items = list(await db.scalars(select(AmazonReturnItem)))
+    returned_sku_by_order_fnsku = {
+        (item.order_id, item.fnsku): item.sku
+        for item in return_items
     }
 
     by_product: dict[tuple[str, str, str], dict[str, object]] = {}
@@ -1167,21 +1180,29 @@ async def product_profitability(
             if key not in sku_keys:
                 sku_keys.append(key)
 
-    # Refunds are product-level only when their SKU can be attached to a
-    # product sold in the selected period. Return/FBA/service fees and transfers
-    # remain in Amazon P&L until a reliable product mapping exists.
+    # Refunds and item-level return fees are product-level only when their real
+    # SKU can be attached to a product sold in the selected period. Other
+    # FBA/service fees and transfers remain in Amazon P&L.
     for row in transaction_rows:
         category = classify_payment_type(row.transaction_type)
-        if category != "refund" or not row.sku:
+        if category not in {"refund", "return_fee"} or not row.sku:
             continue
+        linked_sku = str(row.sku)
+        if category == "return_fee":
+            linked_sku = returned_sku_by_order_fnsku.get(
+                (str(row.external_transaction_id or ""), str(row.sku or "")),
+                "",
+            )
+            if not linked_sku:
+                continue
         matched_order = order_by_payment_key.get(
-            (str(row.external_transaction_id or ""), str(row.sku or ""))
+            (str(row.external_transaction_id or ""), linked_sku)
         )
-        candidate_keys = sold_keys_by_sku.get(str(row.sku), [])
+        candidate_keys = sold_keys_by_sku.get(linked_sku, [])
         preferred_key = None
         if matched_order:
             preferred_key = (
-                str(row.sku),
+                linked_sku,
                 matched_order.fulfillment_channel,
                 matched_order.currency or row.currency,
             )

@@ -27,7 +27,7 @@ class RefundReconciliationTest(TestCase):
     def test_return_fee_links_single_refunded_sku(self) -> None:
         skus = refunded_skus_by_order([("ORDER-1", "SKU-1")])
         self.assertEqual(
-            resolve_return_fee_sku("ORDER-1", skus),
+            resolve_return_fee_sku("ORDER-1", "FNSKU-1", skus),
             ("matched", "SKU-1"),
         )
 
@@ -36,6 +36,20 @@ class RefundReconciliationTest(TestCase):
             [("ORDER-1", "SKU-1"), ("ORDER-1", "SKU-2")]
         )
         self.assertEqual(
-            resolve_return_fee_sku("ORDER-1", skus),
+            resolve_return_fee_sku("ORDER-1", "FNSKU-1", skus),
             ("ambiguous", None),
+        )
+
+    def test_return_report_fnsku_resolves_ambiguous_fee(self) -> None:
+        skus = refunded_skus_by_order(
+            [("ORDER-1", "SKU-1"), ("ORDER-1", "SKU-2")]
+        )
+        self.assertEqual(
+            resolve_return_fee_sku(
+                "ORDER-1",
+                "FNSKU-2",
+                skus,
+                {("ORDER-1", "FNSKU-2"): "SKU-2"},
+            ),
+            ("matched", "SKU-2"),
         )

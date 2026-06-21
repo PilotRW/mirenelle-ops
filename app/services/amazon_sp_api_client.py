@@ -176,6 +176,22 @@ class AmazonSpApiClient:
         start_date: date,
         end_date: date,
     ) -> str:
+        return await self.create_report(
+            client=client,
+            marketplace=marketplace,
+            report_type=REPORT_TYPE_ALL_ORDERS_BY_ORDER_DATE,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+    async def create_report(
+        self,
+        client: httpx.AsyncClient,
+        marketplace: str,
+        report_type: str,
+        start_date: date,
+        end_date: date,
+    ) -> str:
         marketplace_ids = marketplace_ids_for(marketplace)
         response = await self._request_with_retries(
             client=client,
@@ -184,7 +200,7 @@ class AmazonSpApiClient:
             url=f"{self.endpoint}/reports/2021-06-30/reports",
             headers=await self._sp_api_headers(client),
             json={
-                "reportType": REPORT_TYPE_ALL_ORDERS_BY_ORDER_DATE,
+                "reportType": report_type,
                 "marketplaceIds": marketplace_ids,
                 "dataStartTime": utc_day_start(start_date),
                 "dataEndTime": utc_next_day_start(end_date),

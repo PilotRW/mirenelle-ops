@@ -300,11 +300,17 @@ reconciliation are operational. Continue from this point:
     2026-04-01 through 2026-05-04 as imports 5 and 6: 26 rows / 44 FBA units /
     1 FBM unit, with the second May chunk correctly producing zero rows.
     Orders coverage now starts on 2026-04-03. This resolved all three previously
-    unmatched May refunds: 6 of 6 refund groups now match exactly. Return fees
-    remain 2 matched and 3 ambiguous because their Payments raw rows contain
-    only the order ID and technical `X00...` SKU, with no ASIN or product SKU.
-    Data Quality shows separate match counters and a Linked SKU column. Eight
-    unit tests pass across order filtering and refund reconciliation.
+    unmatched May refunds: 6 of 6 refund groups now match exactly.
+15. Added the official FBA Customer Returns report importer
+    (`GET_FBA_FULFILLMENT_CUSTOMER_RETURNS_DATA`) with migration
+    `20260621_0018`, read-only SP-API sync/list endpoints, parser, deduplicated
+    return items, and Amazon Connector UI controls. Imported 18 real return
+    rows for 2026-04-01 through 2026-05-31. The report's FNSKU exactly matches
+    the technical `X00...` SKU in Payments, so all return fees now resolve:
+    6 of 6 refunds and 5 of 5 return fees match with zero ambiguous/unmatched
+    groups. Matched return fees are also attributed to the correct product row
+    in Product Profitability. Ten unit tests pass across order filtering,
+    refund reconciliation, and returns parsing.
 
 Operational notes:
 
@@ -331,10 +337,9 @@ Current verified inventory examples:
 
 Start here:
 
-1. The three remaining ambiguous return fees cannot be resolved from Payments
-   Transaction View: the raw rows have only order ID, amount, and technical
-   `X00...` SKU. Keep them ambiguous until a Customer Returns/FBA returns report
-   supplies an item-level identifier; do not split or assign them heuristically.
+1. Implement read-only FBA inventory snapshot import. Use it as the source of
+   truth for Amazon FBA available/reserved/inbound quantities while preserving
+   invoice/FIFO lots for accounting COGS.
 2. When the operator can confirm real bundle composition, open
    `http://localhost:8010/ui/`, go to `Inventory -> Bundle Recipes`, and
    enter the first confirmed real recipe:
@@ -360,23 +365,21 @@ git status --short
 Expected database migration head:
 
 ```text
-20260619_0017
+20260621_0018
 ```
 
 ## Next Plan
 
-1. Configure confirmed real bundle recipes for existing bundle SKUs.
-2. Add Customer Returns import after seeing the real file headers; use it to
-   resolve item-level return-fee ambiguity where possible.
+1. Add read-only FBA inventory connector and snapshot storage.
+2. Configure confirmed real bundle recipes for existing bundle SKUs.
 3. Replace estimated per-sold-unit storage with warehouse-day allocation after
    inventory snapshots are available.
 4. Split inventory planning by FBA/FBM logic:
    FBA uses Amazon fulfillment/inventory data; FBM needs own/prep-center stock
    and external handling tariffs.
-5. Add read-only FBA inventory connector.
-6. Add Reimbursements import after seeing the real file headers.
-7. Add Service Fees import if the separate report has richer fields than
+5. Add Reimbursements import after seeing the real file headers.
+6. Add Service Fees import if the separate report has richer fields than
    Transaction View.
-8. Add OCR/repair fallback for image-based or malformed PDFs.
-9. Later: add landed-cost model refinements for freight, prep-center costs,
+7. Add OCR/repair fallback for image-based or malformed PDFs.
+8. Later: add landed-cost model refinements for freight, prep-center costs,
    marketplace service fees, and optional allocation methods per cost type.

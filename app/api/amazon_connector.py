@@ -14,8 +14,11 @@ from app.ingestion.amazon_reports.order_reports import (
 )
 from app.models.amazon_order_import import AmazonOrderImport
 from app.models.amazon_order_item import AmazonOrderItem
+from app.models.amazon_return_import import AmazonReturnImport
+from app.models.amazon_return_item import AmazonReturnItem
 from app.services.amazon_order_import_service import commit_order_report_import
 from app.services.amazon_order_sync_service import sync_orders_report
+from app.services.amazon_return_sync_service import sync_returns_report
 from app.services.amazon_payment_import_service import DuplicateImportError
 from app.services.amazon_sp_api_client import (
     DEFAULT_REPORTS_API_MIN_INTERVALS,
@@ -104,6 +107,30 @@ class AmazonOrderSyncResponse(BaseModel):
     row_count: int
     fba_quantity: float
     fbm_quantity: float
+    processing_status: str
+
+
+class AmazonReturnImportRow(BaseModel):
+    import_id: int
+    filename: str
+    marketplace: str
+    row_count: int
+    report_period_start: str | None
+    report_period_end: str | None
+    created_at: str
+
+
+class AmazonReturnImportListResponse(BaseModel):
+    rows: list[AmazonReturnImportRow]
+
+
+class AmazonReturnSyncResponse(BaseModel):
+    status: str
+    report_id: str
+    report_document_id: str
+    import_id: int
+    filename: str
+    row_count: int
     processing_status: str
 
 
@@ -277,3 +304,54 @@ async def sync_amazon_orders_report(
         fbm_quantity=result.fbm_quantity,
         processing_status=result.processing_status,
     )
+
+
+@router.get("/returns/imports", response_model=AmazonReturnImportListResponse)
+async def list_amazon_return_imports(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AmazonReturnImportListResponse:
+    imports = list(
+        await db.scalars(
+            select(AmazonReturnImport).order_by(
+                AmazonReturnImport.created_at.desc(),
+                AmazonReturnImport.id.desc(),
+            )
+        )
+    )
+    return AmazonReturnImportListResponse(
+        rows=[
+            AmazonReturnImportRow(
+                import_id=row.id,
+                filename=row.source_filename,
+                marketplace=row.marketplace,
+                row_count=row.row_count,
+                report_period_start=row.report_period_start.isoformat() if row.report_period_start else None,
+                report_period_end=row.report_period_end.isoformat() if row.report_period_end else None,
+                created_at=row.created_at.isoformat(),
+            )
+            for row in imports
+        ]
+    )
+
+
+@router.post("/returns/sync", response_model=AmazonReturnSyncResponse)
+async def sync_amazon_returns_report(
+    payload: AmazonOrderSyncRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AmazonReturnSyncResponse:
+    if payload.end_date < payload.start_date:
+        raise HTTPException(status_code=400, detail="end_date must be greater than or equal to start_date.")
+    try:
+        result = await sync_returns_report(
+            db=db,
+            marketplace=payload.marketplace.upper(),
+            start_date=payload.start_date,
+            end_date=payload.end_date,
+            poll_interval_seconds=payload.poll_interval_seconds,
+            wait_timeout_seconds=payload.wait_timeout_seconds,
+        )
+    except AmazonSpApiConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except AmazonSpApiError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return AmazonReturnSyncResponse(**result.__dict__)

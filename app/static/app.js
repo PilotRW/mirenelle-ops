@@ -19,6 +19,7 @@ const translations = {
     "action.delete": "Delete",
     "action.manualStockEntry": "Manual stock entry",
     "action.downloadOrders": "Download orders",
+    "action.downloadReturns": "Download customer returns",
     "action.commitManualReport": "Commit manual report",
     "action.syncOaCatalog": "Sync OA catalog",
     "action.syncInventory": "Sync stock",
@@ -281,6 +282,7 @@ const translations = {
     "action.delete": "Löschen",
     "action.manualStockEntry": "Bestand manuell erfassen",
     "action.downloadOrders": "Bestellungen laden",
+    "action.downloadReturns": "Kundenrücksendungen laden",
     "action.commitManualReport": "Manuellen Report speichern",
     "action.syncOaCatalog": "OA-Katalog synchronisieren",
     "action.syncInventory": "Bestand synchronisieren",
@@ -543,6 +545,7 @@ const translations = {
     "action.delete": "Видалити",
     "action.manualStockEntry": "Ручний запис залишків",
     "action.downloadOrders": "Завантажити замовлення",
+    "action.downloadReturns": "Завантажити повернення",
     "action.commitManualReport": "Зберегти ручний звіт",
     "action.syncOaCatalog": "Синхронізувати OA каталог",
     "action.syncInventory": "Синхронізувати залишки",
@@ -1704,9 +1707,10 @@ async function loadSupplierCatalogStats() {
 }
 
 async function loadAmazonConnector() {
-  const [status, imports] = await Promise.all([
+  const [status, imports, returnImports] = await Promise.all([
     requestJson("/integrations/amazon-sp-api/status"),
     requestJson("/integrations/amazon-sp-api/orders/imports"),
+    requestJson("/integrations/amazon-sp-api/returns/imports"),
   ]);
   document.getElementById("amazonConnectorTotals").innerHTML = `
     <div class="kpi">
@@ -1719,7 +1723,7 @@ async function loadAmazonConnector() {
     </div>
     <div class="kpi">
       <span>${t("table.rows")}</span>
-      <strong>${imports.rows.length}</strong>
+      <strong>${imports.rows.length} + ${returnImports.rows.length}</strong>
     </div>
   `;
   renderRows("amazonOrderImports", imports.rows, (row) => `
@@ -1729,6 +1733,15 @@ async function loadAmazonConnector() {
       <td class="num">${row.row_count}</td>
       <td class="num">${row.fba_quantity}</td>
       <td class="num">${row.fbm_quantity}</td>
+      <td>${text(row.report_period_start)} - ${text(row.report_period_end)}</td>
+      <td>${text(row.filename)}</td>
+    </tr>
+  `);
+  renderRows("amazonReturnImports", returnImports.rows, (row) => `
+    <tr>
+      <td>${row.import_id}</td>
+      <td>${text(row.marketplace)}</td>
+      <td class="num">${row.row_count}</td>
       <td>${text(row.report_period_start)} - ${text(row.report_period_end)}</td>
       <td>${text(row.filename)}</td>
     </tr>
@@ -3072,6 +3085,35 @@ document.getElementById("amazonOrdersSyncForm").addEventListener("submit", async
     });
     renderAmazonOrdersSyncResult(result);
     await loadAmazonConnector();
+    setStatus("amazonConnectorStatus", result.status === "duplicate" ? "status.duplicate" : "status.imported", false, true);
+  } catch (error) {
+    setStatus("amazonConnectorStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("amazonReturnsSyncButton").addEventListener("click", async () => {
+  const form = document.getElementById("amazonOrdersSyncForm");
+  const button = document.getElementById("amazonReturnsSyncButton");
+  const formData = new FormData(form);
+  if (!form.reportValidity()) return;
+  button.disabled = true;
+  setStatus("amazonConnectorStatus", "status.loading", false, true);
+  try {
+    const result = await requestJson("/integrations/amazon-sp-api/returns/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        marketplace: formData.get("marketplace"),
+        start_date: formData.get("start_date"),
+        end_date: formData.get("end_date"),
+        poll_interval_seconds: 30,
+        wait_timeout_seconds: 600,
+      }),
+    });
+    document.getElementById("amazonOrdersPreview").textContent = JSON.stringify(result, null, 2);
+    await Promise.all([loadAmazonConnector(), loadDataQuality()]);
     setStatus("amazonConnectorStatus", result.status === "duplicate" ? "status.duplicate" : "status.imported", false, true);
   } catch (error) {
     setStatus("amazonConnectorStatus", error.message, true);

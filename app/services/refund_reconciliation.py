@@ -27,8 +27,13 @@ def refunded_skus_by_order(
 
 def resolve_return_fee_sku(
     order_id: str,
+    technical_sku: str,
     refunded_skus: dict[str, set[str]],
+    returned_sku_by_order_fnsku: dict[tuple[str, str], str] | None = None,
 ) -> tuple[str, str | None]:
+    exact_sku = (returned_sku_by_order_fnsku or {}).get((order_id, technical_sku))
+    if exact_sku:
+        return "matched", exact_sku
     candidates = refunded_skus.get(order_id, set())
     if len(candidates) == 1:
         return "matched", next(iter(candidates))
