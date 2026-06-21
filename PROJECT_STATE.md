@@ -320,6 +320,11 @@ reconciliation are operational. Continue from this point:
     unsellable stock is preserved in snapshot data but not counted as
     available. If Amazon rejects an immediately repeated current-state report,
     sync safely reuses the latest successful DONE report.
+17. Added reimbursements ingestion from `GET_FBA_REIMBURSEMENTS_DATA`
+    with migration `20260621_0020` and exact reimbursement-ID upserts. The
+    first live import found one CustomerReturn reimbursement: exact
+    order/SKU/FNSKU/ASIN linkage, EUR 93.84 cash, and one reimbursed unit.
+    This amount is not present in Payments.
 
 Operational notes:
 
@@ -346,8 +351,8 @@ Current verified inventory examples:
 
 Start here:
 
-1. Add Reimbursements import and inspect the real Amazon report fields before
-   deciding product/order attribution rules.
+1. Add reimbursements to Product Profitability and Amazon P&L as a separate
+   positive adjustment, not sales revenue. Do not alter units or FIFO COGS.
 2. When the operator can confirm real bundle composition, open
    `http://localhost:8010/ui/`, go to `Inventory -> Bundle Recipes`, and
    enter the first confirmed real recipe:
@@ -373,7 +378,7 @@ git status --short
 Expected database migration head:
 
 ```text
-20260621_0019
+20260621_0020
 ```
 
 ## Next Plan

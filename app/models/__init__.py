@@ -5,6 +5,7 @@ from app.models.amazon_order_import import AmazonOrderImport
 from app.models.amazon_order_item import AmazonOrderItem
 from app.models.amazon_return_import import AmazonReturnImport
 from app.models.amazon_return_item import AmazonReturnItem
+from app.models.amazon_reimbursement import AmazonReimbursement
 from app.models.app_setting import AppSetting
 from app.models.bundle_component import BundleComponent
 from app.models.fx_rate import FxRate

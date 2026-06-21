@@ -437,3 +437,8 @@ metrics from the currently available inputs:
 Ads, BSR, and forecast metrics are intentionally not mocked. They require PPC,
 Keepa/catalog, or forecasting inputs and should be added as separate data
 sources.
+
+Reimbursements sync is available at
+`POST /integrations/amazon-sp-api/reimbursements/sync`. It imports
+`GET_FBA_REIMBURSEMENTS_DATA` with exact reimbursement-ID deduplication.
+Reimbursements remain separate from sales revenue.
