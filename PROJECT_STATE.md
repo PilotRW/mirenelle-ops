@@ -339,6 +339,10 @@ reconciliation are operational. Continue from this point:
     period, actual SKU-level storage replaces the per-sold-unit estimate. May
     sold-product allocation is EUR 3.09; fees for SKUs without a product row
     stay unallocated instead of being spread heuristically.
+20. Probed
+    `GET_FBA_FULFILLMENT_LONGTERM_STORAGE_FEE_CHARGES_DATA`; Amazon completed
+    the request as `CANCELLED`, so no empty aged-storage subsystem was added.
+    Monthly storage remains the authoritative available fee source.
 
 Operational notes:
 
@@ -399,8 +403,8 @@ Expected database migration head:
 ## Next Plan
 
 1. Configure confirmed real bundle recipes for existing bundle SKUs.
-2. Evaluate aged-inventory/long-term storage fee reports only if Amazon returns
-   non-zero data; monthly storage fees are already integrated.
+2. Revisit aged-inventory storage only when Amazon provides a completed report;
+   the current live request was cancelled.
 3. Replace estimated per-sold-unit storage with warehouse-day allocation after
    inventory snapshots are available.
 4. Split inventory planning by FBA/FBM logic:
