@@ -12,6 +12,7 @@ from app.models.generic_report_import import GenericReportImport
 from app.models.generic_report_row import GenericReportRow
 from app.models.inventory_item import InventoryItem
 from app.models.inventory_lot import InventoryLot
+from app.models.fba_inventory_snapshot import FbaInventorySnapshot
 from app.models.product_cost import ProductCost
 from app.models.product_cost_import import ProductCostImport
 from app.models.product_mapping import ProductMapping

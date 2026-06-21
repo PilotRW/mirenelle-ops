@@ -221,6 +221,31 @@ class AmazonSpApiClient:
         )
         return response.json()
 
+    async def get_reports(
+        self,
+        client: httpx.AsyncClient,
+        report_type: str,
+        marketplace: str,
+    ) -> list[dict[str, Any]]:
+        params: list[tuple[str, str]] = [
+            ("reportTypes", report_type),
+            ("processingStatuses", "DONE"),
+            ("pageSize", "10"),
+        ]
+        params.extend(
+            ("marketplaceIds", marketplace_id)
+            for marketplace_id in marketplace_ids_for(marketplace)
+        )
+        response = await self._request_with_retries(
+            client=client,
+            operation="getReports",
+            method="GET",
+            url=f"{self.endpoint}/reports/2021-06-30/reports",
+            headers=await self._sp_api_headers(client),
+            params=params,
+        )
+        return list(response.json().get("reports") or [])
+
     async def get_report_document(self, client: httpx.AsyncClient, report_document_id: str) -> dict[str, Any]:
         response = await self._request_with_retries(
             client=client,

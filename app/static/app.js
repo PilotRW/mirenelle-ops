@@ -23,6 +23,7 @@ const translations = {
     "action.commitManualReport": "Commit manual report",
     "action.syncOaCatalog": "Sync OA catalog",
     "action.syncInventory": "Sync stock",
+    "action.syncFbaInventory": "Sync FBA inventory",
     "action.syncEcbRates": "Sync ECB rates",
     "action.useMatch": "Use",
     "action.viewLines": "Lines",
@@ -286,6 +287,7 @@ const translations = {
     "action.commitManualReport": "Manuellen Report speichern",
     "action.syncOaCatalog": "OA-Katalog synchronisieren",
     "action.syncInventory": "Bestand synchronisieren",
+    "action.syncFbaInventory": "FBA-Bestand synchronisieren",
     "action.syncEcbRates": "ECB-Kurse synchronisieren",
     "action.useMatch": "Nutzen",
     "action.viewLines": "Zeilen",
@@ -549,6 +551,7 @@ const translations = {
     "action.commitManualReport": "Зберегти ручний звіт",
     "action.syncOaCatalog": "Синхронізувати OA каталог",
     "action.syncInventory": "Синхронізувати залишки",
+    "action.syncFbaInventory": "Синхронізувати FBA залишки",
     "action.syncEcbRates": "Синхронізувати курси ECB",
     "action.useMatch": "Застосувати",
     "action.viewLines": "Позиції",
@@ -3115,6 +3118,24 @@ document.getElementById("amazonReturnsSyncButton").addEventListener("click", asy
     document.getElementById("amazonOrdersPreview").textContent = JSON.stringify(result, null, 2);
     await Promise.all([loadAmazonConnector(), loadDataQuality()]);
     setStatus("amazonConnectorStatus", result.status === "duplicate" ? "status.duplicate" : "status.imported", false, true);
+  } catch (error) {
+    setStatus("amazonConnectorStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("amazonFbaInventorySyncButton").addEventListener("click", async () => {
+  const button = document.getElementById("amazonFbaInventorySyncButton");
+  button.disabled = true;
+  setStatus("amazonConnectorStatus", "status.loading", false, true);
+  try {
+    const result = await requestJson("/integrations/amazon-sp-api/inventory/sync", {
+      method: "POST",
+    });
+    document.getElementById("amazonOrdersPreview").textContent = JSON.stringify(result, null, 2);
+    await loadInventory();
+    setStatus("amazonConnectorStatus", "status.imported", false, true);
   } catch (error) {
     setStatus("amazonConnectorStatus", error.message, true);
   } finally {

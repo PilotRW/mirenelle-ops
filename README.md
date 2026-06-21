@@ -176,6 +176,19 @@ comments. FNSKU provides the exact bridge from Payments technical return-fee
 SKUs (`X00...`) to the real product SKU. Matched return fees are included in
 the corresponding Product Profitability row.
 
+Read-only FBA inventory sync:
+
+```text
+POST /integrations/amazon-sp-api/inventory/sync
+```
+
+The connector uses `GET_FBA_MYI_UNSUPPRESSED_INVENTORY_DATA`. Each sync stores
+a timestamped snapshot and updates FBA Inventory rows. Amazon fulfillable
+quantity becomes available stock, reserved and inbound quantities remain
+separate, and unsellable/researching quantities remain available in snapshot
+history without being counted as sellable stock. FIFO purchase lots remain the
+accounting source for COGS and are not overwritten by Amazon stock snapshots.
+
 Fulfillment cost settings:
 
 ```text

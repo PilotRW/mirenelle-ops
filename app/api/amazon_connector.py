@@ -19,6 +19,7 @@ from app.models.amazon_return_item import AmazonReturnItem
 from app.services.amazon_order_import_service import commit_order_report_import
 from app.services.amazon_order_sync_service import sync_orders_report
 from app.services.amazon_return_sync_service import sync_returns_report
+from app.services.fba_inventory_sync_service import sync_fba_inventory
 from app.services.amazon_payment_import_service import DuplicateImportError
 from app.services.amazon_sp_api_client import (
     DEFAULT_REPORTS_API_MIN_INTERVALS,
@@ -131,6 +132,17 @@ class AmazonReturnSyncResponse(BaseModel):
     import_id: int
     filename: str
     row_count: int
+    processing_status: str
+
+
+class FbaInventorySyncResponse(BaseModel):
+    report_id: str
+    report_document_id: str
+    captured_at: str
+    rows: int
+    fulfillable_quantity: float
+    reserved_quantity: float
+    inbound_quantity: float
     processing_status: str
 
 
@@ -355,3 +367,16 @@ async def sync_amazon_returns_report(
     except AmazonSpApiError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return AmazonReturnSyncResponse(**result.__dict__)
+
+
+@router.post("/inventory/sync", response_model=FbaInventorySyncResponse)
+async def sync_amazon_fba_inventory(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> FbaInventorySyncResponse:
+    try:
+        result = await sync_fba_inventory(db=db)
+    except AmazonSpApiConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except AmazonSpApiError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return FbaInventorySyncResponse(**result.__dict__)

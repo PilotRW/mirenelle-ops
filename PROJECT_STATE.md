@@ -311,6 +311,15 @@ reconciliation are operational. Continue from this point:
     groups. Matched return fees are also attributed to the correct product row
     in Product Profitability. Ten unit tests pass across order filtering,
     refund reconciliation, and returns parsing.
+16. Added read-only FBA inventory snapshots from
+    `GET_FBA_MYI_UNSUPPRESSED_INVENTORY_DATA` with migration
+    `20260621_0019`, a connector UI action, snapshot storage, and automatic
+    update of FBA Inventory rows. The first live snapshot stored 28 SKUs:
+    55 fulfillable, 1 reserved, and 186 inbound units. Available stock equals
+    Amazon fulfillable quantity; reserved and inbound remain separate, and
+    unsellable stock is preserved in snapshot data but not counted as
+    available. If Amazon rejects an immediately repeated current-state report,
+    sync safely reuses the latest successful DONE report.
 
 Operational notes:
 
@@ -337,9 +346,8 @@ Current verified inventory examples:
 
 Start here:
 
-1. Implement read-only FBA inventory snapshot import. Use it as the source of
-   truth for Amazon FBA available/reserved/inbound quantities while preserving
-   invoice/FIFO lots for accounting COGS.
+1. Add Reimbursements import and inspect the real Amazon report fields before
+   deciding product/order attribution rules.
 2. When the operator can confirm real bundle composition, open
    `http://localhost:8010/ui/`, go to `Inventory -> Bundle Recipes`, and
    enter the first confirmed real recipe:
@@ -365,21 +373,20 @@ git status --short
 Expected database migration head:
 
 ```text
-20260621_0018
+20260621_0019
 ```
 
 ## Next Plan
 
-1. Add read-only FBA inventory connector and snapshot storage.
+1. Add Reimbursements import after inspecting the real report fields.
 2. Configure confirmed real bundle recipes for existing bundle SKUs.
 3. Replace estimated per-sold-unit storage with warehouse-day allocation after
    inventory snapshots are available.
 4. Split inventory planning by FBA/FBM logic:
    FBA uses Amazon fulfillment/inventory data; FBM needs own/prep-center stock
    and external handling tariffs.
-5. Add Reimbursements import after seeing the real file headers.
-6. Add Service Fees import if the separate report has richer fields than
+5. Add Service Fees import if the separate report has richer fields than
    Transaction View.
-7. Add OCR/repair fallback for image-based or malformed PDFs.
-8. Later: add landed-cost model refinements for freight, prep-center costs,
+6. Add OCR/repair fallback for image-based or malformed PDFs.
+7. Later: add landed-cost model refinements for freight, prep-center costs,
    marketplace service fees, and optional allocation methods per cost type.
