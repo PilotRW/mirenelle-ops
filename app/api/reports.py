@@ -24,6 +24,11 @@ from app.services.fx import (
 from app.services.app_settings import get_fulfillment_cost_settings
 from app.services.fifo_cost_service import fifo_event_costs
 from app.services.product_mapping_service import product_similarity
+from app.services.refund_reconciliation import (
+    refund_match_status,
+    refunded_skus_by_order,
+    resolve_return_fee_sku,
+)
 from app.services.order_item_policy import (
     is_sellable_order_item,
     order_item_key,
@@ -150,6 +155,7 @@ class ReconciliationRow(BaseModel):
     status: str
     external_transaction_id: str | None
     sku: str | None
+    linked_sku: str | None = None
     transaction_type: str
     payment_rows: int
     payment_units: float
@@ -172,7 +178,12 @@ class DataQualitySummary(BaseModel):
     matched_order_units: float
     unmatched_order_units: float
     refund_groups: int
+    matched_refund_groups: int
+    unmatched_refund_groups: int
     return_fee_groups: int
+    matched_return_fee_groups: int
+    ambiguous_return_fee_groups: int
+    unmatched_return_fee_groups: int
 
 
 class DataQualityResponse(BaseModel):
@@ -780,14 +791,39 @@ async def data_quality(
     )
     reconciliation_payment_rows = await db.execute(reconciliation_query)
 
-    order_items = await db.scalars(select(AmazonOrderItem))
+    order_items = list(await db.scalars(select(AmazonOrderItem)))
     order_units_by_key: dict[tuple[str, str], float] = {}
     for item in order_items:
+        if not is_sellable_order_item(item):
+            continue
         key = (item.amazon_order_id, item.sku)
         order_units_by_key[key] = round(
             order_units_by_key.get(key, 0.0) + money(item.quantity),
             3,
         )
+
+    payment_rows_list = list(reconciliation_payment_rows)
+    sold_units_by_key = dict(order_units_by_key)
+    for row in payment_rows_list:
+        if classify_payment_type(row.transaction_type) != "order":
+            continue
+        key = (
+            str(row.external_transaction_id or ""),
+            str(row.sku or ""),
+        )
+        sold_units_by_key[key] = max(
+            sold_units_by_key.get(key, 0.0),
+            money(row.quantity),
+        )
+    refund_keys = [
+        (
+            str(row.external_transaction_id or ""),
+            str(row.sku or ""),
+        )
+        for row in payment_rows_list
+        if classify_payment_type(row.transaction_type) == "refund"
+    ]
+    refund_skus_by_order = refunded_skus_by_order(refund_keys)
 
     reconciliation_rows: list[ReconciliationRow] = []
     order_groups = 0
@@ -797,9 +833,14 @@ async def data_quality(
     matched_order_units = 0.0
     unmatched_order_units = 0.0
     refund_groups = 0
+    matched_refund_groups = 0
+    unmatched_refund_groups = 0
     return_fee_groups = 0
+    matched_return_fee_groups = 0
+    ambiguous_return_fee_groups = 0
+    unmatched_return_fee_groups = 0
 
-    for row in reconciliation_payment_rows:
+    for row in payment_rows_list:
         category = classify_payment_type(row.transaction_type)
         if category not in {"order", "refund", "return_fee"}:
             continue
@@ -826,11 +867,32 @@ async def data_quality(
                 status = "quantity_mismatch"
         elif category == "refund":
             refund_groups += 1
-            status = "refund_pending"
+            status, order_units = refund_match_status(
+                order_key,
+                sold_units_by_key,
+                abs(payment_units),
+            )
+            if status == "matched":
+                matched_refund_groups += 1
+            else:
+                unmatched_refund_groups += 1
+            linked_sku = row.sku if status == "matched" else None
         else:
             return_fee_groups += 1
-            status = "return_fee_pending"
+            status, linked_sku = resolve_return_fee_sku(
+                str(row.external_transaction_id or ""),
+                refund_skus_by_order,
+            )
+            if status == "matched":
+                matched_return_fee_groups += 1
+            elif status == "ambiguous":
+                ambiguous_return_fee_groups += 1
+            else:
+                unmatched_return_fee_groups += 1
+            order_units = None
 
+        if category == "order":
+            linked_sku = row.sku if status == "matched" else None
         rate_to_eur = get_rate_for_currency(rates, row.currency)
         reconciliation_rows.append(
             ReconciliationRow(
@@ -838,6 +900,7 @@ async def data_quality(
                 status=status,
                 external_transaction_id=row.external_transaction_id,
                 sku=row.sku,
+                linked_sku=linked_sku,
                 transaction_type=row.transaction_type,
                 payment_rows=int(row.rows),
                 payment_units=payment_units,
@@ -877,7 +940,12 @@ async def data_quality(
             matched_order_units=matched_order_units,
             unmatched_order_units=unmatched_order_units,
             refund_groups=refund_groups,
+            matched_refund_groups=matched_refund_groups,
+            unmatched_refund_groups=unmatched_refund_groups,
             return_fee_groups=return_fee_groups,
+            matched_return_fee_groups=matched_return_fee_groups,
+            ambiguous_return_fee_groups=ambiguous_return_fee_groups,
+            unmatched_return_fee_groups=unmatched_return_fee_groups,
         ),
         missing_costs=missing_costs[:limit],
         unknown_transaction_types=unknown_types[:limit],

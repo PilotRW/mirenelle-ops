@@ -291,6 +291,20 @@ reconciliation are operational. Continue from this point:
     live profitability/inventory endpoint checks pass.
 13. After validation, run the connector for later periods and make Orders the
    source of truth for inventory sold quantities.
+14. Added dedicated refund and return-fee reconciliation in Data Quality.
+    Refunds match only by exact Amazon Order ID + real product SKU and validate
+    refunded units against known sold units. Return-fee rows carry Amazon
+    technical `X00...` SKUs, so they link to a product only when the same order
+    has exactly one refunded product SKU; multiple candidates are reported as
+    ambiguous rather than guessed. Imported the missing EU Orders period for
+    2026-04-01 through 2026-05-04 as imports 5 and 6: 26 rows / 44 FBA units /
+    1 FBM unit, with the second May chunk correctly producing zero rows.
+    Orders coverage now starts on 2026-04-03. This resolved all three previously
+    unmatched May refunds: 6 of 6 refund groups now match exactly. Return fees
+    remain 2 matched and 3 ambiguous because their Payments raw rows contain
+    only the order ID and technical `X00...` SKU, with no ASIN or product SKU.
+    Data Quality shows separate match counters and a Linked SKU column. Eight
+    unit tests pass across order filtering and refund reconciliation.
 
 Operational notes:
 
@@ -317,10 +331,10 @@ Current verified inventory examples:
 
 Start here:
 
-1. The next autonomous implementation step is separate refund/return-fee
-   reconciliation. First inspect the real Payments refund and return-fee rows,
-   determine which identifiers can reliably link them to the original
-   order/SKU, then add explicit matched/unmatched reporting without guessing.
+1. The three remaining ambiguous return fees cannot be resolved from Payments
+   Transaction View: the raw rows have only order ID, amount, and technical
+   `X00...` SKU. Keep them ambiguous until a Customer Returns/FBA returns report
+   supplies an item-level identifier; do not split or assign them heuristically.
 2. When the operator can confirm real bundle composition, open
    `http://localhost:8010/ui/`, go to `Inventory -> Bundle Recipes`, and
    enter the first confirmed real recipe:
@@ -351,19 +365,18 @@ Expected database migration head:
 
 ## Next Plan
 
-1. Implement separate refund/return-fee reconciliation; these rows do not
-   currently match the sales order ID directly.
-2. Configure confirmed real bundle recipes for existing bundle SKUs.
+1. Configure confirmed real bundle recipes for existing bundle SKUs.
+2. Add Customer Returns import after seeing the real file headers; use it to
+   resolve item-level return-fee ambiguity where possible.
 3. Replace estimated per-sold-unit storage with warehouse-day allocation after
    inventory snapshots are available.
 4. Split inventory planning by FBA/FBM logic:
    FBA uses Amazon fulfillment/inventory data; FBM needs own/prep-center stock
    and external handling tariffs.
 5. Add read-only FBA inventory connector.
-6. Add Customer Returns import after seeing the real file headers.
-7. Add Reimbursements import after seeing the real file headers.
-8. Add Service Fees import if the separate report has richer fields than
+6. Add Reimbursements import after seeing the real file headers.
+7. Add Service Fees import if the separate report has richer fields than
    Transaction View.
-9. Add OCR/repair fallback for image-based or malformed PDFs.
-10. Later: add landed-cost model refinements for freight, prep-center costs,
-    marketplace service fees, and optional allocation methods per cost type.
+8. Add OCR/repair fallback for image-based or malformed PDFs.
+9. Later: add landed-cost model refinements for freight, prep-center costs,
+   marketplace service fees, and optional allocation methods per cost type.

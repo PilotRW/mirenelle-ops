@@ -154,6 +154,7 @@ const translations = {
     "status.unmapped": "unmapped",
     "status.unmatched": "unmatched",
     "status.quantityMismatch": "quantity mismatch",
+    "status.ambiguous": "ambiguous",
     "status.refundPending": "refund: separate reconciliation",
     "status.returnFeePending": "return fee: separate reconciliation",
     "status.healthy": "healthy",
@@ -233,6 +234,9 @@ const translations = {
     "table.orderUnits": "Order units",
     "table.paymentUnits": "Payment units",
     "table.refundGroups": "Refund groups",
+    "table.refundMatch": "Refund match",
+    "table.returnFeeMatch": "Return fee match",
+    "table.linkedSku": "Linked SKU",
     "table.sales": "Sales",
     "table.salesVat": "Sales VAT",
     "table.salesCurrency": "Sales currency",
@@ -412,6 +416,7 @@ const translations = {
     "status.unmapped": "nicht zugeordnet",
     "status.unmatched": "nicht zugeordnet",
     "status.quantityMismatch": "Mengenabweichung",
+    "status.ambiguous": "mehrdeutig",
     "status.refundPending": "Erstattung: separater Abgleich",
     "status.returnFeePending": "Rücksendegebühr: separater Abgleich",
     "status.healthy": "gesund",
@@ -491,6 +496,9 @@ const translations = {
     "table.orderUnits": "Bestelleinheiten",
     "table.paymentUnits": "Zahlungseinheiten",
     "table.refundGroups": "Erstattungsgruppen",
+    "table.refundMatch": "Erstattungsabgleich",
+    "table.returnFeeMatch": "Rücksendegebühren-Abgleich",
+    "table.linkedSku": "Zugeordnete SKU",
     "table.sales": "Umsatz",
     "table.salesVat": "Umsatzsteuer",
     "table.salesCurrency": "Verkaufswährung",
@@ -670,6 +678,7 @@ const translations = {
     "status.unmapped": "не зіставлено",
     "status.unmatched": "не зіставлено",
     "status.quantityMismatch": "не збігається кількість",
+    "status.ambiguous": "неоднозначно",
     "status.refundPending": "refund: окрема звірка",
     "status.returnFeePending": "return fee: окрема звірка",
     "status.healthy": "норма",
@@ -749,6 +758,9 @@ const translations = {
     "table.orderUnits": "Одиниці Orders",
     "table.paymentUnits": "Одиниці Payments",
     "table.refundGroups": "Групи refund",
+    "table.refundMatch": "Зіставлення refund",
+    "table.returnFeeMatch": "Зіставлення return fee",
+    "table.linkedSku": "Прив’язаний SKU",
     "table.sales": "Продажі",
     "table.salesVat": "ПДВ продажів",
     "table.salesCurrency": "Валюта продажу",
@@ -2043,8 +2055,12 @@ async function loadDataQuality() {
         <strong>${summary.matched_order_units}/${summary.matched_order_units + summary.unmatched_order_units}</strong>
       </div>
       <div class="kpi">
-        <span>${t("table.refundGroups")}</span>
-        <strong>${summary.refund_groups} + ${summary.return_fee_groups}</strong>
+        <span>${t("table.refundMatch")}</span>
+        <strong>${summary.matched_refund_groups}/${summary.refund_groups}</strong>
+      </div>
+      <div class="kpi">
+        <span>${t("table.returnFeeMatch")}</span>
+        <strong>${summary.matched_return_fee_groups}/${summary.return_fee_groups}${summary.ambiguous_return_fee_groups ? ` · ${summary.ambiguous_return_fee_groups} ${t("status.ambiguous")}` : ""}</strong>
       </div>
     `;
   }
@@ -2052,6 +2068,7 @@ async function loadDataQuality() {
     matched: t("status.matched"),
     unmatched: t("status.unmatched"),
     quantity_mismatch: t("status.quantityMismatch"),
+    ambiguous: t("status.ambiguous"),
     refund_pending: t("status.refundPending"),
     return_fee_pending: t("status.returnFeePending"),
   }[status] || status);
@@ -2061,6 +2078,7 @@ async function loadDataQuality() {
       <td>${paymentCategoryLabel(row.category)}</td>
       <td>${text(row.external_transaction_id)}</td>
       <td>${text(row.sku)}</td>
+      <td>${text(row.linked_sku)}</td>
       <td class="num">${row.payment_units}</td>
       <td class="num">${row.order_units === null ? "-" : row.order_units}</td>
       <td class="num">${money(row.amount_eur, "EUR")}</td>

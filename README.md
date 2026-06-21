@@ -155,6 +155,13 @@ GET /reports/product-profitability
 GET /reports/purchase-summary
 ```
 
+`GET /reports/data-quality` reconciles sale and refund ledger groups against
+Amazon Orders. Sale and refund matching uses exact Amazon Order ID + SKU.
+Amazon return-fee rows use technical `X00...` SKUs; they receive a linked
+product SKU only when the same order contains exactly one refunded product.
+Orders with multiple refunded SKUs are reported as ambiguous and are never
+assigned heuristically.
+
 Fulfillment cost settings:
 
 ```text
