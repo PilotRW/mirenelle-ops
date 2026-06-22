@@ -1963,9 +1963,7 @@ async function loadFulfillmentCostSettings() {
   const form = document.getElementById("fulfillmentCostForm");
   if (!form) return;
   [
-    "fba_prep_per_unit",
     "fba_storage_per_unit",
-    "fbm_prep_per_unit",
     "fbm_packaging_per_unit",
     "fbm_outbound_per_unit",
     "fbm_storage_per_unit",
@@ -2618,7 +2616,7 @@ async function loadProfitability() {
       <td class="num">${money(row.reimbursements_eur, "EUR")}</td>
       <td class="num">${money(row.amazon_fees_eur + row.other_amount_eur, "EUR")}</td>
       <td class="num">${money(-row.bundle_assembly_cost_eur, "EUR")}</td>
-      <td class="num" title="Prep ${money(row.prep_cost_eur, "EUR")} (${row.prep_cost_source === "product" ? "SKU tariff" : row.prep_cost_source === "global_fallback" ? "global fallback" : "n/a"}) · Storage ${money(row.storage_cost_eur, "EUR")} · FBM ${money(row.fbm_logistics_cost_eur, "EUR")} · Bundle ${money(row.bundle_assembly_cost_eur, "EUR")}">${money(-row.operational_cost_eur, "EUR")}</td>
+      <td class="num" title="Prep ${money(row.prep_cost_eur, "EUR")} (${row.prep_cost_source === "product" ? "SKU tariff" : row.prep_cost_source === "missing_product_tariff" ? "tariff missing" : "n/a"}) · Storage ${money(row.storage_cost_eur, "EUR")} · FBM ${money(row.fbm_logistics_cost_eur, "EUR")} · Bundle ${money(row.bundle_assembly_cost_eur, "EUR")}">${money(-row.operational_cost_eur, "EUR")}</td>
       <td class="num">${row.gross_profit_eur === null ? "-" : money(row.gross_profit_eur, "EUR")}</td>
       <td class="num">${row.margin_percent === null ? "-" : `${row.margin_percent}%`}</td>
       <td class="num">${row.roi_percent === null ? "-" : `${row.roi_percent}%`}</td>
@@ -3598,9 +3596,7 @@ document.getElementById("fulfillmentCostForm").addEventListener("submit", async 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         currency: "EUR",
-        fba_prep_per_unit: Number(body.get("fba_prep_per_unit")),
         fba_storage_per_unit: Number(body.get("fba_storage_per_unit")),
-        fbm_prep_per_unit: Number(body.get("fbm_prep_per_unit")),
         fbm_packaging_per_unit: Number(body.get("fbm_packaging_per_unit")),
         fbm_outbound_per_unit: Number(body.get("fbm_outbound_per_unit")),
         fbm_storage_per_unit: Number(body.get("fbm_storage_per_unit")),

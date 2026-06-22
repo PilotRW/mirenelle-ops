@@ -522,8 +522,9 @@ stays unknown if FIFO cost coverage is incomplete.
 Prep-center tariffs are configured per SKU in
 `Product Costs -> Prep-center tariffs by product`. Each SKU can have separate
 FBA and FBM prep rates. Product Profitability uses the SKU-specific rate when
-present and reports `prep_cost_source=product`; otherwise the global
-Fulfillment Costs value remains an explicit `global_fallback`.
+present and reports `prep_cost_source=product`. If the SKU tariff is missing,
+prep cost remains zero and the report returns
+`prep_cost_source=missing_product_tariff`; there is no global prep fallback.
 
 ```text
 GET    /settings/product-prep-costs

@@ -11,9 +11,7 @@ LANDED_COST_ALLOCATION_METHOD_KEY = "landed_cost_allocation_method"
 LANDED_COST_ALLOCATION_METHODS = {"by_quantity", "by_line_value"}
 DEFAULT_LANDED_COST_ALLOCATION_METHOD = "by_quantity"
 FULFILLMENT_COST_SETTING_KEYS = {
-    "fba_prep_per_unit": "fulfillment_cost_fba_prep_per_unit",
     "fba_storage_per_unit": "fulfillment_cost_fba_storage_per_unit",
-    "fbm_prep_per_unit": "fulfillment_cost_fbm_prep_per_unit",
     "fbm_packaging_per_unit": "fulfillment_cost_fbm_packaging_per_unit",
     "fbm_outbound_per_unit": "fulfillment_cost_fbm_outbound_per_unit",
     "fbm_storage_per_unit": "fulfillment_cost_fbm_storage_per_unit",

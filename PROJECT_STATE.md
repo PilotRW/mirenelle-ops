@@ -453,8 +453,9 @@ Current verified inventory examples:
 30. Added individual prep-center tariffs per SKU. Migration `20260622_0026`
     creates `product_prep_costs` with separate FBA/FBM per-unit rates,
     currency, and notes. Product Profitability prioritizes the SKU rate and
-    returns `prep_cost_source=product`; missing SKU tariffs use the old global
-    rate only as a visible `global_fallback`. Added CRUD API and the
+    returns `prep_cost_source=product`; missing SKU tariffs now produce zero
+    prep cost with the visible `missing_product_tariff` marker. Global FBA/FBM
+    prep fields were removed from Fulfillment Costs settings. Added CRUD API and the
     `Product Costs -> Prep-center tariffs by product` UI. A reversible live
     test confirmed EUR 0.12 x 19 units = EUR 2.28 prep cost; the temporary row
     was deleted afterward. The real tariff table remains empty. All 32 tests
@@ -503,7 +504,8 @@ Expected database migration head:
 
 1. Configure confirmed real bundle recipes for the remaining bundle SKUs.
 2. Enter real per-SKU FBA/FBM prep-center tariffs in Product Costs. Until then,
-   profitability explicitly uses the global fallback.
+   profitability explicitly marks the tariff as missing and does not invent a
+   prep cost.
 3. Enter real historical/current Bundle Assembly operations when the operator
    confirms assembly dates, quantities, currency, and prep-center price per
    bundle. Do not infer quantities solely from an FBA stock snapshot.

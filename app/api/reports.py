@@ -1466,13 +1466,13 @@ async def product_profitability(
                 money(get_rate_for_currency(rates, product_prep_cost.currency))
                 * float(product_prep_cost.fba_prep_per_unit)
                 if product_prep_cost
-                else fulfillment_costs["fba_prep_per_unit"]
+                else 0.0
             )
             prep_cost_eur = round(
                 units_estimated * prep_rate,
                 2,
             )
-            prep_cost_source = "product" if product_prep_cost else "global_fallback"
+            prep_cost_source = "product" if product_prep_cost else "missing_product_tariff"
             storage_cost_eur = (
                 actual_storage_by_sku[sku]
                 if sku and sku in actual_storage_by_sku
@@ -1487,13 +1487,13 @@ async def product_profitability(
                 money(get_rate_for_currency(rates, product_prep_cost.currency))
                 * float(product_prep_cost.fbm_prep_per_unit)
                 if product_prep_cost
-                else fulfillment_costs["fbm_prep_per_unit"]
+                else 0.0
             )
             prep_cost_eur = round(
                 units_estimated * prep_rate,
                 2,
             )
-            prep_cost_source = "product" if product_prep_cost else "global_fallback"
+            prep_cost_source = "product" if product_prep_cost else "missing_product_tariff"
             storage_cost_eur = round(
                 units_estimated * fulfillment_costs["fbm_storage_per_unit"],
                 2,

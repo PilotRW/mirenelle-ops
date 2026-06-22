@@ -38,9 +38,7 @@ class LandedCostSettingsUpdateRequest(BaseModel):
 
 class FulfillmentCostSettings(BaseModel):
     currency: str = "EUR"
-    fba_prep_per_unit: float = Field(ge=0)
     fba_storage_per_unit: float = Field(ge=0)
-    fbm_prep_per_unit: float = Field(ge=0)
     fbm_packaging_per_unit: float = Field(ge=0)
     fbm_outbound_per_unit: float = Field(ge=0)
     fbm_storage_per_unit: float = Field(ge=0)
