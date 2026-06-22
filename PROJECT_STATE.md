@@ -401,8 +401,8 @@ Current verified inventory examples:
 
 ## Current Resume Point
 
-- Latest verified implementation includes Amazon Finances Payments sync and
-  lifecycle deduplication; commit it after the final diff review.
+- Latest verified commit: `5bd98b5` (`Sync Amazon Payments through Finances API`).
+- Working tree was clean after the implementation commit.
 - Database migration head: `20260622_0025`.
 - Bundle assembly fees are charged by the prep center and default to
   `prep_center`.
