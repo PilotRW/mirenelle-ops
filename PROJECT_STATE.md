@@ -401,8 +401,8 @@ Current verified inventory examples:
 
 ## Current Resume Point
 
-- Latest verified implementation commit: `a6b3f3c`
-  (`Add product-specific prep center costs`).
+- Latest verified implementation commit: `4cbd35f`
+  (`Remove global prep cost settings`).
 - Working tree was clean after the implementation commit.
 - Database migration head: `20260622_0026`.
 - Bundle assembly fees are charged by the prep center and default to
