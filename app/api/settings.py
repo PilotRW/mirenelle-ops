@@ -17,6 +17,8 @@ from app.services.app_settings import (
 )
 from app.services.amazon_sp_api_client import MARKETPLACE_IDS
 from app.services.payments_sync_scheduler import run_scheduled_payments_sync
+from app.models.product_prep_cost import ProductPrepCost
+from sqlalchemy import delete, select
 
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -54,6 +56,18 @@ class PaymentsSyncScheduleSettings(BaseModel):
 class PaymentsSyncScheduleResponse(PaymentsSyncScheduleSettings):
     available_marketplaces: list[str]
     runtime: dict
+
+
+class ProductPrepCostPayload(BaseModel):
+    sku: str = Field(min_length=1, max_length=120)
+    fba_prep_per_unit: float = Field(default=0, ge=0)
+    fbm_prep_per_unit: float = Field(default=0, ge=0)
+    currency: str = Field(default="EUR", min_length=3, max_length=8)
+    notes: str | None = None
+
+
+class ProductPrepCostListResponse(BaseModel):
+    rows: list[ProductPrepCostPayload]
 
 
 @router.get("/landed-cost", response_model=LandedCostSettingsResponse)
@@ -139,3 +153,59 @@ async def update_payments_sync_schedule(
 @router.post("/payments-sync-schedule/run")
 async def run_payments_sync_schedule_now() -> dict:
     return await run_scheduled_payments_sync(force=True)
+
+
+@router.get("/product-prep-costs", response_model=ProductPrepCostListResponse)
+async def list_product_prep_costs(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ProductPrepCostListResponse:
+    rows = await db.scalars(select(ProductPrepCost).order_by(ProductPrepCost.sku))
+    return ProductPrepCostListResponse(
+        rows=[
+            ProductPrepCostPayload(
+                sku=row.sku,
+                fba_prep_per_unit=float(row.fba_prep_per_unit),
+                fbm_prep_per_unit=float(row.fbm_prep_per_unit),
+                currency=row.currency,
+                notes=row.notes,
+            )
+            for row in rows
+        ]
+    )
+
+
+@router.put("/product-prep-costs/{sku}", response_model=ProductPrepCostPayload)
+async def update_product_prep_cost(
+    sku: str,
+    payload: ProductPrepCostPayload,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ProductPrepCostPayload:
+    normalized_sku = sku.strip()
+    if payload.sku.strip() != normalized_sku:
+        raise HTTPException(status_code=400, detail="SKU in path and payload must match.")
+    row = await db.get(ProductPrepCost, normalized_sku)
+    if row is None:
+        row = ProductPrepCost(sku=normalized_sku)
+        db.add(row)
+    row.fba_prep_per_unit = payload.fba_prep_per_unit
+    row.fbm_prep_per_unit = payload.fbm_prep_per_unit
+    row.currency = payload.currency.upper()
+    row.notes = (payload.notes or "").strip() or None
+    await db.commit()
+    return ProductPrepCostPayload(
+        sku=row.sku,
+        fba_prep_per_unit=float(row.fba_prep_per_unit),
+        fbm_prep_per_unit=float(row.fbm_prep_per_unit),
+        currency=row.currency,
+        notes=row.notes,
+    )
+
+
+@router.delete("/product-prep-costs/{sku}")
+async def delete_product_prep_cost(
+    sku: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> dict:
+    await db.execute(delete(ProductPrepCost).where(ProductPrepCost.sku == sku.strip()))
+    await db.commit()
+    return {"sku": sku.strip(), "deleted": True}

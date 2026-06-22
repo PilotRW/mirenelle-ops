@@ -15,6 +15,7 @@ from app.models.amazon_return_item import AmazonReturnItem
 from app.models.fba_storage_fee import FbaStorageFee
 from app.models.product_cost import ProductCost
 from app.models.product_mapping import ProductMapping
+from app.models.product_prep_cost import ProductPrepCost
 from app.models.purchase_invoice import PurchaseInvoice
 from app.models.purchase_invoice_line import PurchaseInvoiceLine
 from app.services.fx import (
@@ -224,6 +225,7 @@ class ProductProfitabilityRow(BaseModel):
     amazon_fees_eur: float
     other_amount_eur: float
     prep_cost_eur: float
+    prep_cost_source: str
     storage_cost_eur: float
     fbm_logistics_cost_eur: float
     bundle_assembly_cost_eur: float
@@ -1355,6 +1357,13 @@ async def product_profitability(
             cost_by_name.setdefault(cost.product_name, cost)
             cost_candidates.append((cost.product_name, cost))
 
+    product_prep_costs = {
+        row.sku: row
+        for row in await db.scalars(
+            select(ProductPrepCost).order_by(ProductPrepCost.sku)
+        )
+    }
+
     invoice_line_rows = await db.scalars(
         select(PurchaseInvoiceLine)
         .where(PurchaseInvoiceLine.line_type == "product")
@@ -1451,11 +1460,19 @@ async def product_profitability(
             2,
         )
         fulfillment_channel = str(bucket["fulfillment_channel"]).upper()
+        product_prep_cost = product_prep_costs.get(sku) if sku else None
         if fulfillment_channel == "FBA":
+            prep_rate = (
+                money(get_rate_for_currency(rates, product_prep_cost.currency))
+                * float(product_prep_cost.fba_prep_per_unit)
+                if product_prep_cost
+                else fulfillment_costs["fba_prep_per_unit"]
+            )
             prep_cost_eur = round(
-                units_estimated * fulfillment_costs["fba_prep_per_unit"],
+                units_estimated * prep_rate,
                 2,
             )
+            prep_cost_source = "product" if product_prep_cost else "global_fallback"
             storage_cost_eur = (
                 actual_storage_by_sku[sku]
                 if sku and sku in actual_storage_by_sku
@@ -1466,10 +1483,17 @@ async def product_profitability(
             )
             fbm_logistics_cost_eur = 0.0
         elif fulfillment_channel == "FBM":
+            prep_rate = (
+                money(get_rate_for_currency(rates, product_prep_cost.currency))
+                * float(product_prep_cost.fbm_prep_per_unit)
+                if product_prep_cost
+                else fulfillment_costs["fbm_prep_per_unit"]
+            )
             prep_cost_eur = round(
-                units_estimated * fulfillment_costs["fbm_prep_per_unit"],
+                units_estimated * prep_rate,
                 2,
             )
+            prep_cost_source = "product" if product_prep_cost else "global_fallback"
             storage_cost_eur = round(
                 units_estimated * fulfillment_costs["fbm_storage_per_unit"],
                 2,
@@ -1484,6 +1508,7 @@ async def product_profitability(
             )
         else:
             prep_cost_eur = 0.0
+            prep_cost_source = "not_applicable"
             storage_cost_eur = 0.0
             fbm_logistics_cost_eur = 0.0
         operational_cost_eur = round(
@@ -1567,6 +1592,7 @@ async def product_profitability(
                 amazon_fees_eur=amazon_fees_eur,
                 other_amount_eur=other_amount_eur,
                 prep_cost_eur=prep_cost_eur,
+                prep_cost_source=prep_cost_source,
                 storage_cost_eur=storage_cost_eur,
                 fbm_logistics_cost_eur=fbm_logistics_cost_eur,
                 bundle_assembly_cost_eur=bundle_assembly_cost_eur,

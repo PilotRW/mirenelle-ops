@@ -19,6 +19,7 @@ from app.models.fba_storage_fee import FbaStorageFee
 from app.models.product_cost import ProductCost
 from app.models.product_cost_import import ProductCostImport
 from app.models.product_mapping import ProductMapping
+from app.models.product_prep_cost import ProductPrepCost
 from app.models.purchase_invoice import PurchaseInvoice
 from app.models.purchase_invoice_line import PurchaseInvoiceLine
 from app.models.supplier_catalog_item import SupplierCatalogItem
@@ -40,6 +41,7 @@ __all__ = [
     "ProductCost",
     "ProductCostImport",
     "ProductMapping",
+    "ProductPrepCost",
     "PurchaseInvoice",
     "PurchaseInvoiceLine",
     "SupplierCatalogItem",

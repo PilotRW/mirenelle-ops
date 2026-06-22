@@ -404,7 +404,7 @@ Current verified inventory examples:
 - Latest verified implementation commit: `1cd5c1a`
   (`Schedule automatic Amazon Payments sync`).
 - Working tree was clean after the implementation commit.
-- Database migration head: `20260622_0025`.
+- Database migration head: `20260622_0026`.
 - Bundle assembly fees are charged by the prep center and default to
   `prep_center`.
 - Assembly cost is allocated to sold bundles as a separate operational cost
@@ -450,6 +450,15 @@ Current verified inventory examples:
     Automation` with marketplace checkboxes, Save, Run now, and last-run
     summary. Browser verification passed with no console errors; all 32 tests
     pass.
+30. Added individual prep-center tariffs per SKU. Migration `20260622_0026`
+    creates `product_prep_costs` with separate FBA/FBM per-unit rates,
+    currency, and notes. Product Profitability prioritizes the SKU rate and
+    returns `prep_cost_source=product`; missing SKU tariffs use the old global
+    rate only as a visible `global_fallback`. Added CRUD API and the
+    `Product Costs -> Prep-center tariffs by product` UI. A reversible live
+    test confirmed EUR 0.12 x 19 units = EUR 2.28 prep cost; the temporary row
+    was deleted afterward. The real tariff table remains empty. All 32 tests
+    pass and the browser console is clean.
 
 ## Current Resume Checklist
 
@@ -487,25 +496,27 @@ git status --short
 Expected database migration head:
 
 ```text
-20260622_0025
+20260622_0026
 ```
 
 ## Next Plan
 
 1. Configure confirmed real bundle recipes for the remaining bundle SKUs.
-2. Enter real historical/current Bundle Assembly operations when the operator
+2. Enter real per-SKU FBA/FBM prep-center tariffs in Product Costs. Until then,
+   profitability explicitly uses the global fallback.
+3. Enter real historical/current Bundle Assembly operations when the operator
    confirms assembly dates, quantities, currency, and prep-center price per
    bundle. Do not infer quantities solely from an FBA stock snapshot.
-3. Confirm the desired Payments cadence in `Settings -> Payments Automation`
+4. Confirm the desired Payments cadence in `Settings -> Payments Automation`
    and enable it. The safe default remains disabled until the operator chooses
    the production schedule.
-4. Revisit aged-inventory storage only when Amazon provides a completed report;
+5. Revisit aged-inventory storage only when Amazon provides a completed report;
    the current live request was cancelled.
-5. Replace estimated per-sold-unit storage with warehouse-day allocation after
+6. Replace estimated per-sold-unit storage with warehouse-day allocation after
    inventory snapshots are available.
-6. Split inventory planning by FBA/FBM logic:
+7. Split inventory planning by FBA/FBM logic:
    FBA uses Amazon fulfillment/inventory data; FBM needs own/prep-center stock
    and external handling tariffs.
-7. Add OCR/repair fallback for image-based or malformed PDFs.
-8. Later: add landed-cost model refinements for freight, prep-center costs,
+8. Add OCR/repair fallback for image-based or malformed PDFs.
+9. Later: add landed-cost model refinements for freight, prep-center costs,
    marketplace service fees, and optional allocation methods per cost type.

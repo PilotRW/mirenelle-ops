@@ -107,6 +107,7 @@ const translations = {
     "recipe.selected": "selected",
     "message.selectInvoiceLine": "Select an invoice product first.",
     "message.storageAllocationNote": "Storage is currently estimated per sold unit until warehouse-day inventory snapshots are available.",
+    "message.productPrepCostsHint": "SKU-specific rates override the global prep fallback in Fulfillment Costs.",
     "message.paymentsAutomationHint": "Periodically refreshes recent posted transactions. Overlapping periods are safely deduplicated.",
     "message.scheduleNeverRun": "The automatic sync has not run yet.",
     "message.scheduleLastRun": "Last run",
@@ -166,6 +167,7 @@ const translations = {
     "section.paymentsAutomation": "Payments Automation",
     "section.paymentLines": "Payment Lines",
     "section.productCosts": "Product Costs",
+    "section.productPrepCosts": "Prep-center tariffs by product",
     "section.productMappings": "Product Mappings",
     "section.oaCatalog": "OA Catalog",
     "section.amazonPnl": "Amazon P&L",
@@ -411,6 +413,7 @@ const translations = {
     "recipe.selected": "ausgewählt",
     "message.selectInvoiceLine": "Wähle zuerst ein Rechnungsprodukt.",
     "message.storageAllocationNote": "Lagerkosten werden vorerst pro verkaufter Einheit geschätzt, bis tägliche Bestands-Snapshots verfügbar sind.",
+    "message.productPrepCostsHint": "SKU-spezifische Tarife überschreiben den globalen Prep-Fallback in Fulfillment-Kosten.",
     "message.paymentsAutomationHint": "Aktualisiert regelmäßig die letzten gebuchten Transaktionen. Überlappungen werden sicher dedupliziert.",
     "message.scheduleNeverRun": "Die automatische Synchronisierung wurde noch nicht ausgeführt.",
     "message.scheduleLastRun": "Letzter Lauf",
@@ -470,6 +473,7 @@ const translations = {
     "section.paymentsAutomation": "Payments-Automatisierung",
     "section.paymentLines": "Zahlungszeilen",
     "section.productCosts": "Einkaufspreise",
+    "section.productPrepCosts": "Prep-Center-Tarife nach Produkt",
     "section.productMappings": "Produktzuordnung",
     "section.oaCatalog": "OA-Katalog",
     "section.amazonPnl": "Amazon P&L",
@@ -715,6 +719,7 @@ const translations = {
     "recipe.selected": "вибрано",
     "message.selectInvoiceLine": "Спочатку обери товар з інвойсу.",
     "message.storageAllocationNote": "Поки немає щоденних snapshot залишків, зберігання оцінюється ставкою на продану одиницю.",
+    "message.productPrepCostsHint": "Індивідуальні ставки SKU мають пріоритет над глобальним fallback у витратах фулфілменту.",
     "message.paymentsAutomationHint": "Періодично оновлює останні проведені транзакції. Перекриття періодів безпечно дедуплікуються.",
     "message.scheduleNeverRun": "Автоматична синхронізація ще не запускалась.",
     "message.scheduleLastRun": "Останній запуск",
@@ -774,6 +779,7 @@ const translations = {
     "section.paymentsAutomation": "Автоматизація Payments",
     "section.paymentLines": "Рядки платежу",
     "section.productCosts": "Закупівельні ціни",
+    "section.productPrepCosts": "Тарифи преп-центру за товаром",
     "section.productMappings": "Мапінг товарів",
     "section.oaCatalog": "OA каталог",
     "section.amazonPnl": "Amazon P&L",
@@ -942,6 +948,7 @@ const state = {
   editingInvoiceProductLineId: null,
   unmappedInvoiceLines: [],
   productCostRows: [],
+  productPrepCostRows: [],
 };
 
 const sectionTitleKey = {
@@ -1562,8 +1569,12 @@ function hidePaymentLines() {
 }
 
 async function loadCosts() {
-  const lots = await requestJson("/imports/product-costs/lots?limit=5000");
+  const [lots, prepCosts] = await Promise.all([
+    requestJson("/imports/product-costs/lots?limit=5000"),
+    requestJson("/settings/product-prep-costs"),
+  ]);
   state.productCostRows = lots.rows;
+  state.productPrepCostRows = prepCosts.rows;
   renderRows("costLots", lots.rows, (row) => `
     <tr>
       <td>${row.purchase_date}</td>
@@ -1580,6 +1591,18 @@ async function loadCosts() {
       <td>${text(row.invoice_number)}</td>
       <td>
         ${row.product_cost_id ? `<button type="button" class="compactButton" data-edit-cost="${row.product_cost_id}">${t("action.edit")}</button>` : "-"}
+      </td>
+    </tr>
+  `);
+  renderRows("productPrepCostRows", prepCosts.rows, (row) => `
+    <tr>
+      <td>${escapeHtml(row.sku)}</td>
+      <td class="num">${money(row.fba_prep_per_unit, row.currency)}</td>
+      <td class="num">${money(row.fbm_prep_per_unit, row.currency)}</td>
+      <td>${text(row.notes)}</td>
+      <td>
+        <button type="button" class="compactButton" data-edit-product-prep="${escapeHtml(row.sku)}">${t("action.edit")}</button>
+        <button type="button" class="compactButton dangerButton" data-delete-product-prep="${escapeHtml(row.sku)}">${t("action.delete")}</button>
       </td>
     </tr>
   `);
@@ -2595,7 +2618,7 @@ async function loadProfitability() {
       <td class="num">${money(row.reimbursements_eur, "EUR")}</td>
       <td class="num">${money(row.amazon_fees_eur + row.other_amount_eur, "EUR")}</td>
       <td class="num">${money(-row.bundle_assembly_cost_eur, "EUR")}</td>
-      <td class="num" title="Prep ${money(row.prep_cost_eur, "EUR")} · Storage ${money(row.storage_cost_eur, "EUR")} · FBM ${money(row.fbm_logistics_cost_eur, "EUR")} · Bundle ${money(row.bundle_assembly_cost_eur, "EUR")}">${money(-row.operational_cost_eur, "EUR")}</td>
+      <td class="num" title="Prep ${money(row.prep_cost_eur, "EUR")} (${row.prep_cost_source === "product" ? "SKU tariff" : row.prep_cost_source === "global_fallback" ? "global fallback" : "n/a"}) · Storage ${money(row.storage_cost_eur, "EUR")} · FBM ${money(row.fbm_logistics_cost_eur, "EUR")} · Bundle ${money(row.bundle_assembly_cost_eur, "EUR")}">${money(-row.operational_cost_eur, "EUR")}</td>
       <td class="num">${row.gross_profit_eur === null ? "-" : money(row.gross_profit_eur, "EUR")}</td>
       <td class="num">${row.margin_percent === null ? "-" : `${row.margin_percent}%`}</td>
       <td class="num">${row.roi_percent === null ? "-" : `${row.roi_percent}%`}</td>
@@ -3289,6 +3312,71 @@ function clearManualCostForm() {
   document.getElementById("manualCostValue").value = "";
   document.getElementById("manualCostDate").value = state.startDate || isoDate(new Date());
 }
+
+function clearProductPrepCostForm() {
+  const form = document.getElementById("productPrepCostForm");
+  form.reset();
+  form.elements.namedItem("fba_prep_per_unit").value = "0";
+  form.elements.namedItem("fbm_prep_per_unit").value = "0";
+}
+
+document.getElementById("productPrepCostForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const sku = form.elements.namedItem("sku").value.trim();
+  button.disabled = true;
+  setStatus("costStatus", "status.saving", false, true);
+  try {
+    await requestJson(`/settings/product-prep-costs/${encodeURIComponent(sku)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sku,
+        fba_prep_per_unit: Number(form.elements.namedItem("fba_prep_per_unit").value),
+        fbm_prep_per_unit: Number(form.elements.namedItem("fbm_prep_per_unit").value),
+        currency: "EUR",
+        notes: form.elements.namedItem("notes").value.trim() || null,
+      }),
+    });
+    clearProductPrepCostForm();
+    await Promise.all([loadCosts(), loadProfitability()]);
+    setStatus("costStatus", "status.saved", false, true);
+  } catch (error) {
+    setStatus("costStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("clearProductPrepCostButton").addEventListener("click", clearProductPrepCostForm);
+
+document.getElementById("productPrepCostRows").addEventListener("click", async (event) => {
+  const editButton = event.target.closest("button[data-edit-product-prep]");
+  if (editButton) {
+    const row = state.productPrepCostRows.find((item) => item.sku === editButton.dataset.editProductPrep);
+    if (!row) return;
+    const form = document.getElementById("productPrepCostForm");
+    form.elements.namedItem("sku").value = row.sku;
+    form.elements.namedItem("fba_prep_per_unit").value = row.fba_prep_per_unit;
+    form.elements.namedItem("fbm_prep_per_unit").value = row.fbm_prep_per_unit;
+    form.elements.namedItem("notes").value = row.notes || "";
+    return;
+  }
+  const deleteButton = event.target.closest("button[data-delete-product-prep]");
+  if (!deleteButton) return;
+  deleteButton.disabled = true;
+  try {
+    await requestJson(`/settings/product-prep-costs/${encodeURIComponent(deleteButton.dataset.deleteProductPrep)}`, {
+      method: "DELETE",
+    });
+    await Promise.all([loadCosts(), loadProfitability()]);
+  } catch (error) {
+    setStatus("costStatus", error.message, true);
+  } finally {
+    deleteButton.disabled = false;
+  }
+});
 
 document.getElementById("manualCostForm").addEventListener("submit", async (event) => {
   event.preventDefault();

@@ -519,6 +519,18 @@ use approval-date FX and affect Amazon operating result, but never sales, VAT,
 units, average selling price, gross profit, or FIFO COGS. Product net profit
 stays unknown if FIFO cost coverage is incomplete.
 
+Prep-center tariffs are configured per SKU in
+`Product Costs -> Prep-center tariffs by product`. Each SKU can have separate
+FBA and FBM prep rates. Product Profitability uses the SKU-specific rate when
+present and reports `prep_cost_source=product`; otherwise the global
+Fulfillment Costs value remains an explicit `global_fallback`.
+
+```text
+GET    /settings/product-prep-costs
+PUT    /settings/product-prep-costs/{sku}
+DELETE /settings/product-prep-costs/{sku}
+```
+
 Detailed monthly FBA storage fees can be synced through
 `POST /integrations/amazon-sp-api/storage-fees/sync`. The source is
 `GET_FBA_STORAGE_FEE_CHARGES_DATA`; FNSKU is mapped through FBA inventory

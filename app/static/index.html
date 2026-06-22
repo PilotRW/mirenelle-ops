@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260622-03" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260622-04" />
   </head>
   <body>
     <div class="appShell">
@@ -476,6 +476,42 @@
                     </tr>
                   </thead>
                   <tbody id="costLots"></tbody>
+                </table>
+              </div>
+              <div class="sectionDivider"><span data-i18n="section.productPrepCosts">Prep-center tariffs by product</span></div>
+              <p class="muted" data-i18n="message.productPrepCostsHint">These SKU-specific rates override the global prep fallback in Fulfillment Costs.</p>
+              <form id="productPrepCostForm" class="formRow">
+                <label>
+                  <span data-i18n="table.sku">SKU</span>
+                  <input name="sku" required />
+                </label>
+                <label>
+                  <span data-i18n="field.fbaPrepPerUnit">FBA prep / unit EUR</span>
+                  <input name="fba_prep_per_unit" type="number" min="0" step="0.01" required />
+                </label>
+                <label>
+                  <span data-i18n="field.fbmPrepPerUnit">FBM prep / unit EUR</span>
+                  <input name="fbm_prep_per_unit" type="number" min="0" step="0.01" required />
+                </label>
+                <label>
+                  <span data-i18n="field.notes">Notes</span>
+                  <input name="notes" />
+                </label>
+                <button type="submit" data-i18n="action.save">Save</button>
+                <button id="clearProductPrepCostButton" class="secondaryButton" type="button" data-i18n="action.clear">Clear</button>
+              </form>
+              <div class="tableWrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="table.sku">SKU</th>
+                      <th class="num" data-i18n="field.fbaPrepPerUnit">FBA prep / unit EUR</th>
+                      <th class="num" data-i18n="field.fbmPrepPerUnit">FBM prep / unit EUR</th>
+                      <th data-i18n="field.notes">Notes</th>
+                      <th data-i18n="table.action">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="productPrepCostRows"></tbody>
                 </table>
               </div>
             </section>
@@ -1229,6 +1265,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260622-03"></script>
+    <script src="/ui/app.js?v=20260622-04"></script>
   </body>
 </html>
