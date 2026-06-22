@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260622-01" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260622-03" />
   </head>
   <body>
     <div class="appShell">
@@ -1105,6 +1105,39 @@
 
               <section class="panel">
                 <div class="sectionHeader">
+                  <div>
+                    <h2 data-i18n="section.paymentsAutomation">Payments Automation</h2>
+                    <p class="muted" data-i18n="message.paymentsAutomationHint">Periodically refreshes recent posted transactions. Overlapping periods are safely deduplicated.</p>
+                  </div>
+                  <span id="paymentsScheduleStatus" class="status" data-status-key="status.ready">Ready</span>
+                </div>
+                <form id="paymentsScheduleForm" class="formRow scheduleForm">
+                  <label class="toggleLabel">
+                    <input name="enabled" type="checkbox" />
+                    <span data-i18n="field.automationEnabled">Automatic sync enabled</span>
+                  </label>
+                  <label>
+                    <span data-i18n="field.intervalHours">Run every, hours</span>
+                    <input name="interval_hours" type="number" min="1" max="168" step="1" required />
+                  </label>
+                  <label>
+                    <span data-i18n="field.lookbackDays">Refresh previous days</span>
+                    <input name="lookback_days" type="number" min="2" max="90" step="1" required />
+                  </label>
+                  <fieldset class="marketplaceChecks">
+                    <legend data-i18n="field.marketplaces">Marketplaces</legend>
+                    <div id="paymentsScheduleMarketplaces"></div>
+                  </fieldset>
+                  <div class="formActions">
+                    <button type="submit" data-i18n="action.save">Save</button>
+                    <button id="runPaymentsScheduleButton" class="secondaryButton" type="button" data-i18n="action.runNow">Run now</button>
+                  </div>
+                </form>
+                <div id="paymentsScheduleRuntime" class="syncResult"></div>
+              </section>
+
+              <section class="panel">
+                <div class="sectionHeader">
                   <h2 data-i18n="section.fxRates">FX Rates</h2>
                   <span id="fxStatus" class="status" data-status-key="status.ready">Ready</span>
                 </div>
@@ -1196,6 +1229,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260622-01"></script>
+    <script src="/ui/app.js?v=20260622-03"></script>
   </body>
 </html>

@@ -1,3 +1,6 @@
+import asyncio
+from contextlib import asynccontextmanager, suppress
+
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -15,9 +18,19 @@ from app.api import report_previews
 from app.api import reports
 from app.api import settings
 from app.api import supplier_catalog
+from app.services.payments_sync_scheduler import payments_sync_scheduler_loop
 
 
-app = FastAPI(title="Mirenelle Ops")
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    scheduler_task = asyncio.create_task(payments_sync_scheduler_loop())
+    yield
+    scheduler_task.cancel()
+    with suppress(asyncio.CancelledError):
+        await scheduler_task
+
+
+app = FastAPI(title="Mirenelle Ops", lifespan=lifespan)
 
 app.mount("/ui", StaticFiles(directory="app/static", html=True), name="ui")
 

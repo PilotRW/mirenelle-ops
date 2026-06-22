@@ -226,6 +226,64 @@ button:disabled {
   background: #e8ebef;
 }
 
+.scheduleForm {
+  align-items: end;
+}
+
+.toggleLabel {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+
+.toggleLabel input {
+  width: 20px;
+  height: 20px;
+}
+
+.marketplaceChecks {
+  min-width: 100%;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.marketplaceChecks legend {
+  padding: 0 6px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.marketplaceChecks > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.checkOption {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 6px;
+  min-width: 58px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.checkOption input {
+  width: 16px;
+  height: 16px;
+}
+
+.formActions {
+  display: flex;
+  gap: 10px;
+}
+
 .iconButton {
   width: 36px;
   min-height: 36px;

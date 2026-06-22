@@ -1,3 +1,6 @@
+import json
+from datetime import datetime, timezone
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +17,14 @@ FULFILLMENT_COST_SETTING_KEYS = {
     "fbm_packaging_per_unit": "fulfillment_cost_fbm_packaging_per_unit",
     "fbm_outbound_per_unit": "fulfillment_cost_fbm_outbound_per_unit",
     "fbm_storage_per_unit": "fulfillment_cost_fbm_storage_per_unit",
+}
+PAYMENTS_SYNC_CONFIG_KEY = "payments_sync_schedule_config"
+PAYMENTS_SYNC_RUNTIME_KEY = "payments_sync_schedule_runtime"
+DEFAULT_PAYMENTS_SYNC_CONFIG = {
+    "enabled": False,
+    "interval_hours": 24,
+    "lookback_days": 14,
+    "marketplaces": ["DE", "FR", "IT", "ES", "NL", "BE", "PL", "SE", "IE", "UK"],
 }
 
 
@@ -86,3 +97,54 @@ async def set_fulfillment_cost_settings(
             row.value = str(normalized[field])
     await db.commit()
     return normalized
+
+
+async def get_payments_sync_config(db: AsyncSession) -> dict:
+    raw = await get_setting(
+        db,
+        PAYMENTS_SYNC_CONFIG_KEY,
+        json.dumps(DEFAULT_PAYMENTS_SYNC_CONFIG),
+    )
+    try:
+        saved = json.loads(raw)
+    except (TypeError, ValueError):
+        saved = {}
+    return {
+        "enabled": bool(saved.get("enabled", False)),
+        "interval_hours": min(max(int(saved.get("interval_hours", 24)), 1), 168),
+        "lookback_days": min(max(int(saved.get("lookback_days", 14)), 2), 90),
+        "marketplaces": [
+            str(value).upper()
+            for value in saved.get("marketplaces", DEFAULT_PAYMENTS_SYNC_CONFIG["marketplaces"])
+        ],
+    }
+
+
+async def set_payments_sync_config(db: AsyncSession, values: dict) -> dict:
+    normalized = {
+        "enabled": bool(values.get("enabled", False)),
+        "interval_hours": min(max(int(values.get("interval_hours", 24)), 1), 168),
+        "lookback_days": min(max(int(values.get("lookback_days", 14)), 2), 90),
+        "marketplaces": sorted(
+            {str(value).upper() for value in values.get("marketplaces", [])}
+        ),
+    }
+    await set_setting(db, PAYMENTS_SYNC_CONFIG_KEY, json.dumps(normalized))
+    return normalized
+
+
+async def get_payments_sync_runtime(db: AsyncSession) -> dict:
+    raw = await get_setting(db, PAYMENTS_SYNC_RUNTIME_KEY, "{}")
+    try:
+        return json.loads(raw)
+    except (TypeError, ValueError):
+        return {}
+
+
+async def set_payments_sync_runtime(db: AsyncSession, values: dict) -> dict:
+    runtime = {
+        **values,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await set_setting(db, PAYMENTS_SYNC_RUNTIME_KEY, json.dumps(runtime))
+    return runtime

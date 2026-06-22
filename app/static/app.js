@@ -33,6 +33,7 @@ const translations = {
     "action.syncInventory": "Sync stock",
     "action.syncFbaInventory": "Sync FBA inventory",
     "action.syncPayments": "Sync Payments",
+    "action.runNow": "Run now",
     "action.syncStorageFees": "Sync storage fees",
     "action.syncEcbRates": "Sync ECB rates",
     "action.useMatch": "Use",
@@ -75,6 +76,10 @@ const translations = {
     "field.fbmPackagingPerUnit": "FBM packaging / unit EUR",
     "field.fbmOutboundPerUnit": "FBM outbound / unit EUR",
     "field.fbmStoragePerUnit": "FBM storage / sold unit EUR",
+    "field.automationEnabled": "Automatic sync enabled",
+    "field.intervalHours": "Run every, hours",
+    "field.lookbackDays": "Refresh previous days",
+    "field.marketplaces": "Marketplaces",
     "field.amazonProductSearch": "Amazon product search",
     "field.invoiceProductSearch": "Invoice product search",
     "field.invoiceProductsSearch": "Invoice product search",
@@ -102,6 +107,9 @@ const translations = {
     "recipe.selected": "selected",
     "message.selectInvoiceLine": "Select an invoice product first.",
     "message.storageAllocationNote": "Storage is currently estimated per sold unit until warehouse-day inventory snapshots are available.",
+    "message.paymentsAutomationHint": "Periodically refreshes recent posted transactions. Overlapping periods are safely deduplicated.",
+    "message.scheduleNeverRun": "The automatic sync has not run yet.",
+    "message.scheduleLastRun": "Last run",
     "marketplace.eu": "All EU marketplaces",
     "metric.withEan": "With EAN",
     "preview.detectedFields": "Detected fields",
@@ -155,6 +163,7 @@ const translations = {
     "section.invoiceLines": "Invoice Lines",
     "section.landedCost": "Landed Cost",
     "section.fulfillmentCosts": "Fulfillment Costs",
+    "section.paymentsAutomation": "Payments Automation",
     "section.paymentLines": "Payment Lines",
     "section.productCosts": "Product Costs",
     "section.productMappings": "Product Mappings",
@@ -169,6 +178,7 @@ const translations = {
     "section.reportPreview": "Report Preview",
     "status.committed": "Committed",
     "status.duplicate": "Already imported",
+    "status.disabled": "Disabled",
     "status.imported": "Imported",
     "status.loaded": "Loaded",
     "status.loading": "Loading",
@@ -327,6 +337,7 @@ const translations = {
     "action.syncInventory": "Bestand synchronisieren",
     "action.syncFbaInventory": "FBA-Bestand synchronisieren",
     "action.syncPayments": "Payments synchronisieren",
+    "action.runNow": "Jetzt ausführen",
     "action.syncStorageFees": "Lagergebühren synchronisieren",
     "action.syncEcbRates": "ECB-Kurse synchronisieren",
     "action.useMatch": "Nutzen",
@@ -369,6 +380,10 @@ const translations = {
     "field.fbmPackagingPerUnit": "FBM Verpackung / Einheit EUR",
     "field.fbmOutboundPerUnit": "FBM Versand / Einheit EUR",
     "field.fbmStoragePerUnit": "FBM Lager / verkaufte Einheit EUR",
+    "field.automationEnabled": "Automatische Synchronisierung aktiv",
+    "field.intervalHours": "Ausführen alle, Stunden",
+    "field.lookbackDays": "Vorherige Tage aktualisieren",
+    "field.marketplaces": "Marktplätze",
     "field.amazonProductSearch": "Amazon-Produkt suchen",
     "field.invoiceProductSearch": "Rechnungsprodukt suchen",
     "field.invoiceProductsSearch": "Rechnungsprodukt suchen",
@@ -396,6 +411,9 @@ const translations = {
     "recipe.selected": "ausgewählt",
     "message.selectInvoiceLine": "Wähle zuerst ein Rechnungsprodukt.",
     "message.storageAllocationNote": "Lagerkosten werden vorerst pro verkaufter Einheit geschätzt, bis tägliche Bestands-Snapshots verfügbar sind.",
+    "message.paymentsAutomationHint": "Aktualisiert regelmäßig die letzten gebuchten Transaktionen. Überlappungen werden sicher dedupliziert.",
+    "message.scheduleNeverRun": "Die automatische Synchronisierung wurde noch nicht ausgeführt.",
+    "message.scheduleLastRun": "Letzter Lauf",
     "marketplace.eu": "Alle EU-Marketplaces",
     "metric.withEan": "Mit EAN",
     "preview.detectedFields": "Erkannte Felder",
@@ -449,6 +467,7 @@ const translations = {
     "section.invoiceLines": "Rechnungszeilen",
     "section.landedCost": "Landed Cost",
     "section.fulfillmentCosts": "Fulfillment-Kosten",
+    "section.paymentsAutomation": "Payments-Automatisierung",
     "section.paymentLines": "Zahlungszeilen",
     "section.productCosts": "Einkaufspreise",
     "section.productMappings": "Produktzuordnung",
@@ -463,6 +482,7 @@ const translations = {
     "section.reportPreview": "Report-Vorschau",
     "status.committed": "Gespeichert",
     "status.duplicate": "Bereits importiert",
+    "status.disabled": "Deaktiviert",
     "status.imported": "Importiert",
     "status.loaded": "Geladen",
     "status.loading": "Lädt",
@@ -621,6 +641,7 @@ const translations = {
     "action.syncInventory": "Синхронізувати залишки",
     "action.syncFbaInventory": "Синхронізувати FBA залишки",
     "action.syncPayments": "Синхронізувати Payments",
+    "action.runNow": "Запустити зараз",
     "action.syncStorageFees": "Синхронізувати зберігання",
     "action.syncEcbRates": "Синхронізувати курси ECB",
     "action.useMatch": "Застосувати",
@@ -663,6 +684,10 @@ const translations = {
     "field.fbmPackagingPerUnit": "FBM пакування / одиницю EUR",
     "field.fbmOutboundPerUnit": "FBM відправлення / одиницю EUR",
     "field.fbmStoragePerUnit": "FBM зберігання / продану одиницю EUR",
+    "field.automationEnabled": "Автоматична синхронізація увімкнена",
+    "field.intervalHours": "Запускати кожні, годин",
+    "field.lookbackDays": "Оновлювати попередні дні",
+    "field.marketplaces": "Маркетплейси",
     "field.amazonProductSearch": "Пошук Amazon товару",
     "field.invoiceProductSearch": "Пошук товару з інвойсу",
     "field.invoiceProductsSearch": "Пошук товару з інвойсу",
@@ -690,6 +715,9 @@ const translations = {
     "recipe.selected": "вибрано",
     "message.selectInvoiceLine": "Спочатку обери товар з інвойсу.",
     "message.storageAllocationNote": "Поки немає щоденних snapshot залишків, зберігання оцінюється ставкою на продану одиницю.",
+    "message.paymentsAutomationHint": "Періодично оновлює останні проведені транзакції. Перекриття періодів безпечно дедуплікуються.",
+    "message.scheduleNeverRun": "Автоматична синхронізація ще не запускалась.",
+    "message.scheduleLastRun": "Останній запуск",
     "marketplace.eu": "Усі EU маркетплейси",
     "metric.withEan": "З EAN",
     "preview.detectedFields": "Розпізнані поля",
@@ -743,6 +771,7 @@ const translations = {
     "section.invoiceLines": "Позиції інвойсу",
     "section.landedCost": "Landed Cost",
     "section.fulfillmentCosts": "Витрати фулфілменту",
+    "section.paymentsAutomation": "Автоматизація Payments",
     "section.paymentLines": "Рядки платежу",
     "section.productCosts": "Закупівельні ціни",
     "section.productMappings": "Мапінг товарів",
@@ -757,6 +786,7 @@ const translations = {
     "section.reportPreview": "Preview звіту",
     "status.committed": "Збережено",
     "status.duplicate": "Вже імпортовано",
+    "status.disabled": "Вимкнено",
     "status.imported": "Імпортовано",
     "status.loaded": "Завантажено",
     "status.loading": "Завантаження",
@@ -1922,6 +1952,40 @@ async function loadFulfillmentCostSettings() {
   });
 }
 
+function renderPaymentsScheduleRuntime(runtime = {}) {
+  const element = document.getElementById("paymentsScheduleRuntime");
+  if (!element) return;
+  if (!runtime.last_finished_at) {
+    element.textContent = t("message.scheduleNeverRun");
+    return;
+  }
+  const results = runtime.results || [];
+  const errors = runtime.errors || [];
+  const imported = results.reduce((sum, row) => sum + Number(row.rows_imported || 0), 0);
+  const updated = results.reduce((sum, row) => sum + Number(row.rows_updated || 0), 0);
+  element.textContent = `${t("message.scheduleLastRun")}: ${new Date(runtime.last_finished_at).toLocaleString(localeByLanguage[state.language] || "en-US")} · ${imported} imported · ${updated} updated · ${errors.length} errors`;
+}
+
+async function loadPaymentsSyncSchedule() {
+  const data = await requestJson("/settings/payments-sync-schedule");
+  const form = document.getElementById("paymentsScheduleForm");
+  if (!form) return;
+  form.elements.namedItem("enabled").checked = data.enabled;
+  form.elements.namedItem("interval_hours").value = data.interval_hours;
+  form.elements.namedItem("lookback_days").value = data.lookback_days;
+  const selected = new Set(data.marketplaces || []);
+  document.getElementById("paymentsScheduleMarketplaces").innerHTML = data.available_marketplaces
+    .map((marketplace) => `
+      <label class="checkOption">
+        <input type="checkbox" name="marketplaces" value="${marketplace}" ${selected.has(marketplace) ? "checked" : ""} />
+        <span>${marketplace}</span>
+      </label>
+    `)
+    .join("");
+  renderPaymentsScheduleRuntime(data.runtime);
+  setStatus("paymentsScheduleStatus", data.enabled ? "status.ready" : "status.disabled", false, true);
+}
+
 async function loadSupplierCatalogStats() {
   const data = await requestJson("/integrations/oa-pipeline/catalog");
   document.getElementById("catalogItems").textContent = data.items;
@@ -2547,7 +2611,7 @@ async function loadProfitability() {
 
 async function refreshAll() {
   setStatus("cashflowStatus", "status.loading", false, true);
-  await Promise.all([loadPayments(), loadCosts(), loadInvoices(), loadProductMappings(), loadInventory(), loadFxRates(), loadLandedCostSettings(), loadFulfillmentCostSettings(), loadSupplierCatalogStats(), loadAmazonConnector(), loadGenericImports(), loadCashflow(), loadAmazonPnl(), loadDataQuality(), loadProfitability()]);
+  await Promise.all([loadPayments(), loadCosts(), loadInvoices(), loadProductMappings(), loadInventory(), loadFxRates(), loadLandedCostSettings(), loadFulfillmentCostSettings(), loadPaymentsSyncSchedule(), loadSupplierCatalogStats(), loadAmazonConnector(), loadGenericImports(), loadCashflow(), loadAmazonPnl(), loadDataQuality(), loadProfitability()]);
   setStatus("paymentStatus", "status.ready", false, true);
   setStatus("costStatus", "status.ready", false, true);
   setStatus("invoiceStatus", "status.ready", false, true);
@@ -3458,6 +3522,52 @@ document.getElementById("fulfillmentCostForm").addEventListener("submit", async 
     await loadProfitability();
   } catch (error) {
     setStatus("fulfillmentCostStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("paymentsScheduleForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  setStatus("paymentsScheduleStatus", "status.saving", false, true);
+  try {
+    const marketplaces = [...form.querySelectorAll('input[name="marketplaces"]:checked')]
+      .map((input) => input.value);
+    const data = await requestJson("/settings/payments-sync-schedule", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        enabled: form.elements.namedItem("enabled").checked,
+        interval_hours: Number(form.elements.namedItem("interval_hours").value),
+        lookback_days: Number(form.elements.namedItem("lookback_days").value),
+        marketplaces,
+      }),
+    });
+    renderPaymentsScheduleRuntime(data.runtime);
+    setStatus("paymentsScheduleStatus", data.enabled ? "status.saved" : "status.disabled", false, true);
+  } catch (error) {
+    setStatus("paymentsScheduleStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("runPaymentsScheduleButton").addEventListener("click", async () => {
+  const button = document.getElementById("runPaymentsScheduleButton");
+  button.disabled = true;
+  setStatus("paymentsScheduleStatus", "status.loading", false, true);
+  try {
+    const result = await requestJson("/settings/payments-sync-schedule/run", {
+      method: "POST",
+    });
+    renderPaymentsScheduleRuntime(result);
+    setStatus("paymentsScheduleStatus", "status.loaded", false, true);
+    await Promise.all([loadPayments(), loadCashflow(), loadAmazonPnl(), loadDataQuality(), loadProfitability()]);
+  } catch (error) {
+    setStatus("paymentsScheduleStatus", error.message, true);
   } finally {
     button.disabled = false;
   }
