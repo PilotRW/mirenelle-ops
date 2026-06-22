@@ -90,6 +90,19 @@ Sync Payments directly from Amazon:
 POST /integrations/amazon-sp-api/payments/sync
 ```
 
+Automatic Payments sync is configured in `Settings -> Payments Automation`.
+It is disabled by default. The operator can select marketplaces, the run
+interval (1-168 hours), and a rolling overlap window (2-90 days). The overlap
+is intentional: Finances event IDs make repeated periods idempotent, while the
+window allows deferred transactions to be replaced by their final released
+state. The panel also shows the last run result and provides `Run now`.
+
+```text
+GET  /settings/payments-sync-schedule
+PUT  /settings/payments-sync-schedule
+POST /settings/payments-sync-schedule/run
+```
+
 The payload contains `marketplace`, `start_date`, and `end_date`. Finance event
 IDs are stored on payment rows, so repeated or overlapping API syncs skip rows
 already imported. A Finances API sync is blocked when the requested period

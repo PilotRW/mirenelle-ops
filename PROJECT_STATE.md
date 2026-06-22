@@ -401,7 +401,8 @@ Current verified inventory examples:
 
 ## Current Resume Point
 
-- Latest verified commit: `5bd98b5` (`Sync Amazon Payments through Finances API`).
+- Latest verified implementation commit: `1cd5c1a`
+  (`Schedule automatic Amazon Payments sync`).
 - Working tree was clean after the implementation commit.
 - Database migration head: `20260622_0025`.
 - Bundle assembly fees are charged by the prep center and default to
@@ -438,6 +439,17 @@ Current verified inventory examples:
     Product Profitability now shows 20 rows / 128 units all-time, 14 rows /
     89 units for May, and 5 rows / 5 units for June. All 32 tests pass; the
     browser workflow works without console errors.
+29. Added configurable automatic Payments sync. A FastAPI lifespan worker
+    checks the schedule every minute, but calls Amazon only when the configured
+    interval is due. Settings are persisted in `app_settings`: enabled state,
+    marketplaces, interval (1-168 hours), and rolling overlap window (2-90
+    days). Runtime state records the last attempt, completion, per-marketplace
+    imported/updated/skipped counts, and errors. A failure or manual-import
+    conflict on one marketplace does not stop the remaining marketplaces.
+    The feature is disabled by default. Added `Settings -> Payments
+    Automation` with marketplace checkboxes, Save, Run now, and last-run
+    summary. Browser verification passed with no console errors; all 32 tests
+    pass.
 
 ## Current Resume Checklist
 
@@ -484,8 +496,9 @@ Expected database migration head:
 2. Enter real historical/current Bundle Assembly operations when the operator
    confirms assembly dates, quantities, currency, and prep-center price per
    bundle. Do not infer quantities solely from an FBA stock snapshot.
-3. Extend automatic Payments sync to a scheduled run once the desired cadence
-   is confirmed.
+3. Confirm the desired Payments cadence in `Settings -> Payments Automation`
+   and enable it. The safe default remains disabled until the operator chooses
+   the production schedule.
 4. Revisit aged-inventory storage only when Amazon provides a completed report;
    the current live request was cancelled.
 5. Replace estimated per-sold-unit storage with warehouse-day allocation after
