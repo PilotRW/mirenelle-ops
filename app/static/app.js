@@ -32,6 +32,7 @@ const translations = {
     "action.syncOaCatalog": "Sync OA catalog",
     "action.syncInventory": "Sync stock",
     "action.syncFbaInventory": "Sync FBA inventory",
+    "action.syncPayments": "Sync Payments",
     "action.syncStorageFees": "Sync storage fees",
     "action.syncEcbRates": "Sync ECB rates",
     "action.useMatch": "Use",
@@ -82,6 +83,7 @@ const translations = {
     "message.noData": "No data",
     "message.noPreview": "No preview loaded.",
     "message.confirmDeletePayment": "Delete this Amazon Payments report? This will remove its transactions from analytics.",
+    "message.syncPaymentsHint": "Download posted transactions from Amazon Finances API. Repeated and overlapping syncs are deduplicated.",
     "message.confirmDeleteInvoice": "Delete this purchase invoice? Its invoice lines, invoice product costs, and mappings will be removed.",
     "message.confirmDeleteCostImport": "Delete this product cost import? Its product costs will be removed from analytics.",
     "message.confirmDeleteGenericReport": "Delete this raw report import?",
@@ -136,6 +138,8 @@ const translations = {
     "report.reimbursements": "Reimbursements",
     "report.serviceFees": "Service Fees",
     "section.amazonPayments": "Amazon Payments",
+    "section.syncPayments": "Sync Payments from Amazon",
+    "section.manualCsvImport": "Manual CSV import",
     "section.amazonConnector": "Amazon SP-API",
     "section.fxRates": "FX Rates",
     "section.generalCashflow": "General Cashflow",
@@ -322,6 +326,7 @@ const translations = {
     "action.syncOaCatalog": "OA-Katalog synchronisieren",
     "action.syncInventory": "Bestand synchronisieren",
     "action.syncFbaInventory": "FBA-Bestand synchronisieren",
+    "action.syncPayments": "Payments synchronisieren",
     "action.syncStorageFees": "Lagergebühren synchronisieren",
     "action.syncEcbRates": "ECB-Kurse synchronisieren",
     "action.useMatch": "Nutzen",
@@ -372,6 +377,7 @@ const translations = {
     "message.noData": "Keine Daten",
     "message.noPreview": "Keine Vorschau geladen.",
     "message.confirmDeletePayment": "Diesen Amazon-Zahlungsreport löschen? Die Transaktionen werden aus der Analyse entfernt.",
+    "message.syncPaymentsHint": "Gebuchte Transaktionen über die Amazon Finances API laden. Wiederholte und überlappende Synchronisierungen werden dedupliziert.",
     "message.confirmDeleteInvoice": "Diese Einkaufsrechnung löschen? Rechnungszeilen, daraus erzeugte Produktkosten und Zuordnungen werden entfernt.",
     "message.confirmDeleteCostImport": "Diesen Produktkosten-Import löschen? Die Produktkosten werden aus der Analyse entfernt.",
     "message.confirmDeleteGenericReport": "Diesen Rohreport-Import löschen?",
@@ -426,6 +432,8 @@ const translations = {
     "report.reimbursements": "Erstattungen",
     "report.serviceFees": "Servicegebühren",
     "section.amazonPayments": "Amazon-Zahlungen",
+    "section.syncPayments": "Payments von Amazon synchronisieren",
+    "section.manualCsvImport": "Manueller CSV-Import",
     "section.amazonConnector": "Amazon SP-API",
     "section.fxRates": "Wechselkurse",
     "section.generalCashflow": "Gesamt-Cashflow",
@@ -612,6 +620,7 @@ const translations = {
     "action.syncOaCatalog": "Синхронізувати OA каталог",
     "action.syncInventory": "Синхронізувати залишки",
     "action.syncFbaInventory": "Синхронізувати FBA залишки",
+    "action.syncPayments": "Синхронізувати Payments",
     "action.syncStorageFees": "Синхронізувати зберігання",
     "action.syncEcbRates": "Синхронізувати курси ECB",
     "action.useMatch": "Застосувати",
@@ -662,6 +671,7 @@ const translations = {
     "message.noData": "Немає даних",
     "message.noPreview": "Preview ще не завантажено.",
     "message.confirmDeletePayment": "Видалити цей Amazon Payments репорт? Його транзакції зникнуть з аналітики.",
+    "message.syncPaymentsHint": "Завантажує проведені транзакції через Amazon Finances API. Повторні та частково перекриті синхронізації не створюють дублів.",
     "message.confirmDeleteInvoice": "Видалити цей інвойс закупівлі? Позиції, створені ціни товарів і мапінги буде видалено.",
     "message.confirmDeleteCostImport": "Видалити цей імпорт закупівельних цін? Його ціни зникнуть з аналітики.",
     "message.confirmDeleteGenericReport": "Видалити цей raw-імпорт звіту?",
@@ -716,6 +726,8 @@ const translations = {
     "report.reimbursements": "Компенсації",
     "report.serviceFees": "Сервісні збори",
     "section.amazonPayments": "Amazon платежі",
+    "section.syncPayments": "Синхронізація Payments з Amazon",
+    "section.manualCsvImport": "Ручний імпорт CSV",
     "section.amazonConnector": "Amazon SP-API",
     "section.fxRates": "Курси валют",
     "section.generalCashflow": "Загальний cashflow",
@@ -3125,6 +3137,39 @@ document.getElementById("paymentForm").addEventListener("submit", (event) => {
   submitForm(event.currentTarget, "/imports/amazon-payments/commit", "paymentStatus");
 });
 
+document.getElementById("paymentSyncForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const body = new FormData(form);
+  button.disabled = true;
+  setStatus("paymentStatus", "status.loading", false, true);
+  document.getElementById("paymentSyncResult").textContent = "";
+  try {
+    const result = await requestJson("/integrations/amazon-sp-api/payments/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        marketplace: body.get("marketplace"),
+        start_date: body.get("start_date"),
+        end_date: body.get("end_date"),
+      }),
+    });
+    document.getElementById("paymentSyncResult").textContent = (
+      `${result.marketplace}: ${result.rows_imported} imported, `
+      + `${result.rows_updated} updated, `
+      + `${result.rows_skipped} already present, `
+      + `${result.transactions_received} Amazon transactions received.`
+    );
+    setStatus("paymentStatus", "status.imported", false, true);
+    await refreshAll();
+  } catch (error) {
+    setStatus("paymentStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
 document.getElementById("paymentImports").addEventListener("click", async (event) => {
   const deleteButton = event.target.closest("button[data-delete-payment]");
   if (deleteButton) {
@@ -3704,6 +3749,9 @@ document.getElementById("mockCostsButton")?.addEventListener("click", async () =
 document.querySelector('#costForm input[name="effective_date"]').valueAsDate = new Date();
 document.getElementById("manualCostDate").valueAsDate = new Date();
 document.querySelector('#fxForm input[name="effective_date"]').valueAsDate = new Date();
+const paymentSyncForm = document.getElementById("paymentSyncForm");
+paymentSyncForm.elements.namedItem("start_date").value = state.startDate || isoDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+paymentSyncForm.elements.namedItem("end_date").value = state.endDate || isoDate(new Date());
 document.getElementById("languageSelect").value = state.language;
 syncPeriodControls();
 persistPeriod();

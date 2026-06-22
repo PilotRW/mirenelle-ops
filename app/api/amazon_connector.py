@@ -17,6 +17,10 @@ from app.models.amazon_order_item import AmazonOrderItem
 from app.models.amazon_return_import import AmazonReturnImport
 from app.models.amazon_return_item import AmazonReturnItem
 from app.services.amazon_order_import_service import commit_order_report_import
+from app.services.amazon_finances_sync_service import (
+    AmazonFinancesSyncConflict,
+    sync_finance_transactions,
+)
 from app.services.amazon_order_sync_service import sync_orders_report
 from app.services.amazon_return_sync_service import sync_returns_report
 from app.services.fba_inventory_sync_service import sync_fba_inventory
@@ -96,6 +100,24 @@ class AmazonOrderSyncRequest(BaseModel):
     end_date: date
     poll_interval_seconds: int = Field(default=30, ge=10, le=300)
     wait_timeout_seconds: int = Field(default=300, ge=30, le=1800)
+
+
+class AmazonPaymentSyncRequest(BaseModel):
+    marketplace: str = Field(min_length=2, max_length=2)
+    start_date: date
+    end_date: date
+
+
+class AmazonPaymentSyncResponse(BaseModel):
+    status: str
+    import_id: int | None
+    marketplace: str
+    transactions_received: int
+    rows_imported: int
+    rows_updated: int
+    rows_skipped: int
+    period_start: str
+    period_end: str
 
 
 class AmazonOrderSyncResponse(BaseModel):
@@ -318,6 +340,37 @@ async def sync_amazon_orders_report(
         fbm_quantity=result.fbm_quantity,
         processing_status=result.processing_status,
     )
+
+
+@router.post("/payments/sync", response_model=AmazonPaymentSyncResponse)
+async def sync_amazon_payments(
+    payload: AmazonPaymentSyncRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AmazonPaymentSyncResponse:
+    if payload.end_date < payload.start_date:
+        raise HTTPException(
+            status_code=400,
+            detail="end_date must be greater than or equal to start_date.",
+        )
+    if (payload.end_date - payload.start_date).days > 180:
+        raise HTTPException(
+            status_code=400,
+            detail="Payments sync period cannot exceed 181 days.",
+        )
+    try:
+        result = await sync_finance_transactions(
+            db=db,
+            marketplace=payload.marketplace,
+            start_date=payload.start_date,
+            end_date=payload.end_date,
+        )
+    except AmazonSpApiConfigError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except AmazonFinancesSyncConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except AmazonSpApiError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return AmazonPaymentSyncResponse(**result.__dict__)
 
 
 @router.get("/returns/imports", response_model=AmazonReturnImportListResponse)

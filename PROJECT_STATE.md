@@ -401,9 +401,9 @@ Current verified inventory examples:
 
 ## Current Resume Point
 
-- Latest verified commit: `ff7877b` (`Edit bundle assembly costs`).
-- Working tree was clean after the commit.
-- Database migration head: `20260621_0024`.
+- Latest verified implementation includes Amazon Finances Payments sync and
+  lifecycle deduplication; commit it after the final diff review.
+- Database migration head: `20260622_0025`.
 - Bundle assembly fees are charged by the prep center and default to
   `prep_center`.
 - Assembly cost is allocated to sold bundles as a separate operational cost
@@ -414,8 +414,8 @@ Current verified inventory examples:
 - `Missha12-FBA-01` has a confirmed 12-component recipe. The assemblies table
   is empty because no real assembly dates, quantities, or prep-center tariff
   have been entered.
-- Last verification: 26 unit tests passed; API create/update/delete and browser
-    Edit/Cancel flows passed; all temporary records were removed.
+- Last verification: assembly API/UI flows pass; Payments sync has 32 passing
+  tests and a verified browser workflow.
 27. Fixed Product Profitability to include refund-only products when an exact
     historical Amazon Order ID + SKU match exists. Prior-period refunds now
     create a real product row with zero period sales/COGS while refund amounts,
@@ -424,6 +424,20 @@ Current verified inventory examples:
     now shows 12 products instead of 11; `4H-BZM0-7HOS` appears with zero
     period sales, one refund, and EUR -40.49 net profit. Total matched net
     profit changed from EUR 203.80 to EUR 163.31. All 29 tests pass.
+28. Added Amazon Finances API v2024-06-19 Payments sync with migration
+    `20260622_0025`. Each API row receives a unique `source_event_id`, making
+    repeated and overlapping API syncs idempotent. The sync reuses the existing
+    Payments tables and analytics, and blocks periods overlapping a manual CSV
+    import to prevent cross-source duplicates. Added a Payments-page UI with
+    marketplace/date controls and a visible import result. Amazon
+    `DEFERRED_RELEASED` and `RELEASED` lifecycle events share one canonical
+    event ID, so final release updates do not duplicate revenue. Live imports:
+    DE April normalized 88 transactions to 78 rows; SE May through June 7
+    normalized 10 transactions to 7 rows; IE normalized 7 transactions to 4
+    rows. A repeated SE sync imported zero and skipped all 7 canonical rows.
+    Product Profitability now shows 20 rows / 128 units all-time, 14 rows /
+    89 units for May, and 5 rows / 5 units for June. All 32 tests pass; the
+    browser workflow works without console errors.
 
 ## Current Resume Checklist
 
@@ -461,7 +475,7 @@ git status --short
 Expected database migration head:
 
 ```text
-20260621_0024
+20260622_0025
 ```
 
 ## Next Plan
@@ -470,13 +484,15 @@ Expected database migration head:
 2. Enter real historical/current Bundle Assembly operations when the operator
    confirms assembly dates, quantities, currency, and prep-center price per
    bundle. Do not infer quantities solely from an FBA stock snapshot.
-3. Revisit aged-inventory storage only when Amazon provides a completed report;
+3. Extend automatic Payments sync to a scheduled run once the desired cadence
+   is confirmed.
+4. Revisit aged-inventory storage only when Amazon provides a completed report;
    the current live request was cancelled.
-4. Replace estimated per-sold-unit storage with warehouse-day allocation after
+5. Replace estimated per-sold-unit storage with warehouse-day allocation after
    inventory snapshots are available.
-5. Split inventory planning by FBA/FBM logic:
+6. Split inventory planning by FBA/FBM logic:
    FBA uses Amazon fulfillment/inventory data; FBM needs own/prep-center stock
    and external handling tariffs.
-6. Add OCR/repair fallback for image-based or malformed PDFs.
-7. Later: add landed-cost model refinements for freight, prep-center costs,
+7. Add OCR/repair fallback for image-based or malformed PDFs.
+8. Later: add landed-cost model refinements for freight, prep-center costs,
    marketplace service fees, and optional allocation methods per cost type.

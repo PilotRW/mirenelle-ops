@@ -35,6 +35,7 @@ DEFAULT_REPORTS_API_MIN_INTERVALS: dict[str, float] = {
     "getReports": 1.0,
     "getReportDocument": 1.0,
     "downloadReportDocument": 0.5,
+    "listTransactions": 2.0,
 }
 RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
@@ -228,6 +229,40 @@ class AmazonSpApiClient:
             headers=await self._sp_api_headers(client),
         )
         return response.json()
+
+    async def list_finance_transactions(
+        self,
+        client: httpx.AsyncClient,
+        marketplace: str,
+        posted_after: str,
+        posted_before: str,
+    ) -> list[dict[str, Any]]:
+        transactions: list[dict[str, Any]] = []
+        next_token: str | None = None
+        while True:
+            params = (
+                {"nextToken": next_token}
+                if next_token
+                else {
+                    "postedAfter": posted_after,
+                    "postedBefore": posted_before,
+                    "marketplaceId": marketplace_id_for(marketplace),
+                    "pageSize": 100,
+                }
+            )
+            response = await self._request_with_retries(
+                client=client,
+                operation="listTransactions",
+                method="GET",
+                url=f"{self.endpoint}/finances/2024-06-19/transactions",
+                headers=await self._sp_api_headers(client),
+                params=params,
+            )
+            payload = response.json().get("payload") or {}
+            transactions.extend(payload.get("transactions") or [])
+            next_token = payload.get("nextToken")
+            if not next_token:
+                return transactions
 
     async def get_reports(
         self,

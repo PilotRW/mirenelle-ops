@@ -1074,6 +1074,53 @@ button:disabled {
   grid-template-columns: minmax(180px, 260px) minmax(260px, 1fr) auto;
 }
 
+.paymentSyncPanel {
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid #bfd2ff;
+  border-radius: 12px;
+  background: #f4f7ff;
+}
+
+.compactSectionHeader {
+  margin-bottom: 12px;
+}
+
+.compactSectionHeader p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.paymentSyncForm {
+  grid-template-columns: minmax(190px, 1fr) minmax(145px, 0.65fr) minmax(145px, 0.65fr) auto;
+}
+
+.syncResult {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.sectionDivider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.sectionDivider::before,
+.sectionDivider::after {
+  height: 1px;
+  background: var(--line);
+  content: "";
+  flex: 1;
+}
+
 .invoiceForm {
   grid-template-columns: minmax(130px, 1fr) minmax(130px, 1fr) minmax(130px, 170px) minmax(86px, 110px) minmax(220px, 1.2fr) auto auto;
 }
@@ -1546,6 +1593,7 @@ th.num {
 
   .metricGrid,
   .paymentForm,
+  .paymentSyncForm,
   .costForm,
   .invoiceForm,
   .fxForm,

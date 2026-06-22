@@ -12,6 +12,7 @@ forecasting, and replenishment recommendations.
 Initial MVP:
 
 - Import Amazon Payments Transaction View CSV files.
+- Sync posted Payments automatically through Amazon Finances API v2024-06-19.
 - Support European Seller Central localizations through explicit header aliases.
 - Store raw rows and normalized ledger rows.
 - Keep marketplace reports in the original sale currency.
@@ -82,6 +83,23 @@ List Amazon Payments imports:
 ```text
 GET /imports/amazon-payments
 ```
+
+Sync Payments directly from Amazon:
+
+```text
+POST /integrations/amazon-sp-api/payments/sync
+```
+
+The payload contains `marketplace`, `start_date`, and `end_date`. Finance event
+IDs are stored on payment rows, so repeated or overlapping API syncs skip rows
+already imported. A Finances API sync is blocked when the requested period
+overlaps a manual CSV import for the same marketplace; delete the manual import
+first if the intention is to replace it.
+
+Amazon may expose the same financial operation first as `DEFERRED_RELEASED`
+and later as `RELEASED`. Both lifecycle records resolve to one canonical event
+ID. When the final state arrives later, the existing row is updated instead of
+creating a second sale.
 
 Multipart form fields:
 

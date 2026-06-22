@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260621-16" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260622-01" />
   </head>
   <body>
     <div class="appShell">
@@ -209,6 +209,42 @@
                 <h2 data-i18n="section.amazonPayments">Amazon Payments</h2>
                 <span id="paymentStatus" class="status" data-status-key="status.ready">Ready</span>
               </div>
+              <section class="paymentSyncPanel">
+                <div class="sectionHeader compactSectionHeader">
+                  <div>
+                    <h3 data-i18n="section.syncPayments">Sync Payments from Amazon</h3>
+                    <p data-i18n="message.syncPaymentsHint">Download posted transactions from Amazon Finances API. Repeated and overlapping syncs are deduplicated.</p>
+                  </div>
+                </div>
+                <form id="paymentSyncForm" class="formRow paymentSyncForm">
+                  <label>
+                    <span data-i18n="field.marketplace">Marketplace</span>
+                    <select name="marketplace" required>
+                      <option value="DE">Germany - amazon.de</option>
+                      <option value="FR">France - amazon.fr</option>
+                      <option value="IT">Italy - amazon.it</option>
+                      <option value="ES">Spain - amazon.es</option>
+                      <option value="NL">Netherlands - amazon.nl</option>
+                      <option value="BE">Belgium - amazon.com.be</option>
+                      <option value="PL">Poland - amazon.pl</option>
+                      <option value="SE">Sweden - amazon.se</option>
+                      <option value="IE">Ireland - amazon.ie</option>
+                      <option value="UK">United Kingdom - amazon.co.uk</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span data-i18n="field.startDate">Start date</span>
+                    <input name="start_date" type="date" required />
+                  </label>
+                  <label>
+                    <span data-i18n="field.endDate">End date</span>
+                    <input name="end_date" type="date" required />
+                  </label>
+                  <button type="submit" data-i18n="action.syncPayments">Sync Payments</button>
+                </form>
+                <div id="paymentSyncResult" class="syncResult"></div>
+              </section>
+              <div class="sectionDivider"><span data-i18n="section.manualCsvImport">Manual CSV import</span></div>
               <form id="paymentForm" class="formRow paymentForm">
                 <label>
                   <span data-i18n="field.marketplace">Marketplace</span>
@@ -223,7 +259,6 @@
                     <option value="SE">Sweden - amazon.se</option>
                     <option value="IE">Ireland - amazon.ie</option>
                     <option value="UK">United Kingdom - amazon.co.uk</option>
-                    <option value="IE">Ireland - amazon.ie</option>
                   </select>
                 </label>
                 <label class="fileInput">
@@ -1161,6 +1196,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260621-16"></script>
+    <script src="/ui/app.js?v=20260622-01"></script>
   </body>
 </html>

@@ -24,6 +24,12 @@ class AmazonPaymentTransaction(Base):
         nullable=False,
         index=True,
     )
+    source_event_id: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
     marketplace: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
     currency: Mapped[str] = mapped_column(String(8), nullable=False, index=True)
     transaction_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
