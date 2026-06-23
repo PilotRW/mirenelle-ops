@@ -925,9 +925,18 @@ const translations = {
   },
 };
 
+function savedNavGroups() {
+  try {
+    return JSON.parse(localStorage.getItem("mirenelleOpsNavGroups") || "{}");
+  } catch {
+    return {};
+  }
+}
+
 const state = {
   language: localStorage.getItem("mirenelleOpsLanguage") || "en",
-  activeSection: localStorage.getItem("mirenelleOpsSection") || "dashboard",
+  activeSection: window.location.hash.replace(/^#\/?/, "") || localStorage.getItem("mirenelleOpsSection") || "dashboard",
+  navGroups: savedNavGroups(),
   periodPreset: localStorage.getItem("mirenelleOpsPeriodPreset") || "thisMonth",
   startDate: localStorage.getItem("mirenelleOpsStartDate") || "",
   endDate: localStorage.getItem("mirenelleOpsEndDate") || "",
@@ -970,6 +979,18 @@ const sectionTitleKey = {
   settings: "nav.settings",
 };
 
+const sectionNavGroup = {
+  dashboard: "overview",
+  cashflow: "overview",
+  profitability: "overview",
+  payments: "imports",
+  invoices: "imports",
+  costs: "imports",
+  mappings: "operations",
+  inventory: "operations",
+  connector: "operations",
+};
+
 const t = (key, params = {}) => {
   const template = translations[state.language]?.[key] || translations.en[key] || key;
   return Object.entries(params).reduce(
@@ -994,6 +1015,9 @@ function applyTranslations() {
   });
   document.querySelectorAll("[data-status-key]").forEach((element) => {
     element.textContent = t(element.dataset.statusKey);
+  });
+  document.querySelectorAll(".navItem").forEach((button) => {
+    button.title = t(sectionTitleKey[button.dataset.sectionTarget] || "nav.dashboard");
   });
   updatePageTitle();
 }
@@ -1466,7 +1490,27 @@ function updatePageTitle() {
   if (title) title.textContent = t(sectionTitleKey[state.activeSection] || "nav.dashboard");
 }
 
-function showSection(sectionName, resetScroll = false) {
+function setNavGroupExpanded(groupName, expanded, persist = true) {
+  const group = document.querySelector(`[data-nav-group="${groupName}"]`);
+  if (!group) return;
+  group.classList.toggle("expanded", expanded);
+  group.querySelector(".navGroupToggle")?.setAttribute("aria-expanded", String(expanded));
+  state.navGroups[groupName] = expanded;
+  if (persist) {
+    localStorage.setItem("mirenelleOpsNavGroups", JSON.stringify(state.navGroups));
+  }
+}
+
+function initializeNavGroups() {
+  document.querySelectorAll("[data-nav-group]").forEach((group) => {
+    const groupName = group.dataset.navGroup;
+    const activeGroup = sectionNavGroup[state.activeSection];
+    const expanded = groupName === activeGroup || state.navGroups[groupName] === true;
+    setNavGroupExpanded(groupName, expanded, false);
+  });
+}
+
+function showSection(sectionName, resetScroll = false, updateHistory = false) {
   if (!document.getElementById(`section-${sectionName}`)) {
     sectionName = "dashboard";
   }
@@ -1482,6 +1526,17 @@ function showSection(sectionName, resetScroll = false) {
   document.querySelectorAll(".navItem").forEach((button) => {
     button.classList.toggle("active", button.dataset.sectionTarget === sectionName);
   });
+  const activeGroup = sectionNavGroup[sectionName];
+  document.querySelectorAll("[data-nav-group]").forEach((group) => {
+    group.classList.toggle("activeGroup", group.dataset.navGroup === activeGroup);
+  });
+  if (activeGroup) setNavGroupExpanded(activeGroup, true);
+  if (updateHistory) {
+    const nextHash = `#/${sectionName}`;
+    if (window.location.hash !== nextHash) {
+      window.history.pushState({ section: sectionName }, "", nextHash);
+    }
+  }
   updatePageTitle();
   applySearchFilter();
   if (resetScroll) {
@@ -3918,11 +3973,31 @@ document.getElementById("refreshReportsButton")?.addEventListener("click", (even
 });
 
 document.querySelectorAll(".navItem").forEach((button) => {
-  button.addEventListener("click", () => showSection(button.dataset.sectionTarget, true));
+  button.addEventListener("click", () => showSection(button.dataset.sectionTarget, true, true));
+});
+
+document.querySelectorAll(".navGroupToggle").forEach((button) => {
+  button.addEventListener("click", () => {
+    const group = button.closest("[data-nav-group]");
+    if (!group) return;
+    if (document.querySelector(".appShell").classList.contains("sidebarCollapsed")) {
+      document.querySelector(".appShell").classList.remove("sidebarCollapsed");
+      localStorage.setItem("mirenelleOpsSidebarCollapsed", "false");
+      setNavGroupExpanded(group.dataset.navGroup, true);
+      return;
+    }
+    setNavGroupExpanded(group.dataset.navGroup, !group.classList.contains("expanded"));
+  });
 });
 
 document.getElementById("sidebarToggle").addEventListener("click", () => {
-  document.querySelector(".appShell").classList.toggle("sidebarCollapsed");
+  const shell = document.querySelector(".appShell");
+  shell.classList.toggle("sidebarCollapsed");
+  localStorage.setItem("mirenelleOpsSidebarCollapsed", String(shell.classList.contains("sidebarCollapsed")));
+});
+
+window.addEventListener("popstate", () => {
+  showSection(window.location.hash.replace(/^#\/?/, "") || "dashboard", true, false);
 });
 
 document.getElementById("globalSearch").addEventListener("input", applySearchFilter);
@@ -3986,5 +4061,13 @@ document.getElementById("languageSelect").value = state.language;
 syncPeriodControls();
 persistPeriod();
 applyTranslations();
-showSection(state.activeSection, true);
+initializeNavGroups();
+document.querySelector(".appShell").classList.toggle(
+  "sidebarCollapsed",
+  localStorage.getItem("mirenelleOpsSidebarCollapsed") === "true",
+);
+showSection(state.activeSection, true, false);
+if (!window.location.hash) {
+  window.history.replaceState({ section: state.activeSection }, "", `#/${state.activeSection}`);
+}
 refreshAll().catch((error) => setStatus("cashflowStatus", error.message, true));

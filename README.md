@@ -455,6 +455,12 @@ UI path:
 http://localhost:8010/ui/
 ```
 
+The sidebar uses collapsible navigation groups similar to an operations
+dashboard: Overview, Imports, and Operations. The expanded groups and compact
+icon-only sidebar state are persisted locally. Each page has a bookmarkable
+hash route such as `#/inventory` or `#/payments`, and browser Back/Forward
+navigates between opened sections without reloading imported data.
+
 Open `Amazon Connector` in the left sidebar, choose marketplace and period,
 then click `Download orders`. The default marketplace option is `All EU
 marketplaces`, which downloads DE, FR, IT, ES, NL, BE, PL, and SE one by one.

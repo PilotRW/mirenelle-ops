@@ -467,6 +467,14 @@ Current verified inventory examples:
     transactions are never deleted by this action.
     The test mapping `Mirenelle Damen Lounge Set -> I2318` (mapping ID 4,
     invoice line 72) was removed through the new endpoint and verified absent.
+32. Reworked the main sidebar into Sellerboard-like functional navigation
+    without copying its branding. Overview, Imports, and Operations are
+    collapsible groups; the active group opens automatically; group and compact
+    sidebar state persist in local storage. Pages now use bookmarkable hash
+    routes (`#/dashboard`, `#/payments`, `#/inventory`, etc.), and browser
+    Back/Forward switches sections correctly. Browser verification covered
+    group expansion, active page state, URL history, collapsed-state reload,
+    and returned no console errors.
 
 ## Current Resume Checklist
 

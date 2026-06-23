@@ -69,17 +69,58 @@ body {
 }
 
 .navGroup {
-  padding: 12px 0;
+  padding: 4px 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.navGroup p {
-  margin: 0 0 8px;
+.navGroupToggle {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 46px;
   padding: 0 10px;
+  color: #e8e8e8;
+  background: transparent;
+  border-radius: 0;
+  text-align: left;
+}
+
+.navGroupToggle:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.navGroup.activeGroup > .navGroupToggle {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.navGroup.activeGroup > .navGroupToggle .navGroupIcon {
+  color: var(--accent);
+}
+
+.navGroupIcon {
+  color: #9ca3af;
+  text-align: center;
+}
+
+.navChevron {
   color: var(--sidebar-muted);
-  font-size: 11px;
-  font-weight: 760;
-  text-transform: uppercase;
+  text-align: center;
+  transition: transform 160ms ease;
+}
+
+.navGroup:not(.expanded) .navChevron {
+  transform: rotate(-90deg);
+}
+
+.navGroupItems {
+  display: block;
+}
+
+.navGroup:not(.expanded) .navGroupItems {
+  display: none;
 }
 
 .navItem {
@@ -90,12 +131,23 @@ body {
   min-height: 38px;
   border: 0;
   border-radius: 6px;
-  padding: 0 10px;
+  padding: 0 10px 0 18px;
   color: #e8e8e8;
   background: transparent;
   font-weight: 620;
   text-align: left;
   cursor: pointer;
+}
+
+.navGroupItems .navItem {
+  min-height: 40px;
+}
+
+.navStandalone {
+  margin-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  min-height: 46px;
 }
 
 .navItem span:first-child {
@@ -1593,14 +1645,27 @@ th.num {
 }
 
 .appShell.sidebarCollapsed .brandName,
-.appShell.sidebarCollapsed .navGroup p,
+.appShell.sidebarCollapsed .navGroupToggle span:not(.navGroupIcon),
 .appShell.sidebarCollapsed .navItem span:last-child {
   display: none;
 }
 
 .appShell.sidebarCollapsed .brandBlock,
-.appShell.sidebarCollapsed .navItem {
+.appShell.sidebarCollapsed .navItem,
+.appShell.sidebarCollapsed .navGroupToggle {
   justify-content: center;
+}
+
+.appShell.sidebarCollapsed .navGroupToggle {
+  display: flex;
+}
+
+.appShell.sidebarCollapsed .navGroupItems {
+  display: none;
+}
+
+.appShell.sidebarCollapsed .navStandalone {
+  margin-top: 0;
 }
 
 @media (max-width: 1200px) {

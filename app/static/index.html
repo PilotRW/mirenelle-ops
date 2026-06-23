@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260623-01" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260623-02" />
   </head>
   <body>
     <div class="appShell">
@@ -16,47 +16,66 @@
         </div>
 
         <nav class="sideNav" aria-label="Main">
-          <div class="navGroup">
-            <p data-i18n="nav.overview">Overview</p>
-            <button class="navItem active" type="button" data-section-target="dashboard">
-              <span>▦</span><span data-i18n="nav.dashboard">Dashboard</span>
+          <div class="navGroup expanded" data-nav-group="overview">
+            <button class="navGroupToggle" type="button" aria-expanded="true">
+              <span class="navGroupIcon">▣</span>
+              <span data-i18n="nav.overview">Overview</span>
+              <span class="navChevron">⌄</span>
             </button>
-            <button class="navItem" type="button" data-section-target="cashflow">
-              <span>$</span><span data-i18n="section.generalCashflow">General Cashflow</span>
-            </button>
-            <button class="navItem" type="button" data-section-target="profitability">
-              <span>↗</span><span data-i18n="section.productProfitability">Product Profitability</span>
-            </button>
+            <div class="navGroupItems">
+              <button class="navItem active" type="button" data-section-target="dashboard">
+                <span>▦</span><span data-i18n="nav.dashboard">Dashboard</span>
+              </button>
+              <button class="navItem" type="button" data-section-target="cashflow">
+                <span>$</span><span data-i18n="section.generalCashflow">General Cashflow</span>
+              </button>
+              <button class="navItem" type="button" data-section-target="profitability">
+                <span>↗</span><span data-i18n="section.productProfitability">Product Profitability</span>
+              </button>
+            </div>
           </div>
 
-          <div class="navGroup">
-            <p data-i18n="nav.imports">Imports</p>
-            <button class="navItem" type="button" data-section-target="payments">
-              <span>▤</span><span data-i18n="section.amazonPayments">Amazon Payments</span>
+          <div class="navGroup expanded" data-nav-group="imports">
+            <button class="navGroupToggle" type="button" aria-expanded="true">
+              <span class="navGroupIcon">⇣</span>
+              <span data-i18n="nav.imports">Imports</span>
+              <span class="navChevron">⌄</span>
             </button>
-            <button class="navItem" type="button" data-section-target="invoices">
-              <span>▣</span><span data-i18n="section.purchaseInvoices">Purchase Invoices</span>
-            </button>
-            <button class="navItem" type="button" data-section-target="costs">
-              <span>◫</span><span data-i18n="section.productCosts">Product Costs</span>
-            </button>
+            <div class="navGroupItems">
+              <button class="navItem" type="button" data-section-target="payments">
+                <span>▤</span><span data-i18n="section.amazonPayments">Amazon Payments</span>
+              </button>
+              <button class="navItem" type="button" data-section-target="invoices">
+                <span>▣</span><span data-i18n="section.purchaseInvoices">Purchase Invoices</span>
+              </button>
+              <button class="navItem" type="button" data-section-target="costs">
+                <span>◫</span><span data-i18n="section.productCosts">Product Costs</span>
+              </button>
+            </div>
           </div>
 
-          <div class="navGroup">
-            <p data-i18n="nav.operations">Operations</p>
-            <button class="navItem" type="button" data-section-target="mappings">
-              <span>⇄</span><span data-i18n="section.productMappings">Product Mappings</span>
+          <div class="navGroup expanded" data-nav-group="operations">
+            <button class="navGroupToggle" type="button" aria-expanded="true">
+              <span class="navGroupIcon">⚙</span>
+              <span data-i18n="nav.operations">Operations</span>
+              <span class="navChevron">⌄</span>
             </button>
-            <button class="navItem" type="button" data-section-target="inventory">
-              <span>▥</span><span data-i18n="section.inventory">Inventory</span>
-            </button>
-            <button class="navItem" type="button" data-section-target="connector">
-              <span>⇣</span><span data-i18n="section.amazonConnector">Amazon Connector</span>
-            </button>
-            <button class="navItem" type="button" data-section-target="settings">
-              <span>⚙</span><span data-i18n="nav.settings">Settings</span>
-            </button>
+            <div class="navGroupItems">
+              <button class="navItem" type="button" data-section-target="mappings">
+                <span>⇄</span><span data-i18n="section.productMappings">Product Mappings</span>
+              </button>
+              <button class="navItem" type="button" data-section-target="inventory">
+                <span>▥</span><span data-i18n="section.inventory">Inventory</span>
+              </button>
+              <button class="navItem" type="button" data-section-target="connector">
+                <span>⇣</span><span data-i18n="section.amazonConnector">Amazon Connector</span>
+              </button>
+            </div>
           </div>
+
+          <button class="navItem navStandalone" type="button" data-section-target="settings">
+            <span>⚙</span><span data-i18n="nav.settings">Settings</span>
+          </button>
         </nav>
       </aside>
 
@@ -1258,6 +1277,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260623-01"></script>
+    <script src="/ui/app.js?v=20260623-02"></script>
   </body>
 </html>
