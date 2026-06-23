@@ -401,8 +401,8 @@ Current verified inventory examples:
 
 ## Current Resume Point
 
-- Latest verified implementation commit: `a17fa4a`
-  (`Add collapsible dashboard navigation`).
+- Latest verified implementation commit: `8c856f2`
+  (`Add dashboard trend and P&L boards`).
 - Working tree was clean after the implementation commit.
 - Database migration head: `20260622_0026`.
 - Bundle assembly fees are charged by the prep center and default to
