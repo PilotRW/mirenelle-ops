@@ -8,7 +8,9 @@ psycopg2-binary
 pydantic
 pydantic-settings
 python-dotenv
+authlib
 httpx
+itsdangerous
 
 alembic
 python-multipart

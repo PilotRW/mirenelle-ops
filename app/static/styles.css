@@ -494,10 +494,27 @@ p {
 
 .topActions {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(128px, 170px) 118px 118px 70px auto;
+  grid-template-columns: minmax(220px, 1fr) minmax(128px, 170px) 118px 118px 70px minmax(150px, auto) auto;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.authUser {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 36px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+#authUserLabel {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .searchBox {
@@ -557,6 +574,12 @@ button:disabled {
 
 .secondaryButton:hover {
   background: #e8ebef;
+}
+
+.secondaryButton.compact {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
 }
 
 .scheduleForm {
@@ -1966,6 +1989,10 @@ th.num {
   .topActions,
   .searchBox {
     width: 100%;
+  }
+
+  .topActions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .periodPreset,

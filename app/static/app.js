@@ -19,6 +19,7 @@ const translations = {
     "action.preview": "Preview",
     "action.refresh": "Refresh",
     "action.refreshReports": "Refresh reports",
+    "action.logout": "Logout",
     "action.search": "Search",
     "action.save": "Save",
     "action.cancel": "Cancel",
@@ -339,6 +340,7 @@ const translations = {
     "action.preview": "Vorschau",
     "action.refresh": "Aktualisieren",
     "action.refreshReports": "Reports aktualisieren",
+    "action.logout": "Abmelden",
     "action.search": "Suchen",
     "action.save": "Speichern",
     "action.cancel": "Abbrechen",
@@ -659,6 +661,7 @@ const translations = {
     "action.preview": "Preview",
     "action.refresh": "Оновити",
     "action.refreshReports": "Оновити звіти",
+    "action.logout": "Вийти",
     "action.search": "Пошук",
     "action.save": "Зберегти",
     "action.cancel": "Скасувати",
@@ -1003,6 +1006,7 @@ const state = {
   unmappedInvoiceLines: [],
   productCostRows: [],
   productPrepCostRows: [],
+  authUser: null,
   dashboardView: localStorage.getItem("mirenelleOpsDashboardView") || "tiles",
   cashflowHistory: null,
 };
@@ -1060,6 +1064,7 @@ function applyTranslations() {
   document.querySelectorAll(".navItem").forEach((button) => {
     button.title = t(sectionTitleKey[button.dataset.sectionTarget] || "nav.dashboard");
   });
+  renderAuthUser();
   updatePageTitle();
 }
 
@@ -1258,10 +1263,47 @@ async function requestJson(url, options = {}) {
   const response = await fetch(url, options);
   const data = await response.json();
   if (!response.ok) {
+    if (response.status === 401) {
+      window.location.href = "/auth/login";
+      return null;
+    }
     const detail = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
     throw new Error(detail || response.statusText);
   }
   return data;
+}
+
+function hasPermission(permission) {
+  return Boolean(state.authUser?.permissions?.includes(permission));
+}
+
+function renderAuthUser() {
+  const container = document.getElementById("authUser");
+  const label = document.getElementById("authUserLabel");
+  const logoutButton = document.getElementById("authLogoutButton");
+
+  if (!container || !label || !logoutButton) return;
+
+  if (!state.authUser) {
+    container.classList.add("hidden");
+    return;
+  }
+
+  label.textContent = state.authUser.email || state.authUser.name || "User";
+  logoutButton.textContent = t("action.logout");
+  container.classList.remove("hidden");
+
+  document.querySelectorAll("[data-section-target=\"settings\"]").forEach((element) => {
+    element.classList.toggle("hidden", !hasPermission("ops:configure"));
+  });
+  document.querySelectorAll("[data-section-target=\"dashboard\"], [data-section-target=\"cashflow\"], [data-section-target=\"profitability\"], [data-section-target=\"payments\"], [data-section-target=\"invoices\"], [data-section-target=\"costs\"]").forEach((element) => {
+    element.classList.toggle("hidden", !hasPermission("ops:finance"));
+  });
+}
+
+async function loadAuthUser() {
+  state.authUser = await requestJson("/auth/me");
+  renderAuthUser();
 }
 
 function renderRows(targetId, rows, render) {
@@ -3017,7 +3059,35 @@ function openMetricDrilldown(metricKey) {
 
 async function refreshAll() {
   setStatus("cashflowStatus", "status.loading", false, true);
-  await Promise.all([loadPayments(), loadCosts(), loadInvoices(), loadProductMappings(), loadInventory(), loadFxRates(), loadLandedCostSettings(), loadFulfillmentCostSettings(), loadPaymentsSyncSchedule(), loadSupplierCatalogStats(), loadAmazonConnector(), loadGenericImports(), loadCashflow(), loadAmazonPnl(), loadDataQuality(), loadProfitability()]);
+  await loadAuthUser();
+  const canViewFinance = hasPermission("ops:finance");
+  if (!canViewFinance && ["dashboard", "cashflow", "profitability", "payments", "invoices", "costs"].includes(state.activeSection)) {
+    showSection("inventory", true, false);
+  }
+
+  const tasks = [
+    loadProductMappings(),
+    loadInventory(),
+    loadLandedCostSettings(),
+    loadFulfillmentCostSettings(),
+    loadPaymentsSyncSchedule(),
+    loadSupplierCatalogStats(),
+    loadAmazonConnector(),
+    loadGenericImports(),
+  ];
+  if (canViewFinance) {
+    tasks.push(
+      loadPayments(),
+      loadCosts(),
+      loadInvoices(),
+      loadFxRates(),
+      loadCashflow(),
+      loadAmazonPnl(),
+      loadDataQuality(),
+      loadProfitability(),
+    );
+  }
+  await Promise.all(tasks);
   setStatus("paymentStatus", "status.ready", false, true);
   setStatus("costStatus", "status.ready", false, true);
   setStatus("invoiceStatus", "status.ready", false, true);
@@ -4391,6 +4461,13 @@ const paymentSyncForm = document.getElementById("paymentSyncForm");
 paymentSyncForm.elements.namedItem("start_date").value = state.startDate || isoDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 paymentSyncForm.elements.namedItem("end_date").value = state.endDate || isoDate(new Date());
 document.getElementById("languageSelect").value = state.language;
+document.getElementById("authLogoutButton")?.addEventListener("click", async () => {
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = "/auth/logout";
+  document.body.appendChild(form);
+  form.submit();
+});
 syncPeriodControls();
 persistPeriod();
 applyTranslations();
