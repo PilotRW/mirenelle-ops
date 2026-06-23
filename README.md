@@ -60,6 +60,23 @@ http://localhost:8010/ui/
 The UI supports English, German, and Ukrainian through the language selector in
 the top bar.
 
+Authentication:
+
+```text
+GET /auth/login
+GET /auth/callback
+POST /auth/logout
+GET /auth/me
+```
+
+Auth is optional in local development. With `AUTH_ENABLED=false`, the app uses
+a generated local dev user from `AUTH_DEV_USER` and `AUTH_DEV_ROLES`. With
+`AUTH_ENABLED=true`, `/ui/` and protected API routes require an OIDC session.
+OIDC groups are normalized into Mirenelle roles (`owner`, `ops_manager`,
+`ops_operator`, `ops_finance`, `ops_viewer`) and then mapped to broad app
+permissions for viewing, operating, finance data, and configuration. Keep
+OIDC secrets in the ignored local `.env`; do not commit them.
+
 Health:
 
 ```text

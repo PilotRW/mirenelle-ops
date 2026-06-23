@@ -26,6 +26,10 @@ Create a separate service for ecommerce operations and accounting:
 - Marketplace reports stay in the original sale currency.
 - General/consolidated reports are shown in EUR.
 - Amazon API integration must not push/write data to Amazon.
+- Local access is now designed to sit behind an optional app-level
+  authentication layer. Development mode keeps a local operator user when
+  `AUTH_ENABLED=false`; production mode uses OIDC login/session auth and
+  role-derived permissions.
 - Supplier invoice inbound shipping is treated as landed cost. Default
   allocation is by purchased unit quantity, with an alternative by line value.
 - Purchase invoice product costs are net of input VAT. Invoice VAT is stored
@@ -403,8 +407,24 @@ Current verified inventory examples:
 
 - Latest verified implementation commit: `db43f36`
   (`Add dashboard period comparison and KPI drilldowns`).
-- Working tree was clean after the implementation commit.
+- Working tree was clean after the implementation commit and checkpoint
+  `dc58b4d`. After that checkpoint, a new uncommitted authentication layer
+  appeared in the main repo and must be treated as the next active change set.
 - Database migration head: `20260622_0026`.
+- Auth status as of 2026-06-23:
+  - `AUTH_ENABLED=false` keeps development access through a generated local
+    dev user (`AUTH_DEV_USER`, `AUTH_DEV_ROLES`);
+  - `AUTH_ENABLED=true` redirects `/ui/` and HTML requests to `/auth/login`;
+  - `/auth/login`, `/auth/callback`, `/auth/logout`, and `/auth/me` are now
+    present;
+  - OIDC claims map groups/roles to permissions through
+    `owner`, `ops_manager`, `ops_operator`, `ops_finance`, and `ops_viewer`;
+  - API access is permission-gated by broad area: view, operate, finance, and
+    configure;
+  - the auth code is not yet committed in the latest verified checkpoint, so
+    the next implementation step should run the test suite, browser-check login
+    behavior in dev mode, then commit the auth change set before building more
+    UI on top of it.
 - Bundle assembly fees are charged by the prep center and default to
   `prep_center`.
 - Assembly cost is allocated to sold bundles as a separate operational cost
@@ -506,22 +526,26 @@ Start here:
 
 1. Ask the operator for the real prep-center assembly tariff, currency, dates,
    and quantities for `Missha12-FBA-01`, then enter those assembly operations.
-2. Refresh Product Profitability for the sales period and verify the separate
+2. Verify and commit the new authentication layer before continuing feature
+   work: run the unit tests, confirm `/auth/me` returns the dev user when
+   `AUTH_ENABLED=false`, open `/ui/`, and check that the user badge/logout
+   does not break existing navigation.
+3. Refresh Product Profitability for the sales period and verify the separate
    `Bundle assembly` cost and recalculated net profit.
-3. Configure confirmed real bundle recipes for the remaining bundle SKUs.
+4. Configure confirmed real bundle recipes for the remaining bundle SKUs.
    `Missha12-FBA-01` is complete; other recipes remain business-data blockers
    because component composition needs operator input.
-4. When the operator can confirm real bundle composition, open
+5. When the operator can confirm real bundle composition, open
    `http://localhost:8010/ui/`, go to `Inventory -> Bundle Recipes`, and
    enter the first confirmed real recipe:
    choose/type the sold Amazon bundle SKU, add every component SKU/EAN and its
    quantity with `Add component`, review the full draft, then click
    `Save bundle`.
-5. Re-open the saved recipe from the left-hand card list and verify its
+6. Re-open the saved recipe from the left-hand card list and verify its
    components, total units, and estimated cost.
-6. Refresh Product Profitability for the bundle's sales period and verify that
+7. Refresh Product Profitability for the bundle's sales period and verify that
    FIFO COGS is populated from component lots.
-7. Repeat for the remaining real bundle SKUs. Do not invent recipes from
+8. Repeat for the remaining real bundle SKUs. Do not invent recipes from
    product titles; they require operator confirmation.
 
 Useful commands:
