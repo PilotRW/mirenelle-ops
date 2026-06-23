@@ -460,6 +460,11 @@ Current verified inventory examples:
     test confirmed EUR 0.12 x 19 units = EUR 2.28 prep cost; the temporary row
     was deleted afterward. The real tariff table remains empty. All 32 tests
     pass and the browser console is clean.
+31. Added manual undo for confirmed Product Mappings. The mapping history table
+    now includes `Undo mapping`, requires browser confirmation, deletes only
+    the selected mapping row through `DELETE /product-mappings/{mapping_id}`,
+    and refreshes profitability/data-quality reports. Invoice lines and Amazon
+    transactions are never deleted by this action.
 
 ## Current Resume Checklist
 

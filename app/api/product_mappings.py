@@ -50,6 +50,13 @@ class ProductMappingListResponse(BaseModel):
     rows: list[ProductMappingRow]
 
 
+class ProductMappingDeleteResponse(BaseModel):
+    id: int
+    invoice_line_id: int
+    amazon_product_details: str
+    deleted: bool
+
+
 class ProductMappingSuggestionRow(BaseModel):
     invoice_line_id: int
     supplier_name: str
@@ -342,3 +349,22 @@ async def create_mapping(
         await db.rollback()
         raise HTTPException(status_code=409, detail="Product mapping already exists.") from exc
     return mapping_row(mapping)
+
+
+@router.delete("/{mapping_id}", response_model=ProductMappingDeleteResponse)
+async def delete_mapping(
+    mapping_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ProductMappingDeleteResponse:
+    mapping = await db.get(ProductMapping, mapping_id)
+    if mapping is None:
+        raise HTTPException(status_code=404, detail="Product mapping was not found.")
+    response = ProductMappingDeleteResponse(
+        id=mapping.id,
+        invoice_line_id=mapping.invoice_line_id,
+        amazon_product_details=mapping.amazon_product_details,
+        deleted=True,
+    )
+    await db.delete(mapping)
+    await db.commit()
+    return response

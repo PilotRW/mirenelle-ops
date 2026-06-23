@@ -37,6 +37,7 @@ const translations = {
     "action.syncStorageFees": "Sync storage fees",
     "action.syncEcbRates": "Sync ECB rates",
     "action.useMatch": "Use",
+    "action.undoMapping": "Undo mapping",
     "action.viewLines": "Lines",
     "allocation.byLineValue": "By line value",
     "allocation.byQuantity": "By quantity",
@@ -106,6 +107,7 @@ const translations = {
     "recipe.unsaved": "Unsaved changes",
     "recipe.selected": "selected",
     "message.selectInvoiceLine": "Select an invoice product first.",
+    "message.confirmUndoMapping": "Undo this product mapping? Profitability and cost matching will be recalculated.",
     "message.storageAllocationNote": "Storage is currently estimated per sold unit until warehouse-day inventory snapshots are available.",
     "message.productPrepCostsHint": "SKU-specific rates override the global prep fallback in Fulfillment Costs.",
     "message.paymentsAutomationHint": "Periodically refreshes recent posted transactions. Overlapping periods are safely deduplicated.",
@@ -343,6 +345,7 @@ const translations = {
     "action.syncStorageFees": "Lagergebühren synchronisieren",
     "action.syncEcbRates": "ECB-Kurse synchronisieren",
     "action.useMatch": "Nutzen",
+    "action.undoMapping": "Zuordnung aufheben",
     "action.viewLines": "Zeilen",
     "allocation.byLineValue": "Nach Zeilenwert",
     "allocation.byQuantity": "Nach Menge",
@@ -412,6 +415,7 @@ const translations = {
     "recipe.unsaved": "Nicht gespeicherte Änderungen",
     "recipe.selected": "ausgewählt",
     "message.selectInvoiceLine": "Wähle zuerst ein Rechnungsprodukt.",
+    "message.confirmUndoMapping": "Diese Produktzuordnung aufheben? Profitabilität und Kostenzuordnung werden neu berechnet.",
     "message.storageAllocationNote": "Lagerkosten werden vorerst pro verkaufter Einheit geschätzt, bis tägliche Bestands-Snapshots verfügbar sind.",
     "message.productPrepCostsHint": "SKU-spezifische Tarife überschreiben den globalen Prep-Fallback in Fulfillment-Kosten.",
     "message.paymentsAutomationHint": "Aktualisiert regelmäßig die letzten gebuchten Transaktionen. Überlappungen werden sicher dedupliziert.",
@@ -649,6 +653,7 @@ const translations = {
     "action.syncStorageFees": "Синхронізувати зберігання",
     "action.syncEcbRates": "Синхронізувати курси ECB",
     "action.useMatch": "Застосувати",
+    "action.undoMapping": "Скасувати мапінг",
     "action.viewLines": "Позиції",
     "allocation.byLineValue": "За вартістю рядка",
     "allocation.byQuantity": "За кількістю",
@@ -718,6 +723,7 @@ const translations = {
     "recipe.unsaved": "Незбережені зміни",
     "recipe.selected": "вибрано",
     "message.selectInvoiceLine": "Спочатку обери товар з інвойсу.",
+    "message.confirmUndoMapping": "Скасувати це зіставлення? Profitability і прив’язка собівартості будуть перераховані.",
     "message.storageAllocationNote": "Поки немає щоденних snapshot залишків, зберігання оцінюється ставкою на продану одиницю.",
     "message.productPrepCostsHint": "Індивідуальні ставки SKU мають пріоритет над глобальним fallback у витратах фулфілменту.",
     "message.paymentsAutomationHint": "Періодично оновлює останні проведені транзакції. Перекриття періодів безпечно дедуплікуються.",
@@ -1751,6 +1757,14 @@ async function loadProductMappings() {
         <td>${text(row.invoice_product_name)}</td>
         <td>${text(row.amazon_product_details)}</td>
         <td>${text(row.match_method)}</td>
+        <td>
+          <button
+            type="button"
+            class="compactButton dangerButton"
+            data-delete-product-mapping="${row.id}"
+            data-delete-product-mapping-label="${escapeHtml(row.invoice_product_name)} → ${escapeHtml(row.amazon_product_details)}"
+          >${t("action.undoMapping")}</button>
+        </td>
       </tr>
     `);
   } catch (error) {
@@ -2674,6 +2688,28 @@ document.getElementById("mappingSuggestions").addEventListener("click", async (e
     });
     setStatus("mappingStatus", "status.saved", false, true);
     await refreshAll();
+  } catch (error) {
+    setStatus("mappingStatus", error.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("productMappings").addEventListener("click", async (event) => {
+  const button = event.target.closest("button[data-delete-product-mapping]");
+  if (!button) return;
+  const confirmed = window.confirm(
+    `${t("message.confirmUndoMapping")}\n\n${button.dataset.deleteProductMappingLabel || ""}`,
+  );
+  if (!confirmed) return;
+  button.disabled = true;
+  setStatus("mappingStatus", "status.loading", false, true);
+  try {
+    await requestJson(`/product-mappings/${button.dataset.deleteProductMapping}`, {
+      method: "DELETE",
+    });
+    await refreshAll();
+    setStatus("mappingStatus", "status.loaded", false, true);
   } catch (error) {
     setStatus("mappingStatus", error.message, true);
   } finally {

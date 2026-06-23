@@ -519,6 +519,14 @@ use approval-date FX and affect Amazon operating result, but never sales, VAT,
 units, average selling price, gross profit, or FIFO COGS. Product net profit
 stays unknown if FIFO cost coverage is incomplete.
 
+Confirmed Product Mappings can be manually undone from the mapping history
+table. This removes only the operator-confirmed link; invoice lines and Amazon
+transactions remain intact, and reports are recalculated.
+
+```text
+DELETE /product-mappings/{mapping_id}
+```
+
 Prep-center tariffs are configured per SKU in
 `Product Costs -> Prep-center tariffs by product`. Each SKU can have separate
 FBA and FBM prep rates. Product Profitability uses the SKU-specific rate when
