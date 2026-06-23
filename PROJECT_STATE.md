@@ -1,6 +1,6 @@
 # Mirenelle Ops - Project State
 
-Last updated: 2026-06-21
+Last updated: 2026-06-23
 
 ## Product Direction
 
@@ -401,8 +401,8 @@ Current verified inventory examples:
 
 ## Current Resume Point
 
-- Latest verified implementation commit: `8c856f2`
-  (`Add dashboard trend and P&L boards`).
+- Latest verified implementation commit: `db43f36`
+  (`Add dashboard period comparison and KPI drilldowns`).
 - Working tree was clean after the implementation commit.
 - Database migration head: `20260622_0026`.
 - Bundle assembly fees are charged by the prep center and default to
@@ -490,6 +490,15 @@ Current verified inventory examples:
     cash activity as net profit. Live browser verification covered all three
     modes, persistence after reload, monthly values, and returned no console
     errors.
+34. Added equal-length previous-period comparison to the main Dashboard KPIs.
+    Sales, units, refunds, Amazon fees, gross profit, and net profit display a
+    percentage delta for finite date ranges; `All time` intentionally has no
+    fabricated comparison. Clicking these KPIs opens a right-side product
+    drill-down with product name, SKU, fulfillment, units, and the product's
+    contribution to the selected metric. The drawer closes from its button,
+    backdrop, or Escape. Live June-versus-prior-period verification showed
+    real deltas, opened the net-profit drill-down with two contributing
+    products, and returned no browser console errors. All 35 tests pass.
 
 ## Current Resume Checklist
 

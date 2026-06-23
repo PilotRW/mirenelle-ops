@@ -473,6 +473,13 @@ Transfers/disbursements are excluded from the operating result. The board
 explicitly labels this as Amazon cash activity before FIFO COGS and indirect
 expenses; unavailable PPC, BSR, sessions, and forecast metrics are not mocked.
 
+For any finite selected date range, the main sales, units, refunds, fees,
+gross-profit, and net-profit KPIs show the percentage change against the
+immediately preceding range of the same length. Clicking one of these KPIs
+opens a right-side drill-down with the contributing products, SKU,
+fulfillment channel, units, and metric amount. `All time` has no artificial
+comparison period.
+
 Open `Amazon Connector` in the left sidebar, choose marketplace and period,
 then click `Download orders`. The default marketplace option is `All EU
 marketplaces`, which downloads DE, FR, IT, ES, NL, BE, PL, and SE one by one.
