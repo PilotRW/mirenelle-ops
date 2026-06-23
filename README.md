@@ -461,6 +461,18 @@ icon-only sidebar state are persisted locally. Each page has a bookmarkable
 hash route such as `#/inventory` or `#/payments`, and browser Back/Forward
 navigates between opened sections without reloading imported data.
 
+The Dashboard has three persisted board modes:
+
+- `Tiles` for period KPI cards and product profitability;
+- `Trend` for monthly sales, Amazon operating cash result, and a cost
+  breakdown;
+- `P&L` for a 12-month matrix of sales, refunds, promotions, Amazon fees,
+  reimbursements, other operating activity, and Amazon cash result.
+
+Transfers/disbursements are excluded from the operating result. The board
+explicitly labels this as Amazon cash activity before FIFO COGS and indirect
+expenses; unavailable PPC, BSR, sessions, and forecast metrics are not mocked.
+
 Open `Amazon Connector` in the left sidebar, choose marketplace and period,
 then click `Download orders`. The default marketplace option is `All EU
 marketplaces`, which downloads DE, FR, IT, ES, NL, BE, PL, and SE one by one.

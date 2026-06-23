@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260623-03" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260623-04" />
   </head>
   <body>
     <div class="appShell">
@@ -109,6 +109,12 @@
 
         <main class="workspace">
           <section id="section-dashboard" class="pageSection active">
+            <nav class="boardTabs" aria-label="Dashboard views">
+              <button class="boardTab active" type="button" data-dashboard-view="tiles" data-i18n="board.tiles">Tiles</button>
+              <button class="boardTab" type="button" data-dashboard-view="trend" data-i18n="board.trend">Trend</button>
+              <button class="boardTab" type="button" data-dashboard-view="pnl" data-i18n="board.pnl">P&amp;L</button>
+            </nav>
+            <div id="dashboardViewTiles" class="dashboardView active">
             <div id="dashboardCards" class="metricGrid"></div>
             <div class="splitPanel">
               <section class="panel">
@@ -216,6 +222,41 @@
                       </tr>
                     </thead>
                     <tbody id="missingCostRows"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+            </div>
+            <div id="dashboardViewTrend" class="dashboardView">
+              <section class="panel">
+                <div class="sectionHeader">
+                  <div>
+                    <h2 data-i18n="board.monthlyTrend">Monthly trend</h2>
+                    <p data-i18n="board.amazonCashNote">Amazon cash movement before COGS and indirect expenses.</p>
+                  </div>
+                </div>
+                <div id="dashboardTrendLegend" class="trendLegend"></div>
+                <div id="dashboardTrendChart" class="trendChart"></div>
+              </section>
+              <section class="panel">
+                <div class="sectionHeader">
+                  <h2 data-i18n="board.costBreakdown">Cost breakdown</h2>
+                </div>
+                <div id="dashboardCostBreakdown" class="breakdownList"></div>
+              </section>
+            </div>
+            <div id="dashboardViewPnl" class="dashboardView">
+              <section class="panel">
+                <div class="sectionHeader">
+                  <div>
+                    <h2 data-i18n="board.monthlyPnl">Monthly Amazon P&amp;L</h2>
+                    <p data-i18n="board.amazonCashNote">Amazon cash movement before COGS and indirect expenses.</p>
+                  </div>
+                </div>
+                <div class="tableWrap boardPnlTable">
+                  <table>
+                    <thead id="dashboardPnlHead"></thead>
+                    <tbody id="dashboardPnlBody"></tbody>
                   </table>
                 </div>
               </section>
@@ -1277,6 +1318,6 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260623-03"></script>
+    <script src="/ui/app.js?v=20260623-04"></script>
   </body>
 </html>

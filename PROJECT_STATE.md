@@ -479,6 +479,17 @@ Current verified inventory examples:
     multiple groups may remain open, and compact mode keeps child icons
     clickable; the local compact sidebar was adjusted to preserve all child
     navigation icons too.
+33. Added Sellerboard-inspired Dashboard board modes backed only by real local
+    data. `Tiles` preserves the KPI/product view; `Trend` shows monthly sales,
+    Amazon operating cash result, and cost structure; `P&L` renders a
+    horizontally scrollable monthly matrix. The selected board persists.
+    Monthly cashflow API rows now expose a language-independent transaction
+    category. Disbursements/transfers are excluded from operating result and
+    reimbursements are shown separately. The UI explicitly states that these
+    boards are before FIFO COGS and indirect expenses instead of presenting
+    cash activity as net profit. Live browser verification covered all three
+    modes, persistence after reload, monthly values, and returned no console
+    errors.
 
 ## Current Resume Checklist
 

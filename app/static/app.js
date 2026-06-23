@@ -41,6 +41,14 @@ const translations = {
     "action.viewLines": "Lines",
     "allocation.byLineValue": "By line value",
     "allocation.byQuantity": "By quantity",
+    "board.tiles": "Tiles",
+    "board.trend": "Trend",
+    "board.pnl": "P&L",
+    "board.monthlyTrend": "Monthly trend",
+    "board.monthlyPnl": "Monthly Amazon P&L",
+    "board.costBreakdown": "Cost breakdown",
+    "board.amazonCashNote": "Amazon cash movement before COGS and indirect expenses.",
+    "board.amazonCashResult": "Amazon cash result",
     "field.allocationMethod": "Allocation method",
     "field.costFile": "Cost CSV/XLSX",
     "field.csvReport": "CSV report",
@@ -349,6 +357,14 @@ const translations = {
     "action.viewLines": "Zeilen",
     "allocation.byLineValue": "Nach Zeilenwert",
     "allocation.byQuantity": "Nach Menge",
+    "board.tiles": "Kacheln",
+    "board.trend": "Trend",
+    "board.pnl": "P&L",
+    "board.monthlyTrend": "Monatlicher Trend",
+    "board.monthlyPnl": "Monatliches Amazon P&L",
+    "board.costBreakdown": "Kostenstruktur",
+    "board.amazonCashNote": "Amazon-Zahlungsbewegung vor Wareneinsatz und indirekten Kosten.",
+    "board.amazonCashResult": "Amazon-Zahlungsergebnis",
     "field.allocationMethod": "Verteilungsmethode",
     "field.costFile": "Kosten CSV/XLSX",
     "field.csvReport": "CSV-Report",
@@ -657,6 +673,14 @@ const translations = {
     "action.viewLines": "Позиції",
     "allocation.byLineValue": "За вартістю рядка",
     "allocation.byQuantity": "За кількістю",
+    "board.tiles": "Плитки",
+    "board.trend": "Тренд",
+    "board.pnl": "P&L",
+    "board.monthlyTrend": "Місячний тренд",
+    "board.monthlyPnl": "Місячний Amazon P&L",
+    "board.costBreakdown": "Структура витрат",
+    "board.amazonCashNote": "Рух коштів Amazon до COGS та непрямих витрат.",
+    "board.amazonCashResult": "Грошовий результат Amazon",
     "field.allocationMethod": "Метод розподілу",
     "field.costFile": "Файл цін CSV/XLSX",
     "field.csvReport": "CSV-звіт",
@@ -964,6 +988,8 @@ const state = {
   unmappedInvoiceLines: [],
   productCostRows: [],
   productPrepCostRows: [],
+  dashboardView: localStorage.getItem("mirenelleOpsDashboardView") || "tiles",
+  cashflowHistory: null,
 };
 
 const sectionTitleKey = {
@@ -2320,9 +2346,134 @@ function renderAmazonOrdersSyncResult(result) {
   `;
 }
 
+function monthlyBoardRows(rows = []) {
+  const months = new Map();
+  rows.forEach((row) => {
+    const bucket = months.get(row.month) || {
+      month: row.month,
+      sales: 0,
+      refunds: 0,
+      promo: 0,
+      fees: 0,
+      reimbursements: 0,
+      other: 0,
+      transfers: 0,
+    };
+    if (row.category === "order") bucket.sales += Number(row.product_charges_eur || 0);
+    if (row.category === "refund") bucket.refunds += Number(row.product_charges_eur || 0);
+    bucket.promo += Number(row.promotional_rebates_eur || 0);
+    bucket.fees += Number(row.amazon_fees_eur || 0);
+    const remaining = Number(row.other_amount_eur || 0);
+    if (row.category === "transfer") bucket.transfers += remaining;
+    else if (row.category === "reimbursement") bucket.reimbursements += remaining;
+    else if (["fba_fee", "return_fee", "service_fee"].includes(row.category)) bucket.fees += remaining;
+    else bucket.other += remaining;
+    months.set(row.month, bucket);
+  });
+  return [...months.values()]
+    .map((row) => ({
+      ...row,
+      result: row.sales + row.refunds + row.promo + row.fees + row.reimbursements + row.other,
+    }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+}
+
+function monthLabel(value) {
+  return new Intl.DateTimeFormat(localeByLanguage[state.language] || "en-US", {
+    month: "short",
+    year: "2-digit",
+  }).format(new Date(`${value}T00:00:00`));
+}
+
+function renderDashboardBoards(data) {
+  const months = monthlyBoardRows(data.rows);
+  const chart = document.getElementById("dashboardTrendChart");
+  const breakdown = document.getElementById("dashboardCostBreakdown");
+  const head = document.getElementById("dashboardPnlHead");
+  const body = document.getElementById("dashboardPnlBody");
+  if (!chart || !breakdown || !head || !body) return;
+
+  const maxValue = Math.max(
+    1,
+    ...months.flatMap((row) => [Math.abs(row.sales), Math.abs(row.result)]),
+  );
+  chart.innerHTML = months.length ? months.map((row) => `
+    <div class="trendMonth">
+      <div class="trendBars">
+        <div class="trendBar salesBar" style="height:${Math.max(3, Math.abs(row.sales) / maxValue * 150)}px" title="${t("table.sales")}: ${money(row.sales, "EUR")}"></div>
+        <div class="trendBar ${row.result < 0 ? "negativeBar" : "profitBar"}" style="height:${Math.max(3, Math.abs(row.result) / maxValue * 150)}px" title="${t("board.amazonCashResult")}: ${money(row.result, "EUR")}"></div>
+      </div>
+      <strong>${monthLabel(row.month)}</strong>
+      <span>${money(row.result, "EUR")}</span>
+    </div>
+  `).join("") : `<div class="empty">${t("message.noData")}</div>`;
+  document.getElementById("dashboardTrendLegend").innerHTML = `
+    <span><i class="legendDot salesBar"></i>${t("table.sales")}</span>
+    <span><i class="legendDot profitBar"></i>${t("board.amazonCashResult")}</span>
+  `;
+
+  const totals = months.reduce((sum, row) => {
+    Object.keys(sum).forEach((key) => { sum[key] += row[key]; });
+    return sum;
+  }, { sales: 0, refunds: 0, promo: 0, fees: 0, reimbursements: 0, other: 0, result: 0 });
+  const breakdownRows = [
+    ["table.sales", totals.sales, "positive"],
+    ["table.refunds", totals.refunds, "negative"],
+    ["table.promo", totals.promo, "negative"],
+    ["table.amazonFees", totals.fees, "negative"],
+    ["table.reimbursements", totals.reimbursements, "positive"],
+    ["table.other", totals.other, totals.other < 0 ? "negative" : "positive"],
+    ["board.amazonCashResult", totals.result, totals.result < 0 ? "negative" : "positive"],
+  ];
+  const breakdownMax = Math.max(1, ...breakdownRows.map(([, value]) => Math.abs(value)));
+  breakdown.innerHTML = breakdownRows.map(([key, value, tone]) => `
+    <div class="breakdownRow">
+      <span>${t(key)}</span>
+      <div class="breakdownTrack"><i class="${tone}" style="width:${Math.abs(value) / breakdownMax * 100}%"></i></div>
+      <strong>${money(value, "EUR")}</strong>
+    </div>
+  `).join("");
+
+  const visibleMonths = months.slice(-12);
+  head.innerHTML = `<tr><th>${t("table.type")}</th>${visibleMonths.map((row) => `<th class="num">${monthLabel(row.month)}</th>`).join("")}<th class="num">${t("table.total")}</th></tr>`;
+  const matrixRows = [
+    ["table.sales", "sales"],
+    ["table.refunds", "refunds"],
+    ["table.promo", "promo"],
+    ["table.amazonFees", "fees"],
+    ["table.reimbursements", "reimbursements"],
+    ["table.other", "other"],
+    ["board.amazonCashResult", "result"],
+  ];
+  body.innerHTML = matrixRows.map(([label, field]) => `
+    <tr class="${field === "result" ? "pnlResultRow" : ""}">
+      <th>${t(label)}</th>
+      ${visibleMonths.map((row) => `<td class="num ${row[field] < 0 ? "negativeAmount" : ""}">${money(row[field], "EUR")}</td>`).join("")}
+      <td class="num ${totals[field] < 0 ? "negativeAmount" : ""}"><strong>${money(totals[field], "EUR")}</strong></td>
+    </tr>
+  `).join("");
+}
+
+function showDashboardView(view) {
+  if (!["tiles", "trend", "pnl"].includes(view)) view = "tiles";
+  state.dashboardView = view;
+  localStorage.setItem("mirenelleOpsDashboardView", view);
+  document.querySelectorAll(".dashboardView").forEach((element) => {
+    element.classList.toggle("active", element.id === `dashboardView${view[0].toUpperCase()}${view.slice(1)}`);
+  });
+  document.querySelectorAll(".boardTab").forEach((button) => {
+    button.classList.toggle("active", button.dataset.dashboardView === view);
+  });
+}
+
 async function loadCashflow() {
-  const data = await requestJson(`/reports/monthly-cashflow${reportQueryParams()}`);
+  const [data, history] = await Promise.all([
+    requestJson(`/reports/monthly-cashflow${reportQueryParams()}`),
+    requestJson("/reports/monthly-cashflow"),
+  ]);
+  state.cashflowHistory = history;
   renderDashboardCards(data);
+  renderDashboardBoards(history);
   const totals = document.getElementById("currencyTotals");
   totals.innerHTML = `
     <div class="kpi">
@@ -3976,6 +4127,10 @@ document.querySelectorAll(".navItem").forEach((button) => {
   button.addEventListener("click", () => showSection(button.dataset.sectionTarget, true, true));
 });
 
+document.querySelectorAll(".boardTab").forEach((button) => {
+  button.addEventListener("click", () => showDashboardView(button.dataset.dashboardView));
+});
+
 document.querySelectorAll(".navGroupToggle").forEach((button) => {
   button.addEventListener("click", () => {
     const group = button.closest("[data-nav-group]");
@@ -4067,6 +4222,7 @@ document.querySelector(".appShell").classList.toggle(
   localStorage.getItem("mirenelleOpsSidebarCollapsed") === "true",
 );
 showSection(state.activeSection, true, false);
+showDashboardView(state.dashboardView);
 if (!window.location.hash) {
   window.history.replaceState({ section: state.activeSection }, "", `#/${state.activeSection}`);
 }

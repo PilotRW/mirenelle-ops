@@ -53,6 +53,7 @@ class PaymentSummaryRow(BaseModel):
     currency: str
     fx_rate_to_eur: float
     transaction_type: str
+    category: str
     rows: int
     product_charges: float
     promotional_rebates: float
@@ -457,6 +458,7 @@ async def monthly_cashflow(
                 currency=currency,
                 fx_rate_to_eur=round(fx_weighted / fx_weight, 8) if fx_weight else 1,
                 transaction_type=transaction_type,
+                category=classify_payment_type(transaction_type),
                 **bucket,
             )
         )
