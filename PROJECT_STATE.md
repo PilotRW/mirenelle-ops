@@ -401,8 +401,8 @@ Current verified inventory examples:
 
 ## Current Resume Point
 
-- Latest verified implementation commit: `0991e41`
-  (`Allow manual product mapping undo`).
+- Latest verified implementation commit: `a17fa4a`
+  (`Add collapsible dashboard navigation`).
 - Working tree was clean after the implementation commit.
 - Database migration head: `20260622_0026`.
 - Bundle assembly fees are charged by the prep center and default to
