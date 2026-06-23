@@ -405,11 +405,10 @@ Current verified inventory examples:
 
 ## Current Resume Point
 
-- Latest verified implementation commit: `db43f36`
-  (`Add dashboard period comparison and KPI drilldowns`).
-- Working tree was clean after the implementation commit and checkpoint
-  `dc58b4d`. After that checkpoint, a new uncommitted authentication layer
-  appeared in the main repo and must be treated as the next active change set.
+- Latest verified implementation commit before the current filter work:
+  `8cc2e5c` (`Add optional OIDC app authentication`).
+- Authentication status checkpoint: `a186455`
+  (`Document authentication status checkpoint`).
 - Database migration head: `20260622_0026`.
 - Auth status as of 2026-06-23:
   - `AUTH_ENABLED=false` keeps development access through a generated local
@@ -421,10 +420,8 @@ Current verified inventory examples:
     `owner`, `ops_manager`, `ops_operator`, `ops_finance`, and `ops_viewer`;
   - API access is permission-gated by broad area: view, operate, finance, and
     configure;
-  - the auth code is not yet committed in the latest verified checkpoint, so
-    the next implementation step should run the test suite, browser-check login
-    behavior in dev mode, then commit the auth change set before building more
-    UI on top of it.
+  - dev-mode `/auth/me` returns the local owner user, Dashboard and Inventory
+    browser smoke tests pass, and the auth contract has unit coverage.
 - Bundle assembly fees are charged by the prep center and default to
   `prep_center`.
 - Assembly cost is allocated to sold bundles as a separate operational cost
@@ -519,6 +516,16 @@ Current verified inventory examples:
     backdrop, or Escape. Live June-versus-prior-period verification showed
     real deltas, opened the net-profit drill-down with two contributing
     products, and returned no browser console errors. All 35 tests pass.
+35. Added Sellerboard-style Product Profitability filters shared by Dashboard
+    and the dedicated Product Profitability page. The endpoint now accepts
+    `marketplace`, `fulfillment_channel`, and `search` query parameters and
+    recalculates summary totals from the filtered product rows rather than
+    hiding rows only in the browser. The UI shows Marketplace as a table
+    column, persists the filter state, keeps the Dashboard and Profitability
+    filter bars synchronized, and provides Reset. Live API checks for May 2026
+    returned 14 products unfiltered, 12 for `marketplace=DE`, 13 for
+    `fulfillment_channel=FBA`, and 4 for `search=MISSHA`; browser verification
+    showed DE+MISSHA narrowing to three DE rows with no console errors.
 
 ## Current Resume Checklist
 
@@ -526,26 +533,22 @@ Start here:
 
 1. Ask the operator for the real prep-center assembly tariff, currency, dates,
    and quantities for `Missha12-FBA-01`, then enter those assembly operations.
-2. Verify and commit the new authentication layer before continuing feature
-   work: run the unit tests, confirm `/auth/me` returns the dev user when
-   `AUTH_ENABLED=false`, open `/ui/`, and check that the user badge/logout
-   does not break existing navigation.
-3. Refresh Product Profitability for the sales period and verify the separate
+2. Refresh Product Profitability for the sales period and verify the separate
    `Bundle assembly` cost and recalculated net profit.
-4. Configure confirmed real bundle recipes for the remaining bundle SKUs.
+3. Configure confirmed real bundle recipes for the remaining bundle SKUs.
    `Missha12-FBA-01` is complete; other recipes remain business-data blockers
    because component composition needs operator input.
-5. When the operator can confirm real bundle composition, open
+4. When the operator can confirm real bundle composition, open
    `http://localhost:8010/ui/`, go to `Inventory -> Bundle Recipes`, and
    enter the first confirmed real recipe:
    choose/type the sold Amazon bundle SKU, add every component SKU/EAN and its
    quantity with `Add component`, review the full draft, then click
    `Save bundle`.
-6. Re-open the saved recipe from the left-hand card list and verify its
+5. Re-open the saved recipe from the left-hand card list and verify its
    components, total units, and estimated cost.
-7. Refresh Product Profitability for the bundle's sales period and verify that
+6. Refresh Product Profitability for the bundle's sales period and verify that
    FIFO COGS is populated from component lots.
-8. Repeat for the remaining real bundle SKUs. Do not invent recipes from
+7. Repeat for the remaining real bundle SKUs. Do not invent recipes from
    product titles; they require operator confirmation.
 
 Useful commands:

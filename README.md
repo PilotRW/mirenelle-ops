@@ -497,6 +497,12 @@ opens a right-side drill-down with the contributing products, SKU,
 fulfillment channel, units, and metric amount. `All time` has no artificial
 comparison period.
 
+Dashboard and Product Profitability share the same product filter state:
+marketplace, fulfillment channel, and SKU/ASIN/EAN/product search. These
+filters are sent to `GET /reports/product-profitability`, so product rows and
+summary totals are recalculated from the filtered dataset instead of being
+hidden only in the browser.
+
 Open `Amazon Connector` in the left sidebar, choose marketplace and period,
 then click `Download orders`. The default marketplace option is `All EU
 marketplaces`, which downloads DE, FR, IT, ES, NL, BE, PL, and SE one by one.

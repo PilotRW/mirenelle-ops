@@ -210,6 +210,7 @@ class ProductProfitabilityRow(BaseModel):
     asin: str | None
     sku: str | None
     ean: str | None
+    marketplace: str
     fulfillment_channel: str
     currency: str
     fx_rate_to_eur: float
@@ -1024,7 +1025,18 @@ async def product_profitability(
     limit: Annotated[int, Query(ge=1, le=10000)] = 5000,
     start_date: Annotated[date | None, Query()] = None,
     end_date: Annotated[date | None, Query()] = None,
+    marketplace: Annotated[str | None, Query()] = None,
+    fulfillment_channel: Annotated[str | None, Query()] = None,
+    search: Annotated[str | None, Query(max_length=120)] = None,
 ) -> ProductProfitabilityResponse:
+    marketplace_filter = (marketplace or "").strip().upper()
+    if marketplace_filter in {"", "ALL", "EU"}:
+        marketplace_filter = ""
+    fulfillment_filter = (fulfillment_channel or "").strip().upper()
+    if fulfillment_filter in {"", "ALL"}:
+        fulfillment_filter = ""
+    search_filter = (search or "").strip().lower()
+
     rates = await get_latest_fx_rates(db)
     fx_history = await get_fx_rate_history(db)
     fulfillment_costs = await get_fulfillment_cost_settings(db)
@@ -1077,6 +1089,14 @@ async def product_profitability(
         .where(AmazonPaymentTransaction.product_details != "")
     )
     transaction_query = apply_date_filters(transaction_query, start_date, end_date)
+    if marketplace_filter:
+        transaction_query = transaction_query.where(
+            func.upper(AmazonPaymentTransaction.marketplace) == marketplace_filter
+        )
+    if fulfillment_filter:
+        transaction_query = transaction_query.where(
+            func.upper(AmazonPaymentTransaction.fulfillment_channel) == fulfillment_filter
+        )
     transaction_query = transaction_query.group_by(
         AmazonPaymentTransaction.product_details,
         AmazonPaymentTransaction.sku,
@@ -1578,6 +1598,7 @@ async def product_profitability(
                 asin=asin,
                 sku=sku,
                 ean=ean,
+                marketplace=str(bucket["marketplace"]),
                 fulfillment_channel=str(bucket["fulfillment_channel"]),
                 currency=str(bucket["currency"]),
                 fx_rate_to_eur=effective_fx_rate,
@@ -1613,13 +1634,34 @@ async def product_profitability(
             )
         )
 
+    if search_filter:
+        filtered_rows: list[ProductProfitabilityRow] = []
+        for row in rows:
+            haystack = " ".join(
+                [
+                    row.product_details or "",
+                    row.sku or "",
+                    row.asin or "",
+                    row.ean or "",
+                    row.marketplace or "",
+                    row.fulfillment_channel or "",
+                ]
+            ).lower()
+            if search_filter in haystack:
+                filtered_rows.append(row)
+        rows = filtered_rows
+
     rows.sort(key=lambda item: item.net_profit_eur if item.net_profit_eur is not None else -999999, reverse=True)
     matched_rows = [row for row in rows if row.cost_match_status == "matched"]
     revenue_gross_eur = round(sum(row.revenue_gross_eur for row in rows), 2)
     sales_vat_eur = round(sum(row.sales_vat_eur for row in rows), 2)
     revenue_eur = round(sum(row.revenue_eur for row in rows), 2)
     refunds_eur = round(sum(row.refunds_eur for row in rows), 2)
-    reimbursements_eur = period_reimbursements_eur
+    reimbursements_eur = (
+        round(sum(row.reimbursements_eur for row in rows), 2)
+        if marketplace_filter or fulfillment_filter or search_filter
+        else period_reimbursements_eur
+    )
     promotional_rebates_eur = round(sum(row.promotional_rebates_eur for row in rows), 2)
     amazon_fees_eur = round(sum(row.amazon_fees_eur for row in rows), 2)
     other_amount_eur = round(sum(row.other_amount_eur for row in rows), 2)

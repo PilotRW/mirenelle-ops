@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260623-05" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260623-06" />
   </head>
   <body>
     <div class="appShell">
@@ -126,6 +126,37 @@
                   <h2 data-i18n="section.productProfitability">Product Profitability</h2>
                   <span id="profitStatus" class="status" data-status-key="status.loaded">Loaded</span>
                 </div>
+                <div class="filterBar profitFilterBar" data-profit-filter-scope="dashboard">
+                  <label>
+                    <span data-i18n="field.marketplace">Marketplace</span>
+                    <select data-profit-filter="marketplace">
+                      <option value="" data-i18n="filter.allMarketplaces">All marketplaces</option>
+                      <option value="DE">DE</option>
+                      <option value="SE">SE</option>
+                      <option value="IE">IE</option>
+                      <option value="FR">FR</option>
+                      <option value="IT">IT</option>
+                      <option value="ES">ES</option>
+                      <option value="NL">NL</option>
+                      <option value="BE">BE</option>
+                      <option value="PL">PL</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span data-i18n="field.fulfillment">Fulfillment</span>
+                    <select data-profit-filter="fulfillment_channel">
+                      <option value="" data-i18n="filter.allFulfillment">All fulfillment</option>
+                      <option value="FBA">FBA</option>
+                      <option value="FBM">FBM</option>
+                      <option value="UNKNOWN">UNKNOWN</option>
+                    </select>
+                  </label>
+                  <label class="filterSearch">
+                    <span data-i18n="action.search">Search</span>
+                    <input type="search" data-profit-filter="search" data-i18n-placeholder="filter.productSearch" placeholder="SKU, ASIN, EAN or product" />
+                  </label>
+                  <button class="secondaryButton compact" type="button" data-profit-filter-reset data-i18n="action.reset">Reset</button>
+                </div>
                 <div id="profitTotals" class="kpis"></div>
                 <div class="tableWrap profitabilityTable">
                   <table>
@@ -133,6 +164,7 @@
                       <tr>
                         <th data-i18n="table.product">Product</th>
                         <th data-i18n="table.identifiers">ASIN / SKU / EAN</th>
+                        <th data-i18n="field.marketplace">Marketplace</th>
                         <th data-i18n="field.fulfillment">Fulfillment</th>
                         <th data-i18n="table.salesCurrency">Sales currency</th>
                         <th class="num" data-i18n="table.fxToEur">FX to EUR</th>
@@ -618,12 +650,44 @@
                 <h2 data-i18n="section.productProfitability">Product Profitability</h2>
                 <span class="status" data-status-key="status.loaded">Loaded</span>
               </div>
+              <div class="filterBar profitFilterBar" data-profit-filter-scope="profitability">
+                <label>
+                  <span data-i18n="field.marketplace">Marketplace</span>
+                  <select data-profit-filter="marketplace">
+                    <option value="" data-i18n="filter.allMarketplaces">All marketplaces</option>
+                    <option value="DE">DE</option>
+                    <option value="SE">SE</option>
+                    <option value="IE">IE</option>
+                    <option value="FR">FR</option>
+                    <option value="IT">IT</option>
+                    <option value="ES">ES</option>
+                    <option value="NL">NL</option>
+                    <option value="BE">BE</option>
+                    <option value="PL">PL</option>
+                  </select>
+                </label>
+                <label>
+                  <span data-i18n="field.fulfillment">Fulfillment</span>
+                  <select data-profit-filter="fulfillment_channel">
+                    <option value="" data-i18n="filter.allFulfillment">All fulfillment</option>
+                    <option value="FBA">FBA</option>
+                    <option value="FBM">FBM</option>
+                    <option value="UNKNOWN">UNKNOWN</option>
+                  </select>
+                </label>
+                <label class="filterSearch">
+                  <span data-i18n="action.search">Search</span>
+                  <input type="search" data-profit-filter="search" data-i18n-placeholder="filter.productSearch" placeholder="SKU, ASIN, EAN or product" />
+                </label>
+                <button class="secondaryButton compact" type="button" data-profit-filter-reset data-i18n="action.reset">Reset</button>
+              </div>
               <div class="tableWrap profitabilityTable">
                 <table>
                   <thead>
                     <tr>
                       <th data-i18n="table.product">Product</th>
                       <th data-i18n="table.identifiers">ASIN / SKU / EAN</th>
+                      <th data-i18n="field.marketplace">Marketplace</th>
                       <th data-i18n="field.fulfillment">Fulfillment</th>
                       <th data-i18n="table.salesCurrency">Sales currency</th>
                       <th class="num" data-i18n="table.fxToEur">FX to EUR</th>
@@ -1351,6 +1415,6 @@
       </section>
     </aside>
 
-    <script src="/ui/app.js?v=20260623-05"></script>
+    <script src="/ui/app.js?v=20260623-06"></script>
   </body>
 </html>

@@ -21,6 +21,7 @@ const translations = {
     "action.refreshReports": "Refresh reports",
     "action.logout": "Logout",
     "action.search": "Search",
+    "action.reset": "Reset",
     "action.save": "Save",
     "action.cancel": "Cancel",
     "action.clear": "Clear",
@@ -98,6 +99,9 @@ const translations = {
     "field.invoiceProductSearch": "Invoice product search",
     "field.invoiceProductsSearch": "Invoice product search",
     "field.transactionCsv": "Transaction CSV",
+    "filter.allMarketplaces": "All marketplaces",
+    "filter.allFulfillment": "All fulfillment",
+    "filter.productSearch": "SKU, ASIN, EAN or product",
     "message.committedRaw": "Committed raw report.",
     "message.noData": "No data",
     "message.noPreview": "No preview loaded.",
@@ -342,6 +346,7 @@ const translations = {
     "action.refreshReports": "Reports aktualisieren",
     "action.logout": "Abmelden",
     "action.search": "Suchen",
+    "action.reset": "Zurücksetzen",
     "action.save": "Speichern",
     "action.cancel": "Abbrechen",
     "action.clear": "Leeren",
@@ -419,6 +424,9 @@ const translations = {
     "field.invoiceProductSearch": "Rechnungsprodukt suchen",
     "field.invoiceProductsSearch": "Rechnungsprodukt suchen",
     "field.transactionCsv": "Transaktions-CSV",
+    "filter.allMarketplaces": "Alle Marketplaces",
+    "filter.allFulfillment": "Alle Fulfillment-Arten",
+    "filter.productSearch": "SKU, ASIN, EAN oder Produkt",
     "message.committedRaw": "Rohdaten gespeichert.",
     "message.noData": "Keine Daten",
     "message.noPreview": "Keine Vorschau geladen.",
@@ -663,6 +671,7 @@ const translations = {
     "action.refreshReports": "Оновити звіти",
     "action.logout": "Вийти",
     "action.search": "Пошук",
+    "action.reset": "Скинути",
     "action.save": "Зберегти",
     "action.cancel": "Скасувати",
     "action.clear": "Очистити",
@@ -740,6 +749,9 @@ const translations = {
     "field.invoiceProductSearch": "Пошук товару з інвойсу",
     "field.invoiceProductsSearch": "Пошук товару з інвойсу",
     "field.transactionCsv": "CSV транзакцій",
+    "filter.allMarketplaces": "Усі маркетплейси",
+    "filter.allFulfillment": "Усі фулфілменти",
+    "filter.productSearch": "SKU, ASIN, EAN або товар",
     "message.committedRaw": "Raw-звіт збережено.",
     "message.noData": "Немає даних",
     "message.noPreview": "Preview ще не завантажено.",
@@ -972,6 +984,19 @@ function savedNavGroups() {
   }
 }
 
+function savedProfitFilters() {
+  try {
+    return {
+      marketplace: "",
+      fulfillment_channel: "",
+      search: "",
+      ...(JSON.parse(localStorage.getItem("mirenelleOpsProfitFilters") || "{}") || {}),
+    };
+  } catch {
+    return { marketplace: "", fulfillment_channel: "", search: "" };
+  }
+}
+
 const state = {
   language: localStorage.getItem("mirenelleOpsLanguage") || "en",
   activeSection: window.location.hash.replace(/^#\/?/, "") || localStorage.getItem("mirenelleOpsSection") || "dashboard",
@@ -1008,6 +1033,7 @@ const state = {
   productPrepCostRows: [],
   authUser: null,
   dashboardView: localStorage.getItem("mirenelleOpsDashboardView") || "tiles",
+  profitFilters: savedProfitFilters(),
   cashflowHistory: null,
 };
 
@@ -1130,6 +1156,15 @@ function reportQueryParams(extra = {}) {
   return query ? `?${query}` : "";
 }
 
+function profitabilityQueryParams(extra = {}) {
+  return reportQueryParams({
+    marketplace: state.profitFilters.marketplace,
+    fulfillment_channel: state.profitFilters.fulfillment_channel,
+    search: state.profitFilters.search,
+    ...extra,
+  });
+}
+
 function queryParamsForRange(range, extra = {}) {
   const params = new URLSearchParams();
   if (range?.start) params.set("start_date", range.start);
@@ -1139,6 +1174,27 @@ function queryParamsForRange(range, extra = {}) {
   });
   const query = params.toString();
   return query ? `?${query}` : "";
+}
+
+function profitabilityQueryParamsForRange(range, extra = {}) {
+  return queryParamsForRange(range, {
+    marketplace: state.profitFilters.marketplace,
+    fulfillment_channel: state.profitFilters.fulfillment_channel,
+    search: state.profitFilters.search,
+    ...extra,
+  });
+}
+
+function persistProfitFilters() {
+  localStorage.setItem("mirenelleOpsProfitFilters", JSON.stringify(state.profitFilters));
+}
+
+function syncProfitFilterControls() {
+  document.querySelectorAll("[data-profit-filter]").forEach((element) => {
+    const key = element.dataset.profitFilter;
+    if (!key) return;
+    element.value = state.profitFilters[key] || "";
+  });
 }
 
 function previousPeriodRange() {
@@ -2878,9 +2934,9 @@ function updateDashboardProfit() {
 async function loadProfitability() {
   const previousRange = previousPeriodRange();
   const [data, previousData] = await Promise.all([
-    requestJson(`/reports/product-profitability${reportQueryParams({ limit: 5000 })}`),
+    requestJson(`/reports/product-profitability${profitabilityQueryParams({ limit: 5000 })}`),
     previousRange
-      ? requestJson(`/reports/product-profitability${queryParamsForRange(previousRange, { limit: 5000 })}`)
+      ? requestJson(`/reports/product-profitability${profitabilityQueryParamsForRange(previousRange, { limit: 5000 })}`)
       : Promise.resolve(null),
   ]);
   const summary = data.summary;
@@ -2962,6 +3018,7 @@ async function loadProfitability() {
     <tr>
       <td class="productNameCell" title="${escapeHtml(text(row.product_details))}"><span>${text(row.product_details)}</span></td>
       <td>${renderIdentifiers(row)}</td>
+      <td>${text(row.marketplace)}</td>
       <td>${text(row.fulfillment_channel)}</td>
       <td>${row.currency}</td>
       <td class="num">${row.fx_rate_to_eur}</td>
@@ -4405,6 +4462,35 @@ window.addEventListener("popstate", () => {
 
 document.getElementById("globalSearch").addEventListener("input", applySearchFilter);
 
+let profitFilterDebounce = null;
+function scheduleProfitabilityRefresh() {
+  clearTimeout(profitFilterDebounce);
+  profitFilterDebounce = setTimeout(() => {
+    loadProfitability().catch((error) => setStatus("profitStatus", error.message, true));
+  }, 250);
+}
+
+document.querySelectorAll("[data-profit-filter]").forEach((element) => {
+  const eventName = element.tagName === "SELECT" ? "change" : "input";
+  element.addEventListener(eventName, (event) => {
+    const key = event.currentTarget.dataset.profitFilter;
+    if (!key) return;
+    state.profitFilters[key] = event.currentTarget.value;
+    persistProfitFilters();
+    syncProfitFilterControls();
+    scheduleProfitabilityRefresh();
+  });
+});
+
+document.querySelectorAll("[data-profit-filter-reset]").forEach((button) => {
+  button.addEventListener("click", async () => {
+    state.profitFilters = { marketplace: "", fulfillment_channel: "", search: "" };
+    persistProfitFilters();
+    syncProfitFilterControls();
+    await loadProfitability();
+  });
+});
+
 document.getElementById("periodPreset").addEventListener("change", async (event) => {
   state.periodPreset = event.currentTarget.value;
   syncPeriodControls();
@@ -4469,6 +4555,7 @@ document.getElementById("authLogoutButton")?.addEventListener("click", async () 
   form.submit();
 });
 syncPeriodControls();
+syncProfitFilterControls();
 persistPeriod();
 applyTranslations();
 initializeNavGroups();
