@@ -333,6 +333,124 @@ body {
   color: var(--danger);
 }
 
+.metricDrilldownButton {
+  width: 100%;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.metricDrilldownButton:hover strong {
+  color: var(--accent);
+}
+
+.metricDelta {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.metricDelta.positive {
+  color: var(--green);
+}
+
+.metricDelta.negative {
+  color: var(--danger);
+}
+
+.metricDelta.neutral {
+  color: var(--muted);
+}
+
+.metricDrawer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: none;
+}
+
+.metricDrawer.open {
+  display: block;
+}
+
+body.drawerOpen {
+  overflow: hidden;
+}
+
+.metricDrawerBackdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.32);
+  border: 0;
+  border-radius: 0;
+}
+
+.metricDrawerPanel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  width: min(720px, 92vw);
+  height: 100%;
+  padding: 22px;
+  background: var(--panel);
+  box-shadow: -18px 0 45px rgba(15, 23, 42, 0.18);
+}
+
+.metricDrawerHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.metricDrawerHeader span,
+.metricDrawerHeader p {
+  color: var(--muted);
+}
+
+.metricDrawerHeader h2 {
+  margin: 4px 0;
+}
+
+.metricDrawerClose {
+  color: var(--ink);
+  font-size: 24px;
+}
+
+.metricDrawerSummary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 0;
+}
+
+.metricDrawerSummary strong {
+  font-size: 28px;
+}
+
+.metricDrawerSummary span {
+  color: var(--muted);
+}
+
+.metricDrawerTable {
+  max-height: none;
+}
+
+.metricDrawerTable td:first-child {
+  min-width: 260px;
+}
+
 .topbar {
   position: sticky;
   top: 0;

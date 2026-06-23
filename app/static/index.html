@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mirenelle Ops</title>
     <link rel="icon" type="image/png" href="/ui/favicon.png" />
-    <link rel="stylesheet" href="/ui/styles.css?v=20260623-04" />
+    <link rel="stylesheet" href="/ui/styles.css?v=20260623-05" />
   </head>
   <body>
     <div class="appShell">
@@ -1318,6 +1318,35 @@
       </div>
     </div>
 
-    <script src="/ui/app.js?v=20260623-04"></script>
+    <aside id="metricDrilldown" class="metricDrawer" aria-hidden="true">
+      <button class="metricDrawerBackdrop" type="button" data-close-metric-drawer aria-label="Close"></button>
+      <section class="metricDrawerPanel" role="dialog" aria-modal="true" aria-labelledby="metricDrawerTitle">
+        <header class="metricDrawerHeader">
+          <div>
+            <span data-i18n="board.metricDetails">Metric details</span>
+            <h2 id="metricDrawerTitle">-</h2>
+            <p id="metricDrawerPeriod">-</p>
+          </div>
+          <button class="iconButton metricDrawerClose" type="button" data-close-metric-drawer aria-label="Close">×</button>
+        </header>
+        <div id="metricDrawerSummary" class="metricDrawerSummary"></div>
+        <div class="tableWrap metricDrawerTable">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="table.product">Product</th>
+                <th data-i18n="table.sku">SKU</th>
+                <th data-i18n="field.fulfillment">Fulfillment</th>
+                <th class="num" data-i18n="table.units">Units</th>
+                <th class="num" data-i18n="table.totalEur">Total EUR</th>
+              </tr>
+            </thead>
+            <tbody id="metricDrawerRows"></tbody>
+          </table>
+        </div>
+      </section>
+    </aside>
+
+    <script src="/ui/app.js?v=20260623-05"></script>
   </body>
 </html>

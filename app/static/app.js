@@ -49,6 +49,10 @@ const translations = {
     "board.costBreakdown": "Cost breakdown",
     "board.amazonCashNote": "Amazon cash movement before COGS and indirect expenses.",
     "board.amazonCashResult": "Amazon cash result",
+    "board.metricDetails": "Metric details",
+    "board.previousPeriod": "vs previous period",
+    "board.noComparison": "No previous-period comparison",
+    "board.productsContributing": "products contributing",
     "field.allocationMethod": "Allocation method",
     "field.costFile": "Cost CSV/XLSX",
     "field.csvReport": "CSV report",
@@ -365,6 +369,10 @@ const translations = {
     "board.costBreakdown": "Kostenstruktur",
     "board.amazonCashNote": "Amazon-Zahlungsbewegung vor Wareneinsatz und indirekten Kosten.",
     "board.amazonCashResult": "Amazon-Zahlungsergebnis",
+    "board.metricDetails": "Kennzahlendetails",
+    "board.previousPeriod": "zum vorherigen Zeitraum",
+    "board.noComparison": "Kein Vergleichszeitraum",
+    "board.productsContributing": "beitragende Produkte",
     "field.allocationMethod": "Verteilungsmethode",
     "field.costFile": "Kosten CSV/XLSX",
     "field.csvReport": "CSV-Report",
@@ -681,6 +689,10 @@ const translations = {
     "board.costBreakdown": "Структура витрат",
     "board.amazonCashNote": "Рух коштів Amazon до COGS та непрямих витрат.",
     "board.amazonCashResult": "Грошовий результат Amazon",
+    "board.metricDetails": "Деталі показника",
+    "board.previousPeriod": "до попереднього періоду",
+    "board.noComparison": "Немає попереднього періоду для порівняння",
+    "board.productsContributing": "товарів у розрахунку",
     "field.allocationMethod": "Метод розподілу",
     "field.costFile": "Файл цін CSV/XLSX",
     "field.csvReport": "CSV-звіт",
@@ -968,6 +980,9 @@ const state = {
   amazonPnlSummary: null,
   dataQualitySummary: null,
   profitSummary: null,
+  previousProfitSummary: null,
+  profitRows: [],
+  previousAmazonPnlSummary: null,
   inventoryRows: [],
   bundleComponents: [],
   bundleAssemblies: [],
@@ -1108,6 +1123,56 @@ function reportQueryParams(extra = {}) {
   });
   const query = params.toString();
   return query ? `?${query}` : "";
+}
+
+function queryParamsForRange(range, extra = {}) {
+  const params = new URLSearchParams();
+  if (range?.start) params.set("start_date", range.start);
+  if (range?.end) params.set("end_date", range.end);
+  Object.entries(extra).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") params.set(key, value);
+  });
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+function previousPeriodRange() {
+  if (!state.startDate || !state.endDate) return null;
+  const start = new Date(`${state.startDate}T00:00:00`);
+  const end = new Date(`${state.endDate}T00:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return null;
+  const durationDays = Math.round((end - start) / 86400000) + 1;
+  const previousEnd = new Date(start);
+  previousEnd.setDate(previousEnd.getDate() - 1);
+  const previousStart = new Date(previousEnd);
+  previousStart.setDate(previousStart.getDate() - durationDays + 1);
+  return { start: isoDate(previousStart), end: isoDate(previousEnd) };
+}
+
+function comparisonPercent(current, previous) {
+  const currentValue = Number(current || 0);
+  const previousValue = Number(previous || 0);
+  if (previousValue === 0) return currentValue === 0 ? 0 : null;
+  return ((currentValue - previousValue) / Math.abs(previousValue)) * 100;
+}
+
+function comparisonBadge(current, previous, { inverse = false } = {}) {
+  const delta = comparisonPercent(current, previous);
+  if (delta === null) return `<span class="metricDelta neutral">— ${t("board.previousPeriod")}</span>`;
+  const good = inverse ? delta <= 0 : delta >= 0;
+  const tone = delta === 0 ? "neutral" : good ? "positive" : "negative";
+  const arrow = delta === 0 ? "→" : delta > 0 ? "↑" : "↓";
+  return `<span class="metricDelta ${tone}">${arrow} ${Math.abs(delta).toFixed(1)}% ${t("board.previousPeriod")}</span>`;
+}
+
+function metricButton(metric, label, value, comparison = "") {
+  return `
+    <button class="metricDrilldownButton" type="button" data-metric-drilldown="${metric}">
+      <span>${label}</span>
+      <strong>${value}</strong>
+      ${comparison}
+    </button>
+  `;
 }
 
 const money = (value, currency) =>
@@ -2506,9 +2571,16 @@ async function loadCashflow() {
 }
 
 async function loadAmazonPnl() {
-  const data = await requestJson(`/reports/amazon-pnl${reportQueryParams()}`);
+  const previousRange = previousPeriodRange();
+  const [data, previousData] = await Promise.all([
+    requestJson(`/reports/amazon-pnl${reportQueryParams()}`),
+    previousRange
+      ? requestJson(`/reports/amazon-pnl${queryParamsForRange(previousRange)}`)
+      : Promise.resolve(null),
+  ]);
   const summary = data.summary;
   state.amazonPnlSummary = summary;
+  state.previousAmazonPnlSummary = previousData?.summary || null;
   updateDashboardPnl();
   const target = document.getElementById("amazonPnlTotals");
   if (target) {
@@ -2562,13 +2634,26 @@ async function loadAmazonPnl() {
 function updateDashboardPnl() {
   const summary = state.amazonPnlSummary;
   if (!summary) return;
+  const previous = state.previousAmazonPnlSummary;
   const sales = document.getElementById("dashboardSales");
   const ordersUnits = document.getElementById("dashboardOrdersUnits");
   const refunds = document.getElementById("dashboardPnlRefunds");
+  const fees = document.getElementById("dashboardPnlFees");
   const estimatedPayout = document.getElementById("dashboardEstimatedPayout");
-  if (sales) sales.textContent = money(summary.gross_sales_eur, "EUR");
-  if (ordersUnits) ordersUnits.textContent = `${summary.order_rows} / ${summary.units_sold}`;
-  if (refunds) refunds.textContent = `${summary.units_refunded} (${money(summary.refunds_eur, "EUR")})`;
+  if (sales) {
+    sales.innerHTML = `${money(summary.gross_sales_eur, "EUR")}${previous ? comparisonBadge(summary.gross_sales_eur, previous.gross_sales_eur) : ""}`;
+  }
+  if (ordersUnits) {
+    ordersUnits.innerHTML = `${summary.order_rows} / ${summary.units_sold}${previous ? comparisonBadge(summary.units_sold, previous.units_sold) : ""}`;
+  }
+  if (refunds) {
+    refunds.innerHTML = `${summary.units_refunded} (${money(summary.refunds_eur, "EUR")})${previous ? comparisonBadge(Math.abs(summary.refunds_eur), Math.abs(previous.refunds_eur), { inverse: true }) : ""}`;
+  }
+  if (fees) {
+    const currentFees = summary.amazon_fees_eur + summary.service_other_fees_eur;
+    const previousFees = previous ? previous.amazon_fees_eur + previous.service_other_fees_eur : 0;
+    fees.innerHTML = `${money(currentFees, "EUR")}${previous ? comparisonBadge(Math.abs(currentFees), Math.abs(previousFees), { inverse: true }) : ""}`;
+  }
   if (estimatedPayout) estimatedPayout.textContent = money(summary.amazon_operating_result_eur, "EUR");
 }
 
@@ -2661,10 +2746,10 @@ function renderDashboardCards(data) {
         <span>${t("table.sales")}</span>
       </div>
       <div class="metricBody">
-        <div class="wideMetric"><span>${t("table.sales")}</span><strong id="dashboardSales">${money(totalProduct, "EUR")}</strong></div>
-        <div><span>${t("table.ordersUnits")}</span><strong id="dashboardOrdersUnits">${general.rows} / -</strong></div>
-        <div><span>${t("table.refunds")}</span><strong id="dashboardPnlRefunds">-</strong></div>
-        <div><span>${t("table.fees")}</span><strong>${money(totalFees, "EUR")}</strong></div>
+        <div class="wideMetric">${metricButton("sales", t("table.sales"), `<span id="dashboardSales">${money(totalProduct, "EUR")}</span>`)}</div>
+        <div>${metricButton("units", t("table.ordersUnits"), `<span id="dashboardOrdersUnits">${general.rows} / -</span>`)}</div>
+        <div>${metricButton("refunds", t("table.refunds"), `<span id="dashboardPnlRefunds">-</span>`)}</div>
+        <div>${metricButton("fees", t("table.fees"), `<span id="dashboardPnlFees">${money(totalFees, "EUR")}</span>`)}</div>
         <div><span>${t("table.estPayout")}</span><strong id="dashboardEstimatedPayout">${money(general.total_amount_eur, "EUR")}</strong></div>
       </div>
     </article>
@@ -2707,10 +2792,10 @@ function renderDashboardCards(data) {
         <span>${t("table.netProfit")}</span>
       </div>
       <div class="metricBody metricBodyDense">
-        <div class="wideMetric"><span>${t("table.netProfit")}</span><strong id="dashboardNetProfit">-</strong></div>
-        <div><span>${t("table.grossProfit")}</span><strong id="dashboardGrossProfit">-</strong></div>
-        <div><span>${t("table.refunds")}</span><strong id="dashboardRefunds">-</strong></div>
-        <div><span>${t("table.amazonFees")}</span><strong id="dashboardAmazonFees">-</strong></div>
+        <div class="wideMetric">${metricButton("net_profit", t("table.netProfit"), `<span id="dashboardNetProfit">-</span>`)}</div>
+        <div>${metricButton("gross_profit", t("table.grossProfit"), `<span id="dashboardGrossProfit">-</span>`)}</div>
+        <div>${metricButton("refunds", t("table.refunds"), `<span id="dashboardRefunds">-</span>`)}</div>
+        <div>${metricButton("fees", t("table.amazonFees"), `<span id="dashboardAmazonFees">-</span>`)}</div>
         <div><span>${t("table.netMargin")}</span><strong id="dashboardNetMargin">-</strong></div>
         <div><span>${t("table.netRoi")}</span><strong id="dashboardNetRoi">-</strong></div>
         <div><span>${t("table.costCoverage")}</span><strong id="dashboardCoverage">-</strong></div>
@@ -2725,6 +2810,7 @@ function renderDashboardCards(data) {
 function updateDashboardProfit() {
   const summary = state.profitSummary;
   if (!summary) return;
+  const previous = state.previousProfitSummary;
   const netProfit = document.getElementById("dashboardNetProfit");
   const grossProfit = document.getElementById("dashboardGrossProfit");
   const refunds = document.getElementById("dashboardRefunds");
@@ -2733,10 +2819,14 @@ function updateDashboardProfit() {
   const netRoi = document.getElementById("dashboardNetRoi");
   const coverage = document.getElementById("dashboardCoverage");
   const profitableProducts = document.getElementById("dashboardProfitableProducts");
-  if (netProfit) netProfit.textContent = money(summary.net_profit_eur, "EUR");
-  if (grossProfit) grossProfit.textContent = money(summary.gross_profit_eur, "EUR");
-  if (refunds) refunds.textContent = money(summary.refunds_eur, "EUR");
-  if (amazonFees) amazonFees.textContent = money(summary.amazon_fees_eur + summary.other_amount_eur, "EUR");
+  if (netProfit) netProfit.innerHTML = `${money(summary.net_profit_eur, "EUR")}${previous ? comparisonBadge(summary.net_profit_eur, previous.net_profit_eur) : ""}`;
+  if (grossProfit) grossProfit.innerHTML = `${money(summary.gross_profit_eur, "EUR")}${previous ? comparisonBadge(summary.gross_profit_eur, previous.gross_profit_eur) : ""}`;
+  if (refunds) refunds.innerHTML = `${money(summary.refunds_eur, "EUR")}${previous ? comparisonBadge(Math.abs(summary.refunds_eur), Math.abs(previous.refunds_eur), { inverse: true }) : ""}`;
+  if (amazonFees) {
+    const currentFees = summary.amazon_fees_eur + summary.other_amount_eur;
+    const previousFees = previous ? previous.amazon_fees_eur + previous.other_amount_eur : 0;
+    amazonFees.innerHTML = `${money(currentFees, "EUR")}${previous ? comparisonBadge(Math.abs(currentFees), Math.abs(previousFees), { inverse: true }) : ""}`;
+  }
   if (netMargin) netMargin.textContent = summary.net_margin_percent === null ? "-" : `${summary.net_margin_percent}%`;
   if (netRoi) netRoi.textContent = summary.net_roi_percent === null ? "-" : `${summary.net_roi_percent}%`;
   if (coverage) coverage.textContent = `${summary.matched_products}/${summary.products}`;
@@ -2744,9 +2834,17 @@ function updateDashboardProfit() {
 }
 
 async function loadProfitability() {
-  const data = await requestJson(`/reports/product-profitability${reportQueryParams({ limit: 5000 })}`);
+  const previousRange = previousPeriodRange();
+  const [data, previousData] = await Promise.all([
+    requestJson(`/reports/product-profitability${reportQueryParams({ limit: 5000 })}`),
+    previousRange
+      ? requestJson(`/reports/product-profitability${queryParamsForRange(previousRange, { limit: 5000 })}`)
+      : Promise.resolve(null),
+  ]);
   const summary = data.summary;
   state.profitSummary = summary;
+  state.previousProfitSummary = previousData?.summary || null;
+  state.profitRows = data.rows || [];
   updateDashboardProfit();
   document.getElementById("profitTotals").innerHTML = `
     <div class="kpi">
@@ -2848,6 +2946,73 @@ async function loadProfitability() {
   `;
   renderRows("profitRows", data.rows, renderProfitRow);
   renderRows("profitRowsMirror", data.rows, renderProfitRow);
+}
+
+const drilldownMetrics = {
+  sales: {
+    label: "table.sales",
+    value: (row) => Number(row.revenue_eur || 0),
+  },
+  units: {
+    label: "table.unitsSold",
+    value: (row) => Number(row.units_estimated || 0),
+    isUnits: true,
+  },
+  refunds: {
+    label: "table.refunds",
+    value: (row) => Number(row.refunds_eur || 0),
+  },
+  fees: {
+    label: "table.amazonFees",
+    value: (row) => Number(row.amazon_fees_eur || 0) + Number(row.other_amount_eur || 0),
+  },
+  gross_profit: {
+    label: "table.grossProfit",
+    value: (row) => row.gross_profit_eur === null ? 0 : Number(row.gross_profit_eur),
+  },
+  net_profit: {
+    label: "table.netProfit",
+    value: (row) => row.net_profit_eur === null ? 0 : Number(row.net_profit_eur),
+  },
+};
+
+function closeMetricDrilldown() {
+  const drawer = document.getElementById("metricDrilldown");
+  drawer.classList.remove("open");
+  drawer.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("drawerOpen");
+}
+
+function openMetricDrilldown(metricKey) {
+  const metric = drilldownMetrics[metricKey];
+  if (!metric) return;
+  const rows = state.profitRows
+    .map((row) => ({ row, value: metric.value(row) }))
+    .filter(({ value }) => value !== 0)
+    .sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+  const total = rows.reduce((sum, item) => sum + item.value, 0);
+  const drawer = document.getElementById("metricDrilldown");
+  document.getElementById("metricDrawerTitle").textContent = t(metric.label);
+  document.getElementById("metricDrawerPeriod").textContent = state.startDate && state.endDate
+    ? `${state.startDate} — ${state.endDate}`
+    : t("period.all");
+  document.getElementById("metricDrawerSummary").innerHTML = `
+    <strong>${metric.isUnits ? new Intl.NumberFormat(localeByLanguage[state.language] || "en-US").format(total) : money(total, "EUR")}</strong>
+    <span>${rows.length} ${t("board.productsContributing")}</span>
+  `;
+  renderRows("metricDrawerRows", rows, ({ row, value }) => `
+    <tr>
+      <td class="productNameCell" title="${escapeHtml(text(row.product_details))}"><span>${escapeHtml(text(row.product_details))}</span></td>
+      <td>${escapeHtml(text(row.sku))}</td>
+      <td>${escapeHtml(text(row.fulfillment_channel))}</td>
+      <td class="num">${row.units_estimated}</td>
+      <td class="num">${metric.isUnits ? "—" : money(value, "EUR")}</td>
+    </tr>
+  `);
+  drawer.classList.add("open");
+  drawer.setAttribute("aria-hidden", "false");
+  document.body.classList.add("drawerOpen");
+  drawer.querySelector(".metricDrawerClose").focus();
 }
 
 async function refreshAll() {
@@ -4129,6 +4294,19 @@ document.querySelectorAll(".navItem").forEach((button) => {
 
 document.querySelectorAll(".boardTab").forEach((button) => {
   button.addEventListener("click", () => showDashboardView(button.dataset.dashboardView));
+});
+
+document.getElementById("dashboardCards").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-metric-drilldown]");
+  if (button) openMetricDrilldown(button.dataset.metricDrilldown);
+});
+
+document.getElementById("metricDrilldown").addEventListener("click", (event) => {
+  if (event.target.closest("[data-close-metric-drawer]")) closeMetricDrilldown();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeMetricDrilldown();
 });
 
 document.querySelectorAll(".navGroupToggle").forEach((button) => {
