@@ -474,7 +474,11 @@ Current verified inventory examples:
     routes (`#/dashboard`, `#/payments`, `#/inventory`, etc.), and browser
     Back/Forward switches sections correctly. Browser verification covered
     group expansion, active page state, URL history, collapsed-state reload,
-    and returned no console errors.
+    and returned no console errors. A follow-up comparison through Sellerboard's
+    public Demo confirmed that clicking a parent expands it without navigating,
+    multiple groups may remain open, and compact mode keeps child icons
+    clickable; the local compact sidebar was adjusted to preserve all child
+    navigation icons too.
 
 ## Current Resume Checklist
 

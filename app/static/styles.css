@@ -1661,7 +1661,7 @@ th.num {
 }
 
 .appShell.sidebarCollapsed .navGroupItems {
-  display: none;
+  display: block !important;
 }
 
 .appShell.sidebarCollapsed .navStandalone {
