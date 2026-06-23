@@ -401,8 +401,8 @@ Current verified inventory examples:
 
 ## Current Resume Point
 
-- Latest verified implementation commit: `4cbd35f`
-  (`Remove global prep cost settings`).
+- Latest verified implementation commit: `0991e41`
+  (`Allow manual product mapping undo`).
 - Working tree was clean after the implementation commit.
 - Database migration head: `20260622_0026`.
 - Bundle assembly fees are charged by the prep center and default to
@@ -465,6 +465,8 @@ Current verified inventory examples:
     the selected mapping row through `DELETE /product-mappings/{mapping_id}`,
     and refreshes profitability/data-quality reports. Invoice lines and Amazon
     transactions are never deleted by this action.
+    The test mapping `Mirenelle Damen Lounge Set -> I2318` (mapping ID 4,
+    invoice line 72) was removed through the new endpoint and verified absent.
 
 ## Current Resume Checklist
 
